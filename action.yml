@@ -1,0 +1,14 @@
+name: Install TeX Live
+description: Install a minimal TeX Live version and a customizable list of packages
+inputs:
+  packages:
+    description: 'Which packages to install'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - run: ${{ github.action_path }}/texlive.sh
+      shell: sh
+      working-directory: ${{ env.HOME }}
+      env:
+        TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}
