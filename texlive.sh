@@ -23,7 +23,10 @@ if ! command -v texlua > /dev/null; then
 fi
 tlmgr update --self
 
-echo "$TEXLIVE_PACKAGE_LIST" | sed -re '/^#/d' | xargs tlmgr install
+if [ -n "$TEXLIVE_PACKAGE_LIST_FILE" ]
+then cat "$TEXLIVE_PACKAGE_LIST_FILE"
+else echo "$TEXLIVE_PACKAGE_LIST"
+fi | sed -re '/^#/d' | xargs tlmgr install
 
 # Keep no backups (not required, simply makes cache bigger)
 tlmgr option -- autobackup 0
