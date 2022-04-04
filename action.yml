@@ -1,6 +1,9 @@
 name: Install TeX Live
 description: Install a minimal TeX Live version and a customizable list of packages
 inputs:
+  repository:
+    description: 'The repository to install TeX Live from'
+    required: false
   package_file:
     description: 'A file listing the packages to install'
     required: false
@@ -14,5 +17,6 @@ runs:
       shell: sh
       working-directory: ${{ env.HOME }}
       env:
+        TEXLIVE_REPOSITORY: ${{ inputs.repository }}
         TEXLIVE_PACKAGE_LIST_FILE: ${{ inputs.package_file }}
         TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}

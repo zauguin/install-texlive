@@ -10,16 +10,18 @@ export PATH=$HOME/texlive/bin/x86_64-linux:$PATH
 echo "$HOME/texlive/bin/x86_64-linux" >> $GITHUB_PATH
 if ! command -v texlua > /dev/null; then
   # Obtain TeX Live
-  wget http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz
+  wget "${TEXLIVE_REPOSITORY:-http://mirror.ctan.org/systems/texlive/tlnet}/install-tl-unx.tar.gz"
   tar -xzf install-tl-unx.tar.gz
   cd install-tl-20*
 
   # Install a minimal system
   sed -ire "/~/s!!$HOME!" $GITHUB_ACTION_PATH/texlive.profile
-  ./install-tl --profile=$GITHUB_ACTION_PATH/texlive.profile
+  ./install-tl${TEXLIVE_REPOSITORY+ --repository="${TEXLIVE_REPOSITORY}"} --profile="$GITHUB_ACTION_PATH/texlive.profile"
 
   cd ..
   rm -Rf install-tl-20*
+else
+  tlmgr option repository "${TEXLIVE_REPOSITORY:-ctan}"
 fi
 tlmgr update --self
 
