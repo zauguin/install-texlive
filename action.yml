@@ -10,9 +10,24 @@ inputs:
   packages:
     description: 'Which packages to install'
     required: false
+  cache_version:
+    description: 'A version number to allow forcing cache invalidation'
+    default: 0
 runs:
   using: "composite"
   steps:
+    - name: Generate unique ID
+      shell: sh
+      working-directory: ${{ env.HOME }}
+      id: get-id
+      run: |
+        echo "id=$(cat /proc/sys/kernel/random/uuid)" >> $GITHUB_OUTPUT
+    - name: Load cache
+      uses: actions/cache@v3
+      with:
+        path: ~/texlive
+        key: texlive-v${{ inputs.cache_version }}-${{ steps.get-id.outputs.id }}
+        restore-keys: texlive-v${{ inputs.cache_version }}-
     - run: ${{ github.action_path }}/texlive.sh
       shell: sh
       working-directory: ${{ env.HOME }}
