@@ -13,6 +13,10 @@ inputs:
   cache_version:
     description: 'A version number to allow forcing cache invalidation'
     default: 0
+  accept-stale:
+    description: 'Do not fail if unable to update but an outdated version is available'
+    required: false
+    default: true
 outputs:
   cache_key:
     description: "The updated or generated cache"
@@ -35,7 +39,7 @@ runs:
     - run: ${{ github.action_path }}/texlive.sh
       if: steps.load-cache.outputs.cache-hit != 'true'
       id: install
-      continue-on-error: ${{ steps.load-cache.outputs.cache-matched-key != null }}
+      continue-on-error: ${{ steps.accept-stale == 'true' && steps.load-cache.outputs.cache-matched-key != null }}
       shell: sh
       working-directory: ${{ env.HOME }}
       env:
