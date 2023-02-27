@@ -16,13 +16,12 @@ inputs:
 outputs:
   cache_key:
     description: "The updated or generated cache"
-    value: ${{ steps.load-cache.outputs.cache-primary-key }}
+    value: ${{ steps.key.outputs.key }}
 runs:
   using: "composite"
   steps:
     - name: Get date
       shell: sh
-      working-directory: ${{ env.HOME }}
       id: get-date
       run: |
         echo "date=$(date -I)" >> $GITHUB_OUTPUT
@@ -31,10 +30,12 @@ runs:
       uses: actions/cache/restore@v3
       with:
         path: ~/texlive
-        key: texlive-v${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.get-date.outputs.date }}
-        restore-keys: texlive-v${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-
+        key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.get-date.outputs.date }}
+        restore-keys: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-
     - run: ${{ github.action_path }}/texlive.sh
       if: steps.load-cache.outputs.cache-hit != 'true'
+      id: install
+      continue-on-error: ${{ steps.load-cache.outputs.cache-matched-key != null }}
       shell: sh
       working-directory: ${{ env.HOME }}
       env:
@@ -42,7 +43,12 @@ runs:
         TEXLIVE_PACKAGE_LIST_FILE: ${{ inputs.package_file }}
         TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}
     - name: Save cache
+      if: steps.install.outcome == 'success'
       uses: actions/cache/save@v3
       with:
         path: ~/texlive
         key: ${{ steps.load-cache.outputs.cache-primary-key }}
+    - shell: sh
+      run: |
+        if ${{ steps.install.outcome == 'success' }} ; then echo "key=${{ steps.load-cache.outputs.cache-primary-key }}" ; else echo "key=${{ steps.load-cache.outputs.cache-matched-key }}" ; fi >> $GITHUB_OUTPUT
+      id: key
