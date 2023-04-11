@@ -15,6 +15,7 @@ if ! command -v texlua > /dev/null; then
   cd install-tl-20*
 
   # Install a minimal system
+  TEXLIVE_PROFILE="$(realpath --relative-to="${GITHUB_WORKSPACE}" "$TEXLIVE_PROFILE")"
   sed -ire "/~/s!!$HOME!" "$TEXLIVE_PROFILE"
   ./install-tl${TEXLIVE_REPOSITORY:+ --repository="${TEXLIVE_REPOSITORY}"} --profile="$TEXLIVE_PROFILE"
 
