@@ -17,6 +17,10 @@ inputs:
     description: 'Do not fail if unable to update but an outdated version is available'
     required: false
     default: true
+  profile:
+    description: 'Path to the used TeX Live installation profile'
+    required: false
+    default: ${{ github.action_path }}/texlive.profile
 outputs:
   cache_key:
     description: "The updated or generated cache"
@@ -34,8 +38,8 @@ runs:
       uses: actions/cache/restore@v3
       with:
         path: ~/texlive
-        key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.get-date.outputs.date }}
-        restore-keys: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-
+        key: texlive-${{ inputs.cache_version }}-${{ startsWith(inputs.profile, github.action_path) && hashFiles(inputs.package_file) || hashFiles(inputs.package_file, inputs.profile) }}-${{ steps.get-date.outputs.date }}
+        restore-keys: texlive-${{ inputs.cache_version }}-${{ startsWith(inputs.profile, github.action_path) && hashFiles(inputs.package_file) || hashFiles(inputs.package_file, inputs.profile) }}-
     - run: ${{ github.action_path }}/texlive.sh
       if: steps.load-cache.outputs.cache-hit != 'true'
       id: install
@@ -46,6 +50,7 @@ runs:
         TEXLIVE_REPOSITORY: ${{ inputs.repository }}
         TEXLIVE_PACKAGE_LIST_FILE: ${{ inputs.package_file }}
         TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}
+        TEXLIVE_PROFILE: ${{ inputs.profile }}
     - name: Save cache
       if: steps.install.outcome == 'success'
       uses: actions/cache/save@v3
