@@ -24,6 +24,12 @@ if ! command -v texlua > /dev/null; then
 else
   tlmgr option repository "${TEXLIVE_REPOSITORY:-ctan}"
 fi
+
+if $TEXLIVE_TLCONTRIB; then
+  tlmgr repository add https://mirror.ctan.org/systems/texlive/tlcontrib tlcontrib
+  tlmgr pinning add tlcontrib "*"
+fi
+
 tlmgr update --self
 
 if [ -n "$TEXLIVE_PACKAGE_LIST_FILE" ]

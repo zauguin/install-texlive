@@ -20,6 +20,9 @@ inputs:
   profile:
     description: 'Path to the used TeX Live installation profile'
     required: false
+  tlcontrib:
+    description: 'Also install tlcontrib'
+    required: false
 outputs:
   cache_key:
     description: "The updated or generated cache"
@@ -37,8 +40,8 @@ runs:
       uses: actions/cache/restore@v3
       with:
         path: ~/texlive
-        key: texlive-${{ inputs.cache_version }}-${{ inputs.profile && hashFiles(inputs.package_file, inputs.profile) || hashFiles(inputs.package_file) }}-${{ steps.get-date.outputs.date }}
-        restore-keys: texlive-${{ inputs.cache_version }}-${{ inputs.profile && hashFiles(inputs.package_file, inputs.profile) || hashFiles(inputs.package_file) }}-
+        key: texlive-${{ inputs.cache_version }}${{ inputs.tlcontrib && '-contrib' || '' }}-${{ inputs.profile && hashFiles(inputs.package_file, inputs.profile) || hashFiles(inputs.package_file) }}-${{ steps.get-date.outputs.date }}
+        restore-keys: texlive-${{ inputs.cache_version }}${{ inputs.tlcontrib && '-contrib' || '' }}-${{ inputs.profile && hashFiles(inputs.package_file, inputs.profile) || hashFiles(inputs.package_file) }}-
     - run: ${{ github.action_path }}/texlive.sh
       if: steps.load-cache.outputs.cache-hit != 'true'
       id: install
@@ -46,6 +49,7 @@ runs:
       shell: sh
       working-directory: ${{ env.HOME }}
       env:
+        TEXLIVE_TLCONTRIB: ${{ inputs.tlcontrib && 'true' || 'false' }}
         TEXLIVE_REPOSITORY: ${{ inputs.repository }}
         TEXLIVE_PACKAGE_LIST_FILE: ${{ inputs.package_file }}
         TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}
