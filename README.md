@@ -27,3 +27,12 @@ jobs:
       - name: Use TeX Live
         run: ... whatever you want to install TeX Live for
 ```
+
+Instead of specifying the packages directly, you can pass a file containing the list of packages:
+
+```yaml
+      - name: Install TeX Live
+        uses: zauguin/install-texlive@v2
+        with:
+           package_file: tl_packages
+```
