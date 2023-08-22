@@ -7,7 +7,6 @@
 
 # See if there is a cached version of TL available
 export PATH=$HOME/texlive/bin/x86_64-linux:$PATH
-echo "$HOME/texlive/bin/x86_64-linux" >> $GITHUB_PATH
 if ! command -v texlua > /dev/null; then
   # Obtain TeX Live
   wget "${TEXLIVE_REPOSITORY:-http://mirror.ctan.org/systems/texlive/tlnet}/install-tl-unx.tar.gz"
