@@ -35,7 +35,7 @@ runs:
       uses: actions/cache/restore@v3
       with:
         path: ~/texlive
-        key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file, '/tmp/packages.txt') }}-${{ steps.get-date.outputs.date }}
+        key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ hashFiles('/tmp/packages.txt') }}-${{ steps.get-date.outputs.date }}
     - run: ${{ github.action_path }}/texlive.sh
       if: steps.load-cache.outputs.cache-hit != 'true'
       id: install
