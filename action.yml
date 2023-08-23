@@ -37,6 +37,7 @@ runs:
       with:
         path: ~/texlive
         key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-${{ steps.key-parts.outputs.date }}
+        restore-keys: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-
     - run: ${{ github.action_path }}/texlive.sh
       if: steps.load-cache.outputs.cache-hit != 'true'
       id: install
