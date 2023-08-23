@@ -16,6 +16,7 @@ jobs:
       uses: ./
       with:
         packages: latex-bin
+        cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
     - run: pdflatex test.tex
 
   run-with-cache:
@@ -26,4 +27,8 @@ jobs:
       uses: actions/checkout@v3
     - name: Run the action
       uses: ./
+      with:
+        packages: latex-bin
+        cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
+        repository: https://127.0.0.42/not-a-texlive-mirror/
     - run: pdflatex test.tex
