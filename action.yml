@@ -26,6 +26,7 @@ runs:
   steps:
     - name: Prepare cache key
       id: key-parts
+      shell: sh
       run: |
         echo "date=$(date -I)" >> $GITHUB_OUTPUT
         HASH=`echo "${{ inputs.packages }}" | md5sum | cut -d ' ' -f 1`
