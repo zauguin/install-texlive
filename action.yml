@@ -29,8 +29,10 @@ runs:
       shell: sh
       run: |
         echo "date=$(date -I)" >> $GITHUB_OUTPUT
-        HASH=`echo "${{ inputs.packages }}" | md5sum | cut -d ' ' -f 1`
+        HASH=$(echo "$TEXLIVE_PACKAGE_LIST" | md5sum | cut -d ' ' -f 1)
         echo "packages-hash=$HASH" >> $GITHUB_OUTPUT
+      env:
+        TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}
     - name: Load cache
       id: load-cache
       uses: actions/cache/restore@v3
