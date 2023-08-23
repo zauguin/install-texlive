@@ -29,7 +29,7 @@ runs:
       id: get-date
       run: |
         echo "date=$(date -I)" >> $GITHUB_OUTPUT
-        echo "${{ github.event.inputs.packages }}" > /tmp/packages.txt
+        echo "${{ inputs.packages }}" > /tmp/packages.txt
     - name: Load cache
       id: load-cache
       uses: actions/cache/restore@v3
