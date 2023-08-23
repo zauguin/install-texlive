@@ -1,0 +1,29 @@
+name: Test Action
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  first-run:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Run the action
+      uses: ./
+      with:
+        packages: latex-bin
+    - run: pdflatex test.tex
+
+  run-with-cache:
+    needs: first-run
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Run the action
+      uses: ./
+    - run: pdflatex test.tex

@@ -24,18 +24,20 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Get date
+    - name: Prepare cache key
+      id: key-parts
       shell: sh
-      id: get-date
       run: |
         echo "date=$(date -I)" >> $GITHUB_OUTPUT
+        HASH=`echo "${{ inputs.packages }}" | md5sum | cut -d ' ' -f 1`
+        echo "packages-hash=$HASH" >> $GITHUB_OUTPUT
     - name: Load cache
       id: load-cache
       uses: actions/cache/restore@v3
       with:
         path: ~/texlive
-        key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.get-date.outputs.date }}
-        restore-keys: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-
+        key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-${{ steps.key-parts.outputs.date }}
+        restore-keys: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-
     - run: ${{ github.action_path }}/texlive.sh
       if: steps.load-cache.outputs.cache-hit != 'true'
       id: install
@@ -56,3 +58,6 @@ runs:
       run: |
         if ${{ steps.install.outcome == 'success' }} ; then echo "key=${{ steps.load-cache.outputs.cache-primary-key }}" ; else echo "key=${{ steps.load-cache.outputs.cache-matched-key }}" ; fi >> $GITHUB_OUTPUT
       id: key
+    - name: Set path
+      shell: sh
+      run: echo "$HOME/texlive/bin/x86_64-linux" >> $GITHUB_PATH
