@@ -32,3 +32,21 @@ jobs:
         cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
         repository: https://127.0.0.42/not-a-texlive-mirror/
     - run: pdflatex test.tex
+    - name: '"pdflatex test-enumitem.tex" should fail'
+      run: |
+        CODE=1
+        pdflatex -interaction=nonstopmode test-enumitem.tex || CODE=0
+        exit $CODE
+
+  run-without-cache:
+    needs: first-run
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Run the action
+      uses: ./
+      with:
+        packages: latex-bin enumitem
+        cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
+    - run: pdflatex test-enumitem.tex
