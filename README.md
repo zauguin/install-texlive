@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install TeX Live
-        uses: zauguin/install-texlive@v2
+        uses: zauguin/install-texlive@v3
         with:
           packages: >
             l3build latex latex-bin luatex latex-bin-dev
@@ -32,7 +32,7 @@ Instead of specifying the packages directly, you can pass a file containing the 
 
 ```yaml
       - name: Install TeX Live
-        uses: zauguin/install-texlive@v2
+        uses: zauguin/install-texlive@v3
         with:
            package_file: tl_packages
 ```
