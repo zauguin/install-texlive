@@ -6,21 +6,22 @@
 # required
 
 # See if there is a cached version of TL available
+TEXLIVE_REPOSITORY="${TEXLIVE_REPOSITORY:-$(curl -s https://zauguin.github.io/texlive-mirrors/us | shuf -n 1)}"
 export PATH=$HOME/texlive/bin/x86_64-linux:$PATH
 if ! command -v texlua > /dev/null; then
   # Obtain TeX Live
-  wget -q "${TEXLIVE_REPOSITORY:-http://mirror.ctan.org/systems/texlive/tlnet}/install-tl-unx.tar.gz"
+  wget -q "$TEXLIVE_REPOSITORY/install-tl-unx.tar.gz"
   tar -xzf install-tl-unx.tar.gz
   cd install-tl-20*
 
   # Install a minimal system
   sed -ire "/~/s!!$HOME!" $GITHUB_ACTION_PATH/texlive.profile
-  ./install-tl${TEXLIVE_REPOSITORY:+ --repository="${TEXLIVE_REPOSITORY}"} --profile="$GITHUB_ACTION_PATH/texlive.profile"
+  ./install-tl --repository="${TEXLIVE_REPOSITORY}" --profile="$GITHUB_ACTION_PATH/texlive.profile"
 
   cd ..
   rm -Rf install-tl-20*
 else
-  tlmgr option repository "${TEXLIVE_REPOSITORY:-ctan}"
+  tlmgr option repository "$TEXLIVE_REPOSITORY"
 fi
 tlmgr update --self
 
