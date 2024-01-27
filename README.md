@@ -36,3 +36,9 @@ Instead of specifying the packages directly, you can pass a file containing the 
         with:
            package_file: tl_packages
 ```
+
+## FAQs
+
+> I miss the "basic" scheme of TeXLive. How can I install that?
+
+Install the package `scheme-basic`. That provides you with all the packages of the basic scheme.
