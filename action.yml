@@ -35,7 +35,7 @@ runs:
         TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}
     - name: Load cache
       id: load-cache
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: ~/texlive
         key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-${{ steps.key-parts.outputs.date }}
@@ -52,7 +52,7 @@ runs:
         TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}
     - name: Save cache
       if: steps.install.outcome == 'success'
-      uses: actions/cache/save@v3
+      uses: actions/cache/save@v4
       with:
         path: ~/texlive
         key: ${{ steps.load-cache.outputs.cache-primary-key }}
