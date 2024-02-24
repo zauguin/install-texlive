@@ -7,17 +7,31 @@
 
 # See if there is a cached version of TL available
 TEXLIVE_REPOSITORY="${TEXLIVE_REPOSITORY:-$(curl -s https://zauguin.github.io/texlive-mirrors/us | shuf -n 1)}"
-export PATH="$HOME/texlive/bin/x86_64-linux:$PATH"
+case "$(uname -o)" in
+  Msys)
+    HOMEDIR="$(cygpath -m ~)"
+    PLATFORM_NAME="windows"
+    INSTALLER="./install-tl-windows.bat"
+    ;;
+  "GNU/Linux")
+    HOMEDIR="$HOME"
+    PLATFORM_NAME="x86_64-linux"
+    INSTALLER="./install-tl"
+    ;;
+  *)
+    echo "Unknown OS: $(uname -o)" >&2
+    exit 1
+    ;;
+esac
+export PATH="$HOME/texlive/bin/$PLATFORM_NAME:$PATH"
 if ! command -v texlua > /dev/null; then
   # Obtain TeX Live
   case "$(uname -o)" in
     Msys)
       curl -sO "$TEXLIVE_REPOSITORY/install-tl.zip"
       unzip install-tl.zip
-      HOMEDIR="$(cygpath -m ~)"
       ;;
     *)
-      HOMEDIR="$HOME"
       wget -q "$TEXLIVE_REPOSITORY/install-tl-unx.tar.gz"
       tar -xzf install-tl-unx.tar.gz
       ;;
@@ -26,7 +40,7 @@ if ! command -v texlua > /dev/null; then
 
   # Install a minimal system
   sed -ire "/~/s!!$HOMEDIR!" $GITHUB_ACTION_PATH/texlive.profile
-  ./install-tl --repository="${TEXLIVE_REPOSITORY}" --profile="$GITHUB_ACTION_PATH/texlive.profile"
+  "$INSTALLER" --repository="${TEXLIVE_REPOSITORY}" --profile="$GITHUB_ACTION_PATH/texlive.profile"
 
   cd ..
   rm -Rf install-tl-20*
