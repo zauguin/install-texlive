@@ -40,7 +40,7 @@ runs:
         path: ~/texlive
         key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-${{ steps.key-parts.outputs.date }}
         restore-keys: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-
-    - run: ${{ github.action_path }}/texlive.sh
+    - run: '"${{ github.action_path }}/texlive.sh"'
       if: steps.load-cache.outputs.cache-hit != 'true'
       id: install
       continue-on-error: ${{ steps.accept-stale == 'true' && steps.load-cache.outputs.cache-matched-key != null }}
@@ -61,5 +61,10 @@ runs:
         if ${{ steps.install.outcome == 'success' }} ; then echo "key=${{ steps.load-cache.outputs.cache-primary-key }}" ; else echo "key=${{ steps.load-cache.outputs.cache-matched-key }}" ; fi >> $GITHUB_OUTPUT
       id: key
     - name: Set path
+      if: runner.os == 'Linux'
       shell: sh
       run: echo "$HOME/texlive/bin/x86_64-linux" >> $GITHUB_PATH
+    - name: Set path
+      if: runner.os == 'Windows'
+      shell: sh
+      run: echo "$USERPROFILE/texlive/bin/windows" >> $GITHUB_PATH
