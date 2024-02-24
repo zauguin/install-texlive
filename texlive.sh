@@ -24,11 +24,13 @@ case "$(uname -o)" in
     ;;
 esac
 export PATH="$HOME/texlive/bin/$PLATFORM_NAME:$PATH"
+echo "Searching TeX Live"
 if ! command -v texlua > /dev/null; then
+  echo "Installing TeX Live"
   # Obtain TeX Live
   case "$(uname -o)" in
     Msys)
-      curl -sO "$TEXLIVE_REPOSITORY/install-tl.zip"
+      curl -O "$TEXLIVE_REPOSITORY/install-tl.zip"
       unzip install-tl.zip
       ;;
     *)
@@ -45,8 +47,11 @@ if ! command -v texlua > /dev/null; then
   cd ..
   rm -Rf install-tl-20*
 else
+  echo "Found TeX Live"
   tlmgr option repository "$TEXLIVE_REPOSITORY"
 fi
+echo "Using PATH: $PATH"
+ls "$HOME/texlive/bin/$PLATFORM_NAME"
 tlmgr update --self
 
 if [ -n "$TEXLIVE_PACKAGE_LIST_FILE" ]
