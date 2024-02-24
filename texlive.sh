@@ -12,11 +12,13 @@ case "$(uname -o)" in
     HOMEDIR="$(cygpath -m ~)"
     PLATFORM_NAME="windows"
     INSTALLER="./install-tl-windows.bat"
+    TLMGR="tlmgr.bat"
     ;;
   "GNU/Linux")
     HOMEDIR="$HOME"
     PLATFORM_NAME="x86_64-linux"
     INSTALLER="./install-tl"
+    TLMGR="tlmgr"
     ;;
   *)
     echo "Unknown OS: $(uname -o)" >&2
@@ -24,14 +26,12 @@ case "$(uname -o)" in
     ;;
 esac
 export PATH="$HOME/texlive/bin/$PLATFORM_NAME:$PATH"
-echo "Searching TeX Live"
 if ! command -v texlua > /dev/null; then
-  echo "Installing TeX Live"
   # Obtain TeX Live
   case "$(uname -o)" in
     Msys)
       curl -O "$TEXLIVE_REPOSITORY/install-tl.zip"
-      unzip install-tl.zip
+      unzip -q install-tl.zip
       ;;
     *)
       wget -q "$TEXLIVE_REPOSITORY/install-tl-unx.tar.gz"
@@ -47,20 +47,17 @@ if ! command -v texlua > /dev/null; then
   cd ..
   rm -Rf install-tl-20*
 else
-  echo "Found TeX Live"
-  tlmgr option repository "$TEXLIVE_REPOSITORY"
+  "$TLMGR" option repository "$TEXLIVE_REPOSITORY"
 fi
-echo "Using PATH: $PATH"
-ls "$HOME/texlive/bin/$PLATFORM_NAME"
-tlmgr update --self
+"$TLMGR" update --self
 
 if [ -n "$TEXLIVE_PACKAGE_LIST_FILE" ]
 then cat "$TEXLIVE_PACKAGE_LIST_FILE"
 else echo "$TEXLIVE_PACKAGE_LIST"
-fi | sed -re '/^#/d' | xargs tlmgr install
+fi | sed -re '/^#/d' | xargs "$TLMGR" install
 
 # Keep no backups (not required, simply makes cache bigger)
-tlmgr option -- autobackup 0
+"$TLMGR" option -- autobackup 0
 
 # Update the TL install but add nothing new
-tlmgr update --self --all --no-auto-install
+"$TLMGR" update --self --all --no-auto-install
