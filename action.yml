@@ -38,8 +38,8 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: ~/texlive
-        key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-${{ steps.key-parts.outputs.date }}
-        restore-keys: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-
+        key: texlive-${{ runner.os }}-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-${{ steps.key-parts.outputs.date }}
+        restore-keys: texlive-${{ runner.os }}-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-
     - run: '"${{ github.action_path }}/texlive.sh"'
       if: steps.load-cache.outputs.cache-hit != 'true'
       id: install
@@ -64,6 +64,10 @@ runs:
       if: runner.os == 'Linux'
       shell: sh
       run: echo "$HOME/texlive/bin/x86_64-linux" >> $GITHUB_PATH
+    - name: Set path
+      if: runner.os == 'macOS'
+      shell: sh
+      run: echo "$HOME/texlive/bin/universal-darwin" >> $GITHUB_PATH
     - name: Set path
       if: runner.os == 'Windows'
       shell: sh

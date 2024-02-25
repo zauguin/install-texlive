@@ -6,25 +6,35 @@
 # required
 
 # See if there is a cached version of TL available
-TEXLIVE_REPOSITORY="${TEXLIVE_REPOSITORY:-$(curl -s https://zauguin.github.io/texlive-mirrors/us | shuf -n 1)}"
 case "$(uname -o)" in
   Msys)
     HOMEDIR="$(cygpath -m ~)"
     PLATFORM_NAME="windows"
     INSTALLER="./install-tl-windows.bat"
     TLMGR="tlmgr.bat"
+    SHUF="shuf"
     ;;
   "GNU/Linux")
     HOMEDIR="$HOME"
     PLATFORM_NAME="x86_64-linux"
     INSTALLER="./install-tl"
     TLMGR="tlmgr"
+    SHUF="shuf"
+    ;;
+  Darwin)
+    HOMEDIR="$HOME"
+    PLATFORM_NAME="universal-darwin"
+    INSTALLER="./install-tl"
+    TLMGR="tlmgr"
+    SHUF="gshuf"
+    brew install coreutils
     ;;
   *)
     echo "Unknown OS: $(uname -o)" >&2
     exit 1
     ;;
 esac
+TEXLIVE_REPOSITORY="${TEXLIVE_REPOSITORY:-$(curl -s https://zauguin.github.io/texlive-mirrors/us | "$SHUF" -n 1)}"
 export PATH="$HOME/texlive/bin/$PLATFORM_NAME:$PATH"
 if ! command -v texlua > /dev/null; then
   # Obtain TeX Live
