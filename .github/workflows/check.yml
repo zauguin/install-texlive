@@ -8,7 +8,14 @@ concurrency:
 
 jobs:
   first-run:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    name: "1st: ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -21,7 +28,14 @@ jobs:
 
   run-with-cache:
     needs: first-run
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    name: "2nd: ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
