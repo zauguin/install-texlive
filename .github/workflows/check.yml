@@ -13,8 +13,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # update to macos-latest on `macos-14` release
-          - macos-13
+          - macos-14
     name: "1st: ${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     steps:
