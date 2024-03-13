@@ -1,6 +1,13 @@
 name: Test Action
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: '1 2 5 * *'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,3 +39,12 @@ jobs:
         cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
         repository: https://127.0.0.42/not-a-texlive-mirror/
     - run: pdflatex test.tex
+
+  keepalive:
+    name: Keepalive
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gautamkrishnar/keepalive-workflow@v2
