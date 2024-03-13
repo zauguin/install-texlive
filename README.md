@@ -1,9 +1,12 @@
 # Install TeX Live for GitHub Action workflows
 
 A GitHub Actions action to install the latest TeX Live version under `~/texlive`.
-The list of required packages must be provided using the `packages` input parameter.
 
-The `~/texlive` is automatically cached. A cache refresh can be forced by changing the `cache_version` parameter.
+## Selecting packages to install
+
+### Package list as input parameter
+
+The list of required packages must be provided using the `packages` input parameter.
 
 To use this in a Workflow, you can use
 
@@ -28,6 +31,8 @@ jobs:
         run: ... whatever you want to install TeX Live for
 ```
 
+### Package list as file
+
 Instead of specifying the packages directly, you can pass a file containing the list of packages:
 
 ```yaml
@@ -36,6 +41,12 @@ Instead of specifying the packages directly, you can pass a file containing the 
         with:
            package_file: tl_packages
 ```
+
+## Caching
+
+The directory `~/texlive` is automatically cached.
+Currently, a cache refresh is done each day.
+A cache refresh can also be forced by changing the `cache_version` parameter.
 
 ## FAQs
 
