@@ -42,6 +42,32 @@ Instead of specifying the packages directly, you can pass a file containing the 
            package_file: tl_packages
 ```
 
+### Enabling updating cache using a workflow trigger
+
+One can inclue a cache referesh using GitHub's `workflow_dispatch` functionality:
+
+```yaml
+name: check
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      cache_version:
+        description: 'Cache version for install-texlive'
+        default: '0'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install TeX Live
+        uses: zauguin/install-texlive@v3
+        with:
+           package_file: tl_packages
+           cache_version: ${{ github.event.inputs.cache_version }}
+```
+
 ## Caching
 
 The directory `~/texlive` is automatically cached.
