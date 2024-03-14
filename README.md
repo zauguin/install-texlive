@@ -45,7 +45,6 @@ Instead of specifying the packages directly, you can pass a file containing the 
 ## Caching
 
 The directory `~/texlive` is automatically cached.
-Currently, a cache refresh is done each day.
 A cache refresh can also be forced by changing the `cache_version` parameter.
 
 ## FAQs
