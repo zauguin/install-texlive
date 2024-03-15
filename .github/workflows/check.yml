@@ -2,8 +2,6 @@ name: Test Action
 
 on:
   push:
-    branches:
-      - main
   pull_request:
   schedule:
     - cron: '1 2 5 * *'
