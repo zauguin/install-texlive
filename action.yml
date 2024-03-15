@@ -43,7 +43,7 @@ runs:
     - run: '"${{ github.action_path }}/texlive.sh"'
       if: steps.load-cache.outputs.cache-hit != 'true'
       id: install
-      continue-on-error: ${{ steps.accept-stale == 'true' && steps.load-cache.outputs.cache-matched-key != null }}
+      continue-on-error: ${{ inputs.accept-stale == 'true' && steps.load-cache.outputs.cache-matched-key != null }}
       shell: sh
       working-directory: ${{ env.HOME }}
       env:
