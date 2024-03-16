@@ -5,3 +5,6 @@ MD004:
 # Ordered list item prefix
 MD029:
   style: one
+
+# Line lengths
+MD013: false
