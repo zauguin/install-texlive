@@ -48,7 +48,14 @@ jobs:
         run: npm run ci-test
 
   first-run:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-14
+    name: "1st: ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -61,7 +68,14 @@ jobs:
 
   run-with-cache:
     needs: first-run
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-14
+    name: "2st: ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
