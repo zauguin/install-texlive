@@ -1,5 +1,10 @@
 # Install TeX Live for GitHub Action workflows
 
+[![GitHub Super-Linter](https://github.com/zauguin/ctan-upload/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
+![CI](https://github.com/zauguin/ctan-upload/actions/workflows/ci.yml/badge.svg)
+[![Check dist/](https://github.com/zauguin/ctan-upload/actions/workflows/check-dist.yml/badge.svg)](https://github.com/zauguin/ctan-upload/actions/workflows/check-dist.yml)
+[![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
+
 A GitHub Actions action to install the latest TeX Live version under `~/texlive`.
 The list of required packages must be provided using the `packages` input parameter.
 
