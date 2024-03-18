@@ -27,7 +27,6 @@ inputs:
 outputs:
   cache_key:
     description: "The updated or generated cache"
-    value: ${{ steps.key.outputs.key }}
 
 runs:
   using: node20

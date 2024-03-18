@@ -98504,7 +98504,7 @@ async function run() {
         core.info(`Trying to restore with key ${cacheKey.full}`);
         const restoredCache = await cache.restoreCache([`${home}/texlive`], cacheKey.full, [cacheKey.prefix]);
         if (restoredCache === cacheKey.full) {
-            core.setOutput('key', restoredCache);
+            core.setOutput('cache_key', restoredCache);
             core.info(`Restored cache with key ${restoredCache}`);
             return;
         }
@@ -98520,12 +98520,12 @@ async function run() {
             if (restoredCache === undefined) {
                 throw error;
             }
-            core.setOutput('key', restoredCache);
+            core.setOutput('cache_key', restoredCache);
             return;
         }
-        const savedCache = await cache.saveCache([`${home}/texlive`], cacheKey.full);
-        core.info(`Updated cache with key ${savedCache}`);
-        core.setOutput('key', savedCache);
+        await cache.saveCache([`${home}/texlive`], cacheKey.full);
+        core.info(`Updated cache with key ${cacheKey.full}`);
+        core.setOutput('cache_key', cacheKey.full);
     }
     catch (error) {
         // Fail the workflow run if an error occurs
