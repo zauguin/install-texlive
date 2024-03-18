@@ -98502,7 +98502,7 @@ async function run() {
         const tlPlatform = detectTlPlatform();
         core.addPath(`${home}/texlive/bin/${tlPlatform}`);
         core.info(`Trying to restore with key ${cacheKey.full}`);
-        const restoredCache = await cache.restoreCache([`${home}/texlive`], cacheKey.full, [cacheKey.prefix]);
+        const restoredCache = await cache.restoreCache(['~/texlive'], cacheKey.full, [cacheKey.prefix]);
         if (restoredCache === cacheKey.full) {
             core.setOutput('cache_key', restoredCache);
             core.info(`Restored cache with key ${restoredCache}`);
@@ -98523,7 +98523,7 @@ async function run() {
             core.setOutput('cache_key', restoredCache);
             return;
         }
-        await cache.saveCache([`${home}/texlive`], cacheKey.full);
+        await cache.saveCache(['~/texlive'], cacheKey.full);
         core.info(`Updated cache with key ${cacheKey.full}`);
         core.setOutput('cache_key', cacheKey.full);
     }

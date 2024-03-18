@@ -217,7 +217,7 @@ export async function run(): Promise<void> {
 
     core.info(`Trying to restore with key ${cacheKey.full}`)
     const restoredCache = await cache.restoreCache(
-      [`${home}/texlive`],
+      ['~/texlive'],
       cacheKey.full,
       [cacheKey.prefix]
     )
@@ -247,7 +247,7 @@ export async function run(): Promise<void> {
       return
     }
 
-    await cache.saveCache([`${home}/texlive`], cacheKey.full)
+    await cache.saveCache(['~/texlive'], cacheKey.full)
     core.info(`Updated cache with key ${cacheKey.full}`)
     core.setOutput('cache_key', cacheKey.full)
   } catch (error) {
