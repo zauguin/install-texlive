@@ -98421,27 +98421,36 @@ function detectTlPlatform() {
 }
 async function findRepository() {
     const http = new lib.HttpClient();
-    let mirrorListString;
+    let mirrorList;
     try {
-        const mirrorListResponse = await http.get('https://zauguin.github.io/texlive-mirrors/us');
+        const mirrorListResponse = await http.get('https://zauguin.github.io/texlive-mirrors/mirrors.json');
         if (mirrorListResponse.message.statusCode === 200) {
-            mirrorListString = await mirrorListResponse.readBody();
+            mirrorList = JSON.parse(await mirrorListResponse.readBody());
         }
         else {
-            mirrorListString = undefined;
+            mirrorList = undefined;
         }
     }
     catch (_) {
-        mirrorListString = undefined;
+        mirrorList = undefined;
     }
-    if (mirrorListString === undefined) {
+    if (mirrorList === undefined) {
         core.error('Unable to retrive mirror list, falling back to CTAN auto selection');
         return undefined;
     }
-    const mirrors = [...mirrorListString.matchAll(/\S+/g)].map(m => m[0]);
-    const mirror = mirrors[Math.floor(Math.random() * mirrors.length)];
-    core.info(`Selected mirror ${mirror}`);
-    return mirrors[Math.floor(Math.random() * mirrors.length)];
+    const usMirrors = Object.entries(mirrorList['North America'].USA).filter(([_, { status }]) => status === 'Alive');
+    if (usMirrors.length === 0) {
+        throw new Error('No mirror available');
+    }
+    const highestVersion = Math.max(...usMirrors.map(([_, { texlive_version }]) => texlive_version));
+    const versionFilteredMirrors = usMirrors.filter(([_, { texlive_version }]) => texlive_version === highestVersion);
+    const highestRevision = Math.max(...versionFilteredMirrors.map(([_, { revision }]) => revision));
+    const filteredMirrors = versionFilteredMirrors
+        .filter(([_, { revision }]) => revision === highestRevision)
+        .map(([mirror, _]) => mirror);
+    const mirror = filteredMirrors[Math.floor(Math.random() * filteredMirrors.length)];
+    core.info(`Selected mirror ${mirror} (TeX Live ${highestVersion}, rev. ${highestRevision})`);
+    return mirror;
 }
 function handleExecResult(description, status) {
     if (status === 0)
@@ -98459,6 +98468,7 @@ async function installTexLive(initialInstall, repository, tlPlatform, packages) 
         if (response.message.statusCode !== 200) {
             throw new Error(`Downloading installer failed with status code ${response.message.statusCode}`);
         }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const installerBlob = await response.readBodyBuffer();
         const tmpdir = external_node_os_.tmpdir();
         const installerDir = `${tmpdir}/install-texlive`;

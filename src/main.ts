@@ -8,6 +8,26 @@ import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import { getProfile } from './tlprofile.js'
 
+type AliveMirror = {
+  status: 'Alive'
+  texlive_version: number
+  revision: number
+}
+
+type MirrorData =
+  | {
+      status: 'Dead' | 'Timeout'
+    }
+  | AliveMirror
+
+type MirrorList = {
+  [continent: string]: {
+    [country: string]: {
+      [mirror: string]: MirrorData
+    }
+  }
+}
+
 function getMandatoryInput(name: string): string {
   return core.getInput(name, { required: true })
 }
@@ -29,7 +49,7 @@ async function inlineOrFilecontent(
   return content
 }
 
-function parsePackages(packagesString: string): string[] {
+export function parsePackages(packagesString: string): string[] {
   return [...packagesString.replaceAll(/#.*?(\n|$)/g, '$1').matchAll(/\S+/g)]
     .map(m => m[0])
     .sort()
@@ -91,29 +111,49 @@ function detectTlPlatform(): TlPlatform {
 
 async function findRepository(): Promise<string | undefined> {
   const http = new HttpClient()
-  let mirrorListString: string | undefined
+  let mirrorList: MirrorList | undefined
   try {
     const mirrorListResponse = await http.get(
-      'https://zauguin.github.io/texlive-mirrors/us'
+      'https://zauguin.github.io/texlive-mirrors/mirrors.json'
     )
     if (mirrorListResponse.message.statusCode === 200) {
-      mirrorListString = await mirrorListResponse.readBody()
+      mirrorList = JSON.parse(await mirrorListResponse.readBody())
     } else {
-      mirrorListString = undefined
+      mirrorList = undefined
     }
   } catch (_) {
-    mirrorListString = undefined
+    mirrorList = undefined
   }
-  if (mirrorListString === undefined) {
+  if (mirrorList === undefined) {
     core.error(
       'Unable to retrive mirror list, falling back to CTAN auto selection'
     )
     return undefined
   }
-  const mirrors = [...mirrorListString.matchAll(/\S+/g)].map(m => m[0])
-  const mirror = mirrors[Math.floor(Math.random() * mirrors.length)]
-  core.info(`Selected mirror ${mirror}`)
-  return mirrors[Math.floor(Math.random() * mirrors.length)]
+  const usMirrors = Object.entries(mirrorList['North America'].USA).filter(
+    ([_, { status }]) => status === 'Alive'
+  ) as [string, AliveMirror][]
+  if (usMirrors.length === 0) {
+    throw new Error('No mirror available')
+  }
+  const highestVersion = Math.max(
+    ...usMirrors.map(([_, { texlive_version }]) => texlive_version)
+  )
+  const versionFilteredMirrors = usMirrors.filter(
+    ([_, { texlive_version }]) => texlive_version === highestVersion
+  )
+  const highestRevision = Math.max(
+    ...versionFilteredMirrors.map(([_, { revision }]) => revision)
+  )
+  const filteredMirrors = versionFilteredMirrors
+    .filter(([_, { revision }]) => revision === highestRevision)
+    .map(([mirror, _]) => mirror)
+  const mirror =
+    filteredMirrors[Math.floor(Math.random() * filteredMirrors.length)]
+  core.info(
+    `Selected mirror ${mirror} (TeX Live ${highestVersion}, rev. ${highestRevision})`
+  )
+  return mirror
 }
 
 function handleExecResult(description: string, status: number): void {
@@ -141,6 +181,7 @@ async function installTexLive(
         `Downloading installer failed with status code ${response.message.statusCode}`
       )
     }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const installerBlob = await response.readBodyBuffer!()
     const tmpdir = os.tmpdir()
     const installerDir = `${tmpdir}/install-texlive`
