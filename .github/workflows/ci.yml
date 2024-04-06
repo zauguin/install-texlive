@@ -1,0 +1,100 @@
+name: Continuous Integration
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '1 2 5 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-typescript:
+    name: TypeScript Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Dependencies
+        id: npm-ci
+        run: npm ci
+
+      - name: Check Format
+        id: npm-format-check
+        run: npm run format:check
+
+      - name: Lint
+        id: npm-lint
+        run: npm run lint
+
+      - name: Test
+        id: npm-ci-test
+        run: npm run ci-test
+
+  first-run:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-14
+    name: "1st: ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Run the action
+      uses: ./
+      with:
+        packages: latex-bin
+        cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
+    - run: pdflatex test.tex
+
+  run-with-cache:
+    needs: first-run
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-14
+    name: "2nd: ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Run the action
+      uses: ./
+      with:
+        packages: latex-bin
+        cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
+        repository: https://127.0.0.42/not-a-texlive-mirror/
+    - run: pdflatex test.tex
+    - name: '"pdflatex test-enumitem.tex" should fail'
+      run: |
+        ! pdflatex -interaction=nonstopmode test-enumitem.tex
+
+  keepalive:
+    name: Keepalive
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gautamkrishnar/keepalive-workflow@v2

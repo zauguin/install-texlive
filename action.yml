@@ -1,5 +1,11 @@
 name: Install TeX Live
 description: Install a minimal TeX Live version and a customizable list of packages
+author: Marcel Krüger
+
+branding:
+  icon: download
+  color: blue
+
 inputs:
   repository:
     description: 'The repository to install TeX Live from'
@@ -17,49 +23,11 @@ inputs:
     description: 'Do not fail if unable to update but an outdated version is available'
     required: false
     default: true
+
 outputs:
   cache_key:
     description: "The updated or generated cache"
-    value: ${{ steps.key.outputs.key }}
+
 runs:
-  using: "composite"
-  steps:
-    - name: Prepare cache key
-      id: key-parts
-      shell: sh
-      run: |
-        echo "date=$(date -I)" >> $GITHUB_OUTPUT
-        HASH=$(echo "$TEXLIVE_PACKAGE_LIST" | md5sum | cut -d ' ' -f 1)
-        echo "packages-hash=$HASH" >> $GITHUB_OUTPUT
-      env:
-        TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}
-    - name: Load cache
-      id: load-cache
-      uses: actions/cache/restore@v3
-      with:
-        path: ~/texlive
-        key: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-${{ steps.key-parts.outputs.date }}
-        restore-keys: texlive-${{ inputs.cache_version }}-${{ hashFiles(inputs.package_file) }}-${{ steps.key-parts.outputs.packages-hash }}-
-    - run: ${{ github.action_path }}/texlive.sh
-      if: steps.load-cache.outputs.cache-hit != 'true'
-      id: install
-      continue-on-error: ${{ steps.accept-stale == 'true' && steps.load-cache.outputs.cache-matched-key != null }}
-      shell: sh
-      working-directory: ${{ env.HOME }}
-      env:
-        TEXLIVE_REPOSITORY: ${{ inputs.repository }}
-        TEXLIVE_PACKAGE_LIST_FILE: ${{ inputs.package_file }}
-        TEXLIVE_PACKAGE_LIST: ${{ inputs.packages }}
-    - name: Save cache
-      if: steps.install.outcome == 'success'
-      uses: actions/cache/save@v3
-      with:
-        path: ~/texlive
-        key: ${{ steps.load-cache.outputs.cache-primary-key }}
-    - shell: sh
-      run: |
-        if ${{ steps.install.outcome == 'success' }} ; then echo "key=${{ steps.load-cache.outputs.cache-primary-key }}" ; else echo "key=${{ steps.load-cache.outputs.cache-matched-key }}" ; fi >> $GITHUB_OUTPUT
-      id: key
-    - name: Set path
-      shell: sh
-      run: echo "$HOME/texlive/bin/x86_64-linux" >> $GITHUB_PATH
+  using: node20
+  main: dist/index.js
