@@ -34,9 +34,7 @@ jobs:
     - run: pdflatex test.tex
     - name: '"pdflatex test-enumitem.tex" should fail'
       run: |
-        CODE=1
-        pdflatex -interaction=nonstopmode test-enumitem.tex || CODE=0
-        exit $CODE
+        ! pdflatex -interaction=nonstopmode test-enumitem.tex
 
   run-without-cache:
     needs: first-run
