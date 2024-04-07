@@ -74,7 +74,7 @@ jobs:
         os:
           - ubuntu-latest
           - macos-14
-    name: "2st: ${{ matrix.os }}"
+    name: "2nd: ${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     steps:
     - name: Checkout code
@@ -86,6 +86,9 @@ jobs:
         cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
         repository: https://127.0.0.42/not-a-texlive-mirror/
     - run: pdflatex test.tex
+    - name: '"pdflatex test-enumitem.tex" should fail'
+      run: |
+        ! pdflatex -interaction=nonstopmode test-enumitem.tex
 
   keepalive:
     name: Keepalive
