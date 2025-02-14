@@ -1,5 +1,6 @@
 name: Install TeX Live
-description: Install a minimal TeX Live version and a customizable list of packages
+description:
+  Install a minimal TeX Live version and a customizable list of packages
 author: Marcel Krüger
 
 branding:
@@ -20,13 +21,14 @@ inputs:
     description: 'A version number to allow forcing cache invalidation'
     default: 0
   accept-stale:
-    description: 'Do not fail if unable to update but an outdated version is available'
+    description:
+      'Do not fail if unable to update but an outdated version is available'
     required: false
     default: true
 
 outputs:
   cache_key:
-    description: "The updated or generated cache"
+    description: 'The updated or generated cache'
 
 runs:
   using: node20

@@ -54,17 +54,17 @@ jobs:
         os:
           - ubuntu-latest
           - macos-14
-    name: "1st: ${{ matrix.os }}"
-    runs-on: "${{ matrix.os }}"
+    name: '1st: ${{ matrix.os }}'
+    runs-on: '${{ matrix.os }}'
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: Run the action
-      uses: ./
-      with:
-        packages: latex-bin
-        cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
-    - run: pdflatex test.tex
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run the action
+        uses: ./
+        with:
+          packages: latex-bin
+          cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
+      - run: pdflatex test.tex
 
   run-with-cache:
     needs: first-run
@@ -74,21 +74,21 @@ jobs:
         os:
           - ubuntu-latest
           - macos-14
-    name: "2nd: ${{ matrix.os }}"
-    runs-on: "${{ matrix.os }}"
+    name: '2nd: ${{ matrix.os }}'
+    runs-on: '${{ matrix.os }}'
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: Run the action
-      uses: ./
-      with:
-        packages: latex-bin
-        cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
-        repository: https://127.0.0.42/not-a-texlive-mirror/
-    - run: pdflatex test.tex
-    - name: '"pdflatex test-enumitem.tex" should fail'
-      run: |
-        ! pdflatex -interaction=nonstopmode test-enumitem.tex
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run the action
+        uses: ./
+        with:
+          packages: latex-bin
+          cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
+          repository: https://127.0.0.42/not-a-texlive-mirror/
+      - run: pdflatex test.tex
+      - name: '"pdflatex test-enumitem.tex" should fail'
+        run: |
+          ! pdflatex -interaction=nonstopmode test-enumitem.tex
 
   keepalive:
     name: Keepalive
