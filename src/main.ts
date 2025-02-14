@@ -8,7 +8,7 @@ import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import { getProfile } from './tlprofile.js'
 
-type AliveMirror = {
+interface AliveMirror {
   status: 'Alive'
   texlive_version: number
   revision: number
@@ -20,7 +20,7 @@ type MirrorData =
     }
   | AliveMirror
 
-type MirrorList = {
+interface MirrorList {
   [continent: string]: {
     [country: string]: {
       [mirror: string]: MirrorData
