@@ -29,7 +29,7 @@
     "coverage": "make-coverage-badge --output-path ./badges/coverage.svg",
     "format:write": "prettier --write **/*.ts",
     "format:check": "prettier --check **/*.ts",
-    "lint": "npx eslint . -c ./.github/linters/.eslintrc.yml",
+    "lint": "npx eslint . -c ./.github/linters/eslint.config.mjs",
     "package": "ncc build src/index.ts --license licenses.txt && linefix dist",
     "package:watch": "npm run package -- --watch",
     "test": "vitest --run",
@@ -46,6 +46,9 @@
     "temporal-polyfill": "^0.2.5"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.20.0",
+    "@stylistic/eslint-plugin": "^4.0.1",
     "@types/decompress": "^4.2.7",
     "@types/node": "^22.13.4",
     "@typescript-eslint/eslint-plugin": "^8.24.0",
@@ -57,6 +60,7 @@
     "eslint-plugin-github": "^5.1.8",
     "eslint-plugin-jsonc": "^2.19.1",
     "eslint-plugin-prettier": "^5.2.3",
+    "globals": "^16.0.0",
     "linefix": "^0.1.1",
     "make-coverage-badge": "^1.2.0",
     "prettier": "^3.5.1",
