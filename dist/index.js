@@ -93829,7 +93829,9 @@ function handleExecResult(description, status) {
 async function installTexLive(initialInstall, repository, tlPlatform, packages) {
     const tlmgr = tlPlatform === 'windows' ? 'tlmgr.bat' : 'tlmgr';
     if (initialInstall) {
-        const http = new lib.HttpClient();
+        const http = new lib.HttpClient('install-texlive GitHub Action', [], {
+            allowRedirectDowngrade: true
+        });
         const response = await http.get((repository ?? 'https://mirrors.ctan.org/systems/texlive/tlnet') +
             (tlPlatform === 'windows'
                 ? '/install-tl.zip'
