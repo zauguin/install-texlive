@@ -9,7 +9,7 @@ import * as os from 'node:os'
 import { getProfile } from './tlprofile.js'
 
 interface AliveMirror {
-  status: 'Alive'
+  status: 'Alive' | 'Special'
   texlive_version: number
   revision: number
 }
@@ -36,6 +36,12 @@ function getOptionalInput(name: string): string | undefined {
   return core.getInput(name) || undefined
 }
 
+function getOptionalNumberInput(name: string): number | undefined {
+  const input = getOptionalInput(name)
+  if (input === undefined) return undefined
+  return parseInt(input)
+}
+
 async function inlineOrFilecontent(
   inline: string | undefined,
   filename: string | undefined
@@ -57,7 +63,9 @@ export function parsePackages(packagesString: string): string[] {
 
 async function calculateCacheKey(
   version: string,
-  packages: string[]
+  packages: string[],
+  texlive_version: number | undefined,
+  revision: number | undefined
 ): Promise<{
   prefix: string
   full: string
@@ -73,8 +81,9 @@ async function calculateCacheKey(
     .map(byte => byte.toString(16).padStart(2, '0'))
     .join('')
   const osid = `${os.platform()}-${os.machine()}`
-  const cachePrefix = `texlive-${osid}-${version}-${packageHash}-`
-  const cacheKey = cachePrefix + Temporal.Now.plainDateISO('UTC').toString()
+  const cachePrefix = `texlive-${osid}-${version}-${packageHash}-${texlive_version || 'NONE'}-`
+  const cacheKey =
+    cachePrefix + (revision ?? Temporal.Now.plainDateISO('UTC').toString())
   return {
     prefix: cachePrefix,
     full: cacheKey
@@ -109,7 +118,22 @@ function detectTlPlatform(): TlPlatform {
   }
 }
 
-async function findRepository(): Promise<string | undefined> {
+function mirrorIsApplicable(
+  mirrorData: MirrorData,
+  version: number | undefined
+): boolean {
+  if (version === undefined) {
+    return mirrorData.status === 'Alive'
+  }
+  if (!(mirrorData.status === 'Alive' || mirrorData.status === 'Special')) {
+    return false
+  }
+  return mirrorData.texlive_version === version
+}
+
+async function findRepository(
+  version: number | undefined
+): Promise<[string, number, number] | undefined> {
   const http = new HttpClient()
   let mirrorList: MirrorList | undefined
   try {
@@ -131,7 +155,7 @@ async function findRepository(): Promise<string | undefined> {
     return undefined
   }
   const usMirrors = Object.entries(mirrorList['North America'].USA).filter(
-    ([_, { status }]) => status === 'Alive'
+    ([_, data]) => mirrorIsApplicable(data, version)
   ) as [string, AliveMirror][]
   if (usMirrors.length === 0) {
     throw new Error('No mirror available')
@@ -153,7 +177,7 @@ async function findRepository(): Promise<string | undefined> {
   core.info(
     `Selected mirror ${mirror} (TeX Live ${highestVersion}, rev. ${highestRevision})`
   )
-  return mirror
+  return [mirror, highestVersion, highestRevision]
 }
 
 function handleExecResult(description: string, status: number): void {
@@ -230,10 +254,24 @@ async function installTexLive(
   )
 }
 
+async function resolveRepository(
+  texlive_version: number | undefined,
+  requested_repository: string | undefined
+): Promise<[string | undefined, number | undefined, number | undefined]> {
+  if (requested_repository !== undefined) {
+    return [requested_repository, texlive_version, undefined]
+  }
+  return (
+    (await findRepository(texlive_version)) || [undefined, undefined, undefined]
+  )
+}
+
 export async function run(): Promise<void> {
   try {
-    const repository =
-      getOptionalInput('repository') ?? (await findRepository())
+    const [repository, texlive_version, revision] = await resolveRepository(
+      getOptionalNumberInput('texlive_version'),
+      getOptionalInput('repository')
+    )
     const packageFile = getOptionalInput('package_file')
     const packagesInline = getOptionalInput('packages')
     const cacheVersion = getMandatoryInput('cache_version')
@@ -250,7 +288,12 @@ export async function run(): Promise<void> {
       return parsePackages(packageString)
     })()
 
-    const cacheKey = await calculateCacheKey(cacheVersion, packages)
+    const cacheKey = await calculateCacheKey(
+      cacheVersion,
+      packages,
+      texlive_version,
+      revision
+    )
 
     const home = os.homedir()
     const tlPlatform = detectTlPlatform()
@@ -268,7 +311,7 @@ export async function run(): Promise<void> {
       return
     }
 
-    // Installing TeX Live gets another try clock to handle acceptStale
+    // Installing TeX Live gets another try block to handle acceptStale
     try {
       await installTexLive(
         restoredCache === undefined,

@@ -64,6 +64,7 @@ jobs:
         with:
           packages: latex-bin
           cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
+          texlive_version: '2024'
       - run: pdflatex test.tex
 
   run-with-cache:
@@ -85,6 +86,7 @@ jobs:
           packages: latex-bin
           cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
           repository: https://127.0.0.42/not-a-texlive-mirror/
+          texlive_version: '2024'
       - run: pdflatex test.tex
       - name: '"pdflatex test-enumitem.tex" should fail'
         run: |

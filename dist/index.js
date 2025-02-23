@@ -93725,6 +93725,12 @@ function getMandatoryInput(name) {
 function getOptionalInput(name) {
     return core.getInput(name) || undefined;
 }
+function getOptionalNumberInput(name) {
+    const input = getOptionalInput(name);
+    if (input === undefined)
+        return undefined;
+    return parseInt(input);
+}
 async function inlineOrFilecontent(inline, filename) {
     if (inline !== undefined || filename === undefined) {
         return inline;
@@ -93739,13 +93745,13 @@ function parsePackages(packagesString) {
         .map(m => m[0])
         .sort();
 }
-async function calculateCacheKey(version, packages) {
+async function calculateCacheKey(version, packages, texlive_version, revision) {
     const packageHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(packages.join()))))
         .map(byte => byte.toString(16).padStart(2, '0'))
         .join('');
     const osid = `${external_node_os_.platform()}-${external_node_os_.machine()}`;
-    const cachePrefix = `texlive-${osid}-${version}-${packageHash}-`;
-    const cacheKey = cachePrefix + mr.Now.plainDateISO('UTC').toString();
+    const cachePrefix = `texlive-${osid}-${version}-${packageHash}-${texlive_version || 'NONE'}-`;
+    const cacheKey = cachePrefix + (revision ?? mr.Now.plainDateISO('UTC').toString());
     return {
         prefix: cachePrefix,
         full: cacheKey
@@ -93773,7 +93779,16 @@ function detectTlPlatform() {
             throw new Error(`Unsupported platform ${osPlatform}`);
     }
 }
-async function findRepository() {
+function mirrorIsApplicable(mirrorData, version) {
+    if (version === undefined) {
+        return mirrorData.status === 'Alive';
+    }
+    if (!(mirrorData.status === 'Alive' || mirrorData.status === 'Special')) {
+        return false;
+    }
+    return mirrorData.texlive_version === version;
+}
+async function findRepository(version) {
     const http = new lib.HttpClient();
     let mirrorList;
     try {
@@ -93792,7 +93807,7 @@ async function findRepository() {
         core.error('Unable to retrive mirror list, falling back to CTAN auto selection');
         return undefined;
     }
-    const usMirrors = Object.entries(mirrorList['North America'].USA).filter(([_, { status }]) => status === 'Alive');
+    const usMirrors = Object.entries(mirrorList['North America'].USA).filter(([_, data]) => mirrorIsApplicable(data, version));
     if (usMirrors.length === 0) {
         throw new Error('No mirror available');
     }
@@ -93804,7 +93819,7 @@ async function findRepository() {
         .map(([mirror, _]) => mirror);
     const mirror = filteredMirrors[Math.floor(Math.random() * filteredMirrors.length)];
     core.info(`Selected mirror ${mirror} (TeX Live ${highestVersion}, rev. ${highestRevision})`);
-    return mirror;
+    return [mirror, highestVersion, highestRevision];
 }
 function handleExecResult(description, status) {
     if (status === 0)
@@ -93847,9 +93862,15 @@ async function installTexLive(initialInstall, repository, tlPlatform, packages) 
         windowsVerbatimArguments: true
     }));
 }
+async function resolveRepository(texlive_version, requested_repository) {
+    if (requested_repository !== undefined) {
+        return [requested_repository, texlive_version, undefined];
+    }
+    return ((await findRepository(texlive_version)) || [undefined, undefined, undefined]);
+}
 async function run() {
     try {
-        const repository = getOptionalInput('repository') ?? (await findRepository());
+        const [repository, texlive_version, revision] = await resolveRepository(getOptionalNumberInput('texlive_version'), getOptionalInput('repository'));
         const packageFile = getOptionalInput('package_file');
         const packagesInline = getOptionalInput('packages');
         const cacheVersion = getMandatoryInput('cache_version');
@@ -93861,7 +93882,7 @@ async function run() {
             }
             return parsePackages(packageString);
         })();
-        const cacheKey = await calculateCacheKey(cacheVersion, packages);
+        const cacheKey = await calculateCacheKey(cacheVersion, packages, texlive_version, revision);
         const home = external_node_os_.homedir();
         const tlPlatform = detectTlPlatform();
         core.addPath(`${home}/texlive/bin/${tlPlatform}`);
@@ -93872,7 +93893,7 @@ async function run() {
             core.info(`Restored cache with key ${restoredCache}`);
             return;
         }
-        // Installing TeX Live gets another try clock to handle acceptStale
+        // Installing TeX Live gets another try block to handle acceptStale
         try {
             await installTexLive(restoredCache === undefined, repository, tlPlatform, packages);
         }
