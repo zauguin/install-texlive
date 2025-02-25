@@ -53075,7 +53075,8 @@ const consider = {
 function toNumber(str, options = {}){
     options = Object.assign({}, consider, options );
     if(!str || typeof str !== "string" ) return str;
-    
+    else if(str==="0") return 0;
+
     let trimmedStr  = str.trim();
 
     if(options.skipLike !== undefined && options.skipLike.test(trimmedStr)) return str;
@@ -53084,20 +53085,21 @@ function toNumber(str, options = {}){
     // }else if (options.oct && octRegex.test(str)) {
     //     return Number.parseInt(val, 8);
     }else if (trimmedStr.search(/[eE]/)!== -1) { //eNotation
-        const notation = trimmedStr.match(/^([-\+])?(0*)([0-9]*(\.[0-9]*)?[eE][-\+]?[0-9]+)/); 
+        const notation = trimmedStr.match(/^([-\+])?(0*)([0-9]*(\.[0-9]*)?[eE][-\+]?[0-9]+)$/); 
         // +00.123 => [ , '+', '00', '.123', ..
         if(notation){
+            // console.log(notation)
             if(options.leadingZeros){ //accept with leading zeros
                 trimmedStr = (notation[1] || "") + notation[3];
             }else{
                 if(notation[2] === "0" && notation[3][0]=== "."){ //valid number
                 }else{
-                    return trimmedStr;
+                    return str;
                 }
             }
-            return options.eNotation ? Number(trimmedStr) : trimmedStr;
+            return options.eNotation ? Number(trimmedStr) : str;
         }else{
-            return trimmedStr;
+            return str;
         }
     // }else if (options.parseBin && binRegex.test(str)) {
     //     return Number.parseInt(val, 2);
@@ -53113,6 +53115,8 @@ function toNumber(str, options = {}){
             
             if(!options.leadingZeros && leadingZeros.length > 0 && sign && trimmedStr[2] !== ".") return str; //-0123
             else if(!options.leadingZeros && leadingZeros.length > 0 && !sign && trimmedStr[1] !== ".") return str; //0123
+            else if(options.leadingZeros && leadingZeros===str) return 0; //00
+            
             else{//no leading zeros or leading zeros are allowed
                 const num = Number(trimmedStr);
                 const numStr = "" + num;
@@ -53162,8 +53166,8 @@ function parse_int(numStr, base){
     else if(window && window.parseInt) return window.parseInt(numStr, base);
     else throw new Error("parseInt, Number.parseInt, window.parseInt are not supported")
 }
-module.exports = toNumber
 
+module.exports = toNumber;
 
 /***/ }),
 
