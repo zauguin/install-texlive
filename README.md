@@ -44,8 +44,9 @@ list of packages:
     package_file: tl_packages
 ```
 
-If you want to explicitly choose which TeX Live version to install instead of automatically
-choosing the latest one, you can add it with the `texlive_version` key:
+If you want to explicitly choose which TeX Live version to install instead of
+automatically choosing the latest one, you can add it with the `texlive_version`
+key:
 
 ```yaml
 - name: Install TeX Live
@@ -55,8 +56,9 @@ choosing the latest one, you can add it with the `texlive_version` key:
     texlive_version: 2025
 ```
 
-While the TeX Live pretest is running this can also be used to install the pretest.
-Just add the next (currently being tested) version number as `texlive_version`.
+While the TeX Live pretest is running this can also be used to install the
+pretest. Just add the next (currently being tested) version number as
+`texlive_version`.
 
 ## FAQs
 
