@@ -48,9 +48,9 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",
     "@eslint/js": "^9.21.0",
-    "@stylistic/eslint-plugin": "^4.0.1",
+    "@stylistic/eslint-plugin": "^4.2.0",
     "@types/decompress": "^4.2.7",
-    "@types/node": "^22.13.5",
+    "@types/node": "^22.13.8",
     "@typescript-eslint/eslint-plugin": "^8.24.0",
     "@typescript-eslint/parser": "^8.24.0",
     "@vercel/ncc": "^0.38.3",
@@ -63,7 +63,7 @@
     "globals": "^16.0.0",
     "linefix": "^0.1.1",
     "make-coverage-badge": "^1.2.0",
-    "prettier": "^3.5.2",
+    "prettier": "^3.5.3",
     "prettier-eslint": "^16.3.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.6"
