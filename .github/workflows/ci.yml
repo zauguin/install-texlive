@@ -91,12 +91,3 @@ jobs:
       - name: '"pdflatex test-enumitem.tex" should fail'
         run: |
           ! pdflatex -interaction=nonstopmode test-enumitem.tex
-
-  keepalive:
-    name: Keepalive
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: gautamkrishnar/keepalive-workflow@v2
