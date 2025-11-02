@@ -21,7 +21,7 @@
     ".": "./dist/index.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "bundle": "npm run format:write && npm run package",
@@ -38,34 +38,34 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@actions/cache": "^4.0.3",
+    "@actions/cache": "^4.1.0",
     "@actions/core": "^1.11.1",
     "@actions/exec": "^1.1.1",
     "@actions/github": "^6.0.1",
     "decompress": "^4.2.1",
-    "temporal-polyfill": "^0.2.5"
+    "temporal-polyfill": "^0.3.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^9.22.0",
-    "@stylistic/eslint-plugin": "^4.4.0",
+    "@eslint/js": "^9.38.0",
+    "@stylistic/eslint-plugin": "^5.5.0",
     "@types/decompress": "^4.2.7",
-    "@types/node": "^22.15.29",
-    "@typescript-eslint/eslint-plugin": "^8.26.0",
-    "@typescript-eslint/parser": "^8.26.0",
-    "@vercel/ncc": "^0.38.3",
-    "@vitest/coverage-v8": "^3.1.4",
-    "eslint": "^9.28.0",
-    "eslint-import-resolver-typescript": "^4.4.2",
+    "@types/node": "^22.18.13",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "@vercel/ncc": "^0.38.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.39.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-github": "^5.1.8",
-    "eslint-plugin-jsonc": "^2.20.1",
-    "eslint-plugin-prettier": "^5.4.1",
-    "globals": "^16.2.0",
+    "eslint-plugin-jsonc": "^2.21.0",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.5.0",
     "linefix": "^0.1.1",
     "make-coverage-badge": "^1.2.0",
-    "prettier": "^3.5.3",
+    "prettier": "^3.6.2",
     "prettier-eslint": "^16.4.2",
-    "typescript": "^5.8.3",
+    "typescript": "^5.9.3",
     "vitest": "^3.0.6"
   }
 }
