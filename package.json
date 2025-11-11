@@ -47,17 +47,17 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^9.38.0",
+    "@eslint/js": "^9.39.1",
     "@stylistic/eslint-plugin": "^5.5.0",
     "@types/decompress": "^4.2.7",
-    "@types/node": "^22.18.13",
-    "@typescript-eslint/eslint-plugin": "^8.46.2",
-    "@typescript-eslint/parser": "^8.46.2",
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
+    "@typescript-eslint/parser": "^8.46.3",
     "@vercel/ncc": "^0.38.4",
-    "@vitest/coverage-v8": "^3.2.4",
-    "eslint": "^9.39.0",
+    "@vitest/coverage-v8": "^4.0.8",
+    "eslint": "^9.39.1",
     "eslint-import-resolver-typescript": "^4.4.4",
-    "eslint-plugin-github": "^5.1.8",
+    "eslint-plugin-github": "^6.0.0",
     "eslint-plugin-jsonc": "^2.21.0",
     "eslint-plugin-prettier": "^5.5.4",
     "globals": "^16.5.0",
@@ -66,6 +66,6 @@
     "prettier": "^3.6.2",
     "prettier-eslint": "^16.4.2",
     "typescript": "^5.9.3",
-    "vitest": "^3.0.6"
+    "vitest": "^4.0.8"
   }
 }
