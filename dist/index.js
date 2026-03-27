@@ -104444,6 +104444,7 @@ async function run() {
         const packagesInline = getOptionalInput('packages');
         const cacheVersion = getMandatoryInput('cache_version');
         const acceptStale = core.getBooleanInput('accept-stale');
+        const enableCache = core.getBooleanInput('cache');
         const packages = await (async () => {
             const packageString = await inlineOrFilecontent(packagesInline, packageFile);
             if (packageString === undefined) {
@@ -104451,16 +104452,22 @@ async function run() {
             }
             return parsePackages(packageString);
         })();
-        const cacheKey = await calculateCacheKey(cacheVersion, packages, texlive_version, revision);
+        const cacheKey = enableCache &&
+            (await calculateCacheKey(cacheVersion, packages, texlive_version, revision));
         const home = external_node_os_.homedir();
         const tlPlatform = detectTlPlatform();
         core.addPath(`${home}/texlive/bin/${tlPlatform}`);
-        core.info(`Trying to restore with key ${cacheKey.full}`);
-        const restoredCache = await cache.restoreCache(['~/texlive'], cacheKey.full, [cacheKey.prefix]);
-        if (restoredCache === cacheKey.full) {
-            core.setOutput('cache_key', restoredCache);
-            core.info(`Restored cache with key ${restoredCache}`);
-            return;
+        let restoredCache;
+        if (cacheKey) {
+            core.info(`Trying to restore with key ${cacheKey.full}`);
+            restoredCache = await cache.restoreCache(['~/texlive'], cacheKey.full, [
+                cacheKey.prefix
+            ]);
+            if (restoredCache === cacheKey.full) {
+                core.setOutput('cache_key', restoredCache);
+                core.info(`Restored cache with key ${restoredCache}`);
+                return;
+            }
         }
         // Installing TeX Live gets another try block to handle acceptStale
         try {
@@ -104477,9 +104484,11 @@ async function run() {
             core.setOutput('cache_key', restoredCache);
             return;
         }
-        await cache.saveCache(['~/texlive'], cacheKey.full);
-        core.info(`Updated cache with key ${cacheKey.full}`);
-        core.setOutput('cache_key', cacheKey.full);
+        if (cacheKey) {
+            await cache.saveCache(['~/texlive'], cacheKey.full);
+            core.info(`Updated cache with key ${cacheKey.full}`);
+            core.setOutput('cache_key', cacheKey.full);
+        }
     }
     catch (error) {
         // Fail the workflow run if an error occurs

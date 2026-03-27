@@ -11,6 +11,8 @@ input parameter.
 
 The `~/texlive` is automatically cached. A cache refresh can be forced by
 changing the `cache_version` parameter.
+If you prefer not to use the cache, you can disable it by passing the
+parameter `cache: false`.
 
 To use this in a Workflow, you can use
 
