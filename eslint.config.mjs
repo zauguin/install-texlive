@@ -6,7 +6,7 @@ import globals from 'globals'
 
 export default [
   {
-    ignores: ['**/dist/', '**/coverage/', '**/*.json', '.*/']
+    ignores: ['**/dist/', '**/coverage/', '**/*.json', '.*/', '**/*.mjs', '__tests__/**', 'vitest.config.ts'],
   },
   js.configs.recommended,
   ...ts.configs.recommended,

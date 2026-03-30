@@ -29,7 +29,7 @@
     "coverage": "make-coverage-badge --output-path ./badges/coverage.svg",
     "format:write": "prettier --write **/*.ts",
     "format:check": "prettier --check **/*.ts",
-    "lint": "npx eslint . -c ./.github/linters/eslint.config.mjs",
+    "lint": "npx eslint . -c eslint.config.mjs",
     "package": "ncc build src/index.ts --license licenses.txt && linefix dist",
     "package:watch": "npm run package -- --watch",
     "test": "vitest --run",
