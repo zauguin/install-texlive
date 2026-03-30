@@ -38,9 +38,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@actions/cache": "^5.0.5",
-    "@actions/core": "^2.0.3",
-    "@actions/exec": "^2.0.0",
+    "@actions/cache": "^6.0.0",
+    "@actions/core": "^3.0.0",
+    "@actions/exec": "^3.0.0",
     "@actions/github": "^9.0.0",
     "decompress": "^4.2.1",
     "temporal-polyfill": "^0.3.2"
@@ -54,18 +54,18 @@
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
     "@vercel/ncc": "^0.38.4",
-    "@vitest/coverage-v8": "^4.1.1",
+    "@vitest/coverage-v8": "^4.1.2",
     "eslint": "^9.39.4",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-github": "^6.0.0",
     "eslint-plugin-jsonc": "^2.21.1",
     "eslint-plugin-prettier": "^5.5.5",
-    "globals": "^16.5.0",
+    "globals": "^17.4.0",
     "linefix": "^0.1.1",
     "make-coverage-badge": "^1.2.0",
     "prettier": "^3.8.1",
     "prettier-eslint": "^16.4.2",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.8"
+    "vitest": "^4.1.2"
   }
 }
