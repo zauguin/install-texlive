@@ -59,7 +59,7 @@
     "eslint": "^9.39.4",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-github": "^6.0.0",
-    "eslint-plugin-jsonc": "^2.21.1",
+    "eslint-plugin-jsonc": "^3.1.2",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.4.0",
     "linefix": "^0.1.1",
