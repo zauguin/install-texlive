@@ -26,6 +26,7 @@
   "scripts": {
     "bundle": "npm run format:write && npm run package",
     "ci-test": "vitest --run",
+    "check": "tsc --noEmit -p tsconfig.json",
     "coverage": "make-coverage-badge --output-path ./badges/coverage.svg",
     "format:write": "prettier --write **/*.ts",
     "format:check": "prettier --check **/*.ts",
@@ -34,7 +35,7 @@
     "package:watch": "npm run package -- --watch",
     "test": "vitest --run",
     "test:watch": "vitest",
-    "all": "npm run format:write && npm run lint && npm run test && npm run coverage && npm run package"
+    "all": "npm run format:write && npm run lint && npm run check && npm run test && npm run coverage && npm run package"
   },
   "license": "MIT",
   "dependencies": {
@@ -50,7 +51,7 @@
     "@eslint/js": "^9.39.2",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/decompress": "^4.2.7",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
     "@vercel/ncc": "^0.38.4",
@@ -64,7 +65,7 @@
     "linefix": "^0.1.1",
     "make-coverage-badge": "^1.2.0",
     "prettier": "^3.8.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   }
 }

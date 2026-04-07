@@ -46,13 +46,17 @@ async function inlineOrFilecontent(
   inline: string | undefined,
   filename: string | undefined
 ): Promise<string | undefined> {
-  if (inline !== undefined || filename === undefined) {
+  if (filename === undefined) {
     return inline
   }
   const file = await fs.open(filename, 'r')
   const content = await file.readFile({ encoding: 'utf8' })
   await file.close()
-  return content
+  if (inline !== undefined) {
+    return `${content}\n${inline}`
+  } else {
+    return content
+  }
 }
 
 export function parsePackages(packagesString: string): string[] {
@@ -334,6 +338,7 @@ export async function run(): Promise<void> {
         throw error
       }
       core.setOutput('cache_key', restoredCache)
+      core.warning(`Failed to update, reusing last cached state: ${error}`)
       return
     }
 
@@ -345,5 +350,7 @@ export async function run(): Promise<void> {
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.toString())
+    else if (error) core.setFailed(`Unexpected error: ${error}`)
+    else core.setFailed('Something went wrong!')
   }
 }

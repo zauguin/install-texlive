@@ -68778,11 +68778,11 @@ class Expression {
    * @param {Object} options - Configuration options
    * @param {string} options.separator - Path separator (default: '.')
    */
-  constructor(pattern, options = {}) {
+  constructor(pattern, options = {}, data) {
     this.pattern = pattern;
     this.separator = options.separator || '.';
     this.segments = this._parse(pattern);
-
+    this.data = data;
     // Cache expensive checks for performance (O(1) instead of O(n))
     this._hasDeepWildcard = this.segments.some(seg => seg.type === 'deep-wildcard');
     this._hasAttributeCondition = this.segments.some(seg => seg.attrName !== undefined);
@@ -68994,6 +68994,7 @@ class Expression {
   }
 }
 ;// CONCATENATED MODULE: ./node_modules/path-expression-matcher/src/Matcher.js
+
 /**
  * Matcher - Tracks current path in XML/JSON tree and matches against Expressions
  * 
@@ -69031,6 +69032,9 @@ class Matcher {
     // Each path node: { tag: string, values: object, position: number, counter: number }
     // values only present for current (last) node
     // Each siblingStacks entry: Map<tagName, count> tracking occurrences at each level
+    this._pathStringCache = null;
+    this._frozenPathCache = null;        // cache for readOnly().path
+    this._frozenSiblingsCache = null;   // cache for readOnly().siblingStacks
   }
 
   /**
@@ -69040,6 +69044,10 @@ class Matcher {
    * @param {string} namespace - Namespace for the tag (optional)
    */
   push(tagName, attrValues = null, namespace = null) {
+    //invalidate cache
+    this._pathStringCache = null;
+    this._frozenPathCache = null;
+    this._frozenSiblingsCache = null;
     // Remove values from previous current node (now becoming ancestor)
     if (this.path.length > 0) {
       const prev = this.path[this.path.length - 1];
@@ -69094,10 +69102,11 @@ class Matcher {
    * @returns {Object|undefined} The popped node
    */
   pop() {
-    if (this.path.length === 0) {
-      return undefined;
-    }
-
+    if (this.path.length === 0) return undefined;
+    //invalidate cache
+    this._pathStringCache = null;
+    this._frozenPathCache = null;
+    this._frozenSiblingsCache = null;
     const node = this.path.pop();
 
     // Clean up sibling tracking for levels deeper than current
@@ -69120,6 +69129,7 @@ class Matcher {
       const current = this.path[this.path.length - 1];
       if (attrValues !== null && attrValues !== undefined) {
         current.values = attrValues;
+        this._frozenPathCache = null;
       }
     }
   }
@@ -69205,12 +69215,23 @@ class Matcher {
    */
   toString(separator, includeNamespace = true) {
     const sep = separator || this.separator;
-    return this.path.map(n => {
-      if (includeNamespace && n.namespace) {
-        return `${n.namespace}:${n.tag}`;
+    const isDefault = (sep === this.separator && includeNamespace === true);
+
+    if (isDefault) {
+      if (this._pathStringCache !== null && this._pathStringCache !== undefined) {
+        return this._pathStringCache;
       }
-      return n.tag;
-    }).join(sep);
+      const result = this.path.map(n =>
+        (includeNamespace && n.namespace) ? `${n.namespace}:${n.tag}` : n.tag
+      ).join(sep);
+      this._pathStringCache = result;
+      return result;
+    }
+
+    // Non-default separator or includeNamespace=false: don't cache (rare case)
+    return this.path.map(n =>
+      (includeNamespace && n.namespace) ? `${n.namespace}:${n.tag}` : n.tag
+    ).join(sep);
   }
 
   /**
@@ -69225,6 +69246,10 @@ class Matcher {
    * Reset the path to empty
    */
   reset() {
+    //invalidate cache
+    this._pathStringCache = null;
+    this._frozenPathCache = null;
+    this._frozenSiblingsCache = null;
     this.path = [];
     this.siblingStacks = [];
   }
@@ -69397,6 +69422,15 @@ class Matcher {
   }
 
   /**
+ * Match any expression in the given set against the current path.
+ * @param {ExpressionSet} exprSet - The set of expressions to match against.
+ * @returns {boolean} - True if any expression in the set matches the current path, false otherwise.
+ */
+  matchesAny(exprSet) {
+    return exprSet.matchesAny(this);
+  }
+
+  /**
    * Create a snapshot of current state
    * @returns {Object} State snapshot
    */
@@ -69412,6 +69446,10 @@ class Matcher {
    * @param {Object} snapshot - State snapshot
    */
   restore(snapshot) {
+    //invalidate cache
+    this._pathStringCache = null;
+    this._frozenPathCache = null;
+    this._frozenSiblingsCache = null;
     this.path = snapshot.path.map(node => ({ ...node }));
     this.siblingStacks = snapshot.siblingStacks.map(map => new Map(map));
   }
@@ -69452,21 +69490,27 @@ class Matcher {
           };
         }
 
-        const value = Reflect.get(target, prop, receiver);
-
-        // Freeze array/object properties so callers can't mutate internal
-        // state through direct property access (e.g. matcher.path.push(...))
-        if (prop === 'path' || prop === 'siblingStacks') {
-          return Object.freeze(
-            Array.isArray(value)
-              ? value.map(item =>
-                item instanceof Map
-                  ? Object.freeze(new Map(item))   // freeze a copy of each Map
-                  : Object.freeze({ ...item })      // freeze a copy of each node
-              )
-              : value
-          );
+        // Return cached frozen copy of path — rebuilt only after push/pop/updateCurrent/reset/restore
+        if (prop === 'path') {
+          if (target._frozenPathCache === null) {
+            target._frozenPathCache = Object.freeze(
+              target.path.map(node => Object.freeze({ ...node }))
+            );
+          }
+          return target._frozenPathCache;
         }
+
+        // Return cached frozen copy of siblingStacks — rebuilt only after push/pop/reset/restore
+        if (prop === 'siblingStacks') {
+          if (target._frozenSiblingsCache === null) {
+            target._frozenSiblingsCache = Object.freeze(
+              target.siblingStacks.map(map => Object.freeze(new Map(map)))
+            );
+          }
+          return target._frozenSiblingsCache;
+        }
+
+        const value = Reflect.get(target, prop, receiver);
 
         // Bind methods so `this` inside them still refers to the real Matcher
         if (typeof value === 'function') {
@@ -70949,10 +70993,10 @@ function normalizeProcessEntities(value) {
     return {
       enabled: value.enabled !== false,
       maxEntitySize: Math.max(1, value.maxEntitySize ?? 10000),
-      maxExpansionDepth: Math.max(1, value.maxExpansionDepth ?? 10),
-      maxTotalExpansions: Math.max(1, value.maxTotalExpansions ?? 1000),
+      maxExpansionDepth: Math.max(1, value.maxExpansionDepth ?? 10000),
+      maxTotalExpansions: Math.max(1, value.maxTotalExpansions ?? Infinity),
       maxExpandedLength: Math.max(1, value.maxExpandedLength ?? 100000),
-      maxEntityCount: Math.max(1, value.maxEntityCount ?? 100),
+      maxEntityCount: Math.max(1, value.maxEntityCount ?? 1000),
       allowedTags: value.allowedTags ?? null,
       tagFilter: value.tagFilter ?? null
     };
@@ -71855,89 +71899,80 @@ function buildAttributesMap(attrStr, jPath, tagName) {
     const len = matches.length; //don't make it inline
     const attrs = {};
 
-    // First pass: parse all attributes and update matcher with raw values
-    // This ensures the matcher has all attribute values when processors run
+    // Pre-process values once: trim + entity replacement
+    // Reused in both matcher update and second pass
+    const processedVals = new Array(len);
+    let hasRawAttrs = false;
     const rawAttrsForMatcher = {};
+
     for (let i = 0; i < len; i++) {
       const attrName = this.resolveNameSpace(matches[i][1]);
       const oldVal = matches[i][4];
 
       if (attrName.length && oldVal !== undefined) {
-        let parsedVal = oldVal;
-        if (this.options.trimValues) {
-          parsedVal = parsedVal.trim();
-        }
-        parsedVal = this.replaceEntitiesValue(parsedVal, tagName, this.readonlyMatcher);
-        rawAttrsForMatcher[attrName] = parsedVal;
+        let val = oldVal;
+        if (this.options.trimValues) val = val.trim();
+        val = this.replaceEntitiesValue(val, tagName, this.readonlyMatcher);
+        processedVals[i] = val;
+
+        rawAttrsForMatcher[attrName] = val;
+        hasRawAttrs = true;
       }
     }
 
-    // Update matcher with raw attribute values BEFORE running processors
-    if (Object.keys(rawAttrsForMatcher).length > 0 && typeof jPath === 'object' && jPath.updateCurrent) {
+    // Update matcher ONCE before second pass, if applicable
+    if (hasRawAttrs && typeof jPath === 'object' && jPath.updateCurrent) {
       jPath.updateCurrent(rawAttrsForMatcher);
     }
 
-    // Second pass: now process attributes with matcher having full attribute context
+    // Hoist toString() once — path doesn't change during attribute processing
+    const jPathStr = this.options.jPath ? jPath.toString() : this.readonlyMatcher;
+
+    // Second pass: apply processors, build final attrs
+    let hasAttrs = false;
     for (let i = 0; i < len; i++) {
       const attrName = this.resolveNameSpace(matches[i][1]);
 
-      // Convert jPath to string if needed for ignoreAttributesFn
-      const jPathStr = this.options.jPath ? jPath.toString() : this.readonlyMatcher;
-      if (this.ignoreAttributesFn(attrName, jPathStr)) {
-        continue
-      }
+      if (this.ignoreAttributesFn(attrName, jPathStr)) continue;
 
-      let oldVal = matches[i][4];
       let aName = this.options.attributeNamePrefix + attrName;
 
       if (attrName.length) {
         if (this.options.transformAttributeName) {
           aName = this.options.transformAttributeName(aName);
         }
-        //if (aName === "__proto__") aName = "#__proto__";
         aName = sanitizeName(aName, this.options);
 
-        if (oldVal !== undefined) {
-          if (this.options.trimValues) {
-            oldVal = oldVal.trim();
-          }
-          oldVal = this.replaceEntitiesValue(oldVal, tagName, this.readonlyMatcher);
+        if (matches[i][4] !== undefined) {
+          // Reuse already-processed value — no double entity replacement
+          const oldVal = processedVals[i];
 
-          // Pass jPath string or readonlyMatcher based on options.jPath setting
-          const jPathOrMatcher = this.options.jPath ? jPath.toString() : this.readonlyMatcher;
-          const newVal = this.options.attributeValueProcessor(attrName, oldVal, jPathOrMatcher);
+          const newVal = this.options.attributeValueProcessor(attrName, oldVal, jPathStr);
           if (newVal === null || newVal === undefined) {
-            //don't parse
             attrs[aName] = oldVal;
           } else if (typeof newVal !== typeof oldVal || newVal !== oldVal) {
-            //overwrite
             attrs[aName] = newVal;
           } else {
-            //parse
-            attrs[aName] = parseValue(
-              oldVal,
-              this.options.parseAttributeValue,
-              this.options.numberParseOptions
-            );
+            attrs[aName] = parseValue(oldVal, this.options.parseAttributeValue, this.options.numberParseOptions);
           }
+          hasAttrs = true;
         } else if (this.options.allowBooleanAttributes) {
           attrs[aName] = true;
+          hasAttrs = true;
         }
       }
     }
 
-    if (!Object.keys(attrs).length) {
-      return;
-    }
+    if (!hasAttrs) return;
+
     if (this.options.attributesGroupName) {
       const attrCollection = {};
       attrCollection[this.options.attributesGroupName] = attrs;
       return attrCollection;
     }
-    return attrs
+    return attrs;
   }
 }
-
 const parseXml = function (xmlData) {
   xmlData = xmlData.replace(/\r\n?/g, "\n"); //TODO: remove this line
   const xmlObj = new XmlNode('!xml');
@@ -72297,6 +72332,7 @@ function OrderedObjParser_replaceEntitiesValue(val, tagName, jPath) {
       }
     }
   }
+  if (val.indexOf('&') === -1) return val;
   // Replace standard entities
   for (const entityName of Object.keys(this.lastEntities)) {
     const entity = this.lastEntities[entityName];
@@ -103791,13 +103827,18 @@ function getOptionalNumberInput(name) {
     return parseInt(input);
 }
 async function inlineOrFilecontent(inline, filename) {
-    if (inline !== undefined || filename === undefined) {
+    if (filename === undefined) {
         return inline;
     }
     const file = await promises_namespaceObject.open(filename, 'r');
     const content = await file.readFile({ encoding: 'utf8' });
     await file.close();
-    return content;
+    if (inline !== undefined) {
+        return `${content}\n${inline}`;
+    }
+    else {
+        return content;
+    }
 }
 function parsePackages(packagesString) {
     return [...packagesString.replaceAll(/#.*?(\n|$)/g, '$1').matchAll(/\S+/g)]
@@ -103974,6 +104015,7 @@ async function run() {
                 throw error;
             }
             setOutput('cache_key', restoredCache);
+            warning(`Failed to update, reusing last cached state: ${error}`);
             return;
         }
         if (cacheKey) {
@@ -103986,6 +104028,10 @@ async function run() {
         // Fail the workflow run if an error occurs
         if (error instanceof Error)
             setFailed(error.toString());
+        else if (error)
+            setFailed(`Unexpected error: ${error}`);
+        else
+            setFailed('Something went wrong!');
     }
 }
 
