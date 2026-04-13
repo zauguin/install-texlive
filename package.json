@@ -42,7 +42,7 @@
     "@actions/cache": "^6.0.0",
     "@actions/core": "^3.0.0",
     "@actions/exec": "^3.0.0",
-    "@actions/github": "^9.0.0",
+    "@actions/github": "^9.1.0",
     "decompress": "^4.2.1",
     "temporal-polyfill": "^0.3.2"
   },
