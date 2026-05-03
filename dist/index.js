@@ -103907,12 +103907,22 @@ async function findRepository(version) {
         core_error('Unable to retrive mirror list, falling back to CTAN auto selection');
         return undefined;
     }
-    const usMirrors = Object.entries(mirrorList['North America'].USA).filter(([_, data]) => mirrorIsApplicable(data, version));
-    if (usMirrors.length === 0) {
-        throw new Error('No mirror available');
+    let candidateMirrors = Object.entries(mirrorList['North America'].USA).filter(([_, data]) => mirrorIsApplicable(data, version));
+    if (candidateMirrors.length === 0) {
+        candidateMirrors = Object.entries(mirrorList['North America'])
+            .flatMap(([_, mirrors]) => Object.entries(mirrors))
+            .filter(([_, data]) => mirrorIsApplicable(data, version));
+        if (candidateMirrors.length === 0) {
+            candidateMirrors = Object.entries(mirrorList)
+                .flatMap(([_, countryMirrors]) => Object.entries(countryMirrors).flatMap(([_, mirrors]) => Object.entries(mirrors)))
+                .filter(([_, data]) => mirrorIsApplicable(data, version));
+            if (candidateMirrors.length === 0) {
+                throw new Error('No mirror available');
+            }
+        }
     }
-    const highestVersion = Math.max(...usMirrors.map(([_, { texlive_version }]) => texlive_version));
-    const versionFilteredMirrors = usMirrors.filter(([_, { texlive_version }]) => texlive_version === highestVersion);
+    const highestVersion = Math.max(...candidateMirrors.map(([_, { texlive_version }]) => texlive_version));
+    const versionFilteredMirrors = candidateMirrors.filter(([_, { texlive_version }]) => texlive_version === highestVersion);
     const highestRevision = Math.max(...versionFilteredMirrors.map(([_, { revision }]) => revision));
     const filteredMirrors = versionFilteredMirrors
         .filter(([_, { revision }]) => revision === highestRevision)
