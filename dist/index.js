@@ -103909,12 +103909,12 @@ async function findRepository(version) {
     }
     let candidateMirrors = Object.entries(mirrorList['North America'].USA).filter(([_, data]) => mirrorIsApplicable(data, version));
     if (candidateMirrors.length === 0) {
-        candidateMirrors = Object.entries(mirrorList['North America'])
-            .flatMap(([_, mirrors]) => Object.entries(mirrors))
+        candidateMirrors = Object.values(mirrorList['North America'])
+            .flatMap(mirrors => Object.entries(mirrors))
             .filter(([_, data]) => mirrorIsApplicable(data, version));
         if (candidateMirrors.length === 0) {
-            candidateMirrors = Object.entries(mirrorList)
-                .flatMap(([_, countryMirrors]) => Object.entries(countryMirrors).flatMap(([_, mirrors]) => Object.entries(mirrors)))
+            candidateMirrors = Object.values(mirrorList)
+                .flatMap(countryMirrors => Object.values(countryMirrors).flatMap(mirrors => Object.entries(mirrors)))
                 .filter(([_, data]) => mirrorIsApplicable(data, version));
             if (candidateMirrors.length === 0) {
                 throw new Error('No mirror available');
