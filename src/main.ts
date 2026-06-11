@@ -328,6 +328,8 @@ export async function run(): Promise<void> {
     const tlPlatform = detectTlPlatform()
     core.addPath(`${home}/texlive/bin/${tlPlatform}`)
 
+    core.setOutput('cache_hit', false)
+
     let restoredCache: string | undefined
     if (cacheKey) {
       core.info(`Trying to restore with key ${cacheKey.full}`)
@@ -336,6 +338,7 @@ export async function run(): Promise<void> {
       ])
       if (restoredCache === cacheKey.full) {
         core.setOutput('cache_key', restoredCache)
+        core.setOutput('cache_hit', true)
         core.info(`Restored cache with key ${restoredCache}`)
         return
       }

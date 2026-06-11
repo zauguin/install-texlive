@@ -104000,6 +104000,7 @@ async function run() {
         const home = external_node_os_namespaceObject.homedir();
         const tlPlatform = detectTlPlatform();
         addPath(`${home}/texlive/bin/${tlPlatform}`);
+        setOutput('cache_hit', false);
         let restoredCache;
         if (cacheKey) {
             info(`Trying to restore with key ${cacheKey.full}`);
@@ -104008,6 +104009,7 @@ async function run() {
             ]);
             if (restoredCache === cacheKey.full) {
                 setOutput('cache_key', restoredCache);
+                setOutput('cache_hit', true);
                 info(`Restored cache with key ${restoredCache}`);
                 return;
             }

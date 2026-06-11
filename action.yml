@@ -37,6 +37,10 @@ inputs:
 outputs:
   cache_key:
     description: 'The updated or generated cache'
+  cache_hit:
+    description:
+      'A boolean value indicating an exact match was found for the cache key, so
+      TeX Live was restored from cache without reinstalling.'
 
 runs:
   using: node24

@@ -62,6 +62,13 @@ While the TeX Live pretest is running this can also be used to install the
 pretest. Just add the next (currently being tested) version number as
 `texlive_version`.
 
+## Outputs
+
+| Output      | Description                                                                                                                       |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `cache_key` | The key of the cache that was restored or saved.                                                                                  |
+| `cache_hit` | A boolean value indicating an exact match was found for the cache key, so TeX Live was restored from cache without reinstalling.   |
+
 ## FAQs
 
 > I miss the "basic" scheme of TeXLive. How can I install that?
