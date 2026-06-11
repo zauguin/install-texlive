@@ -170,8 +170,8 @@ async function findRepository(
     ][]
     if (candidateMirrors.length === 0) {
       candidateMirrors = Object.entries(mirrorList)
-        .flatMap(([_, countryMirrors]) =>
-          Object.entries(countryMirrors).flatMap(([_, mirrors]) =>
+        .flatMap(([_continent, countryMirrors]) =>
+          Object.entries(countryMirrors).flatMap(([_country, mirrors]) =>
             Object.entries(mirrors)
           )
         )
@@ -207,6 +207,42 @@ async function findRepository(
 function handleExecResult(description: string, status: number): void {
   if (status === 0) return
   throw new Error(`${description} failed with status code ${status}`)
+}
+
+// Number of times we attempt to install TeX Live before giving up. Mirrors are
+// occasionally out of sync and serve files with a mismatching checksum; in that
+// case retrying with a (hopefully different) randomly selected mirror usually
+// resolves the problem. See issue #56.
+const installAttempts = 3
+
+async function installTexLiveWithRetry(
+  initialInstall: boolean,
+  initialRepository: string | undefined,
+  requestedRepository: string | undefined,
+  texlive_version: number | undefined,
+  tlPlatform: TlPlatform,
+  packages: string[]
+): Promise<void> {
+  let repository = initialRepository
+  for (let attempt = 1; attempt <= installAttempts; attempt++) {
+    try {
+      await installTexLive(initialInstall, repository, tlPlatform, packages)
+      return
+    } catch (error) {
+      if (attempt >= installAttempts) {
+        throw error
+      }
+      core.warning(
+        `TeX Live installation attempt ${attempt} of ${installAttempts} failed, retrying with a different mirror: ${error}`
+      )
+      // If the user requested a specific repository we have to keep using it,
+      // otherwise pick a new random mirror in the hope of avoiding the one that
+      // served a file with a mismatching checksum.
+      if (requestedRepository === undefined) {
+        repository = (await findRepository(texlive_version))?.[0] ?? repository
+      }
+    }
+  }
 }
 
 async function installTexLive(
@@ -294,9 +330,10 @@ async function resolveRepository(
 
 export async function run(): Promise<void> {
   try {
+    const requestedRepository = getOptionalInput('repository')
     const [repository, texlive_version, revision] = await resolveRepository(
       getOptionalNumberInput('texlive_version'),
-      getOptionalInput('repository')
+      requestedRepository
     )
     const packageFile = getOptionalInput('package_file')
     const packagesInline = getOptionalInput('packages')
@@ -343,9 +380,11 @@ export async function run(): Promise<void> {
 
     // Installing TeX Live gets another try block to handle acceptStale
     try {
-      await installTexLive(
+      await installTexLiveWithRetry(
         restoredCache === undefined,
         repository,
+        requestedRepository,
+        texlive_version,
         tlPlatform,
         packages
       )
