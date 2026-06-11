@@ -103914,7 +103914,7 @@ async function findRepository(version) {
             .filter(([_, data]) => mirrorIsApplicable(data, version));
         if (candidateMirrors.length === 0) {
             candidateMirrors = Object.entries(mirrorList)
-                .flatMap(([_, countryMirrors]) => Object.entries(countryMirrors).flatMap(([_, mirrors]) => Object.entries(mirrors)))
+                .flatMap(([_continent, countryMirrors]) => Object.entries(countryMirrors).flatMap(([_country, mirrors]) => Object.entries(mirrors)))
                 .filter(([_, data]) => mirrorIsApplicable(data, version));
             if (candidateMirrors.length === 0) {
                 throw new Error('No mirror available');

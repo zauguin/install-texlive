@@ -170,8 +170,8 @@ async function findRepository(
     ][]
     if (candidateMirrors.length === 0) {
       candidateMirrors = Object.entries(mirrorList)
-        .flatMap(([_, countryMirrors]) =>
-          Object.entries(countryMirrors).flatMap(([_, mirrors]) =>
+        .flatMap(([_continent, countryMirrors]) =>
+          Object.entries(countryMirrors).flatMap(([_country, mirrors]) =>
             Object.entries(mirrors)
           )
         )
