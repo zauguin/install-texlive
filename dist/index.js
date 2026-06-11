@@ -103909,12 +103909,12 @@ async function findRepository(version) {
     }
     let candidateMirrors = Object.entries(mirrorList['North America'].USA).filter(([_, data]) => mirrorIsApplicable(data, version));
     if (candidateMirrors.length === 0) {
-        candidateMirrors = Object.entries(mirrorList['North America'])
-            .flatMap(([_, mirrors]) => Object.entries(mirrors))
+        candidateMirrors = Object.values(mirrorList['North America'])
+            .flatMap(mirrors => Object.entries(mirrors))
             .filter(([_, data]) => mirrorIsApplicable(data, version));
         if (candidateMirrors.length === 0) {
-            candidateMirrors = Object.entries(mirrorList)
-                .flatMap(([_, countryMirrors]) => Object.entries(countryMirrors).flatMap(([_, mirrors]) => Object.entries(mirrors)))
+            candidateMirrors = Object.values(mirrorList)
+                .flatMap(countryMirrors => Object.values(countryMirrors).flatMap(mirrors => Object.entries(mirrors)))
                 .filter(([_, data]) => mirrorIsApplicable(data, version));
             if (candidateMirrors.length === 0) {
                 throw new Error('No mirror available');
@@ -103927,9 +103927,21 @@ async function findRepository(version) {
     const filteredMirrors = versionFilteredMirrors
         .filter(([_, { revision }]) => revision === highestRevision)
         .map(([mirror, _]) => mirror);
-    const mirror = filteredMirrors[Math.floor(Math.random() * filteredMirrors.length)];
-    info(`Selected mirror ${mirror} (TeX Live ${highestVersion}, rev. ${highestRevision})`);
-    return [mirror, highestVersion, highestRevision];
+    // Shuffle (Fisher-Yates) so that load is spread across the equivalent
+    // mirrors and so that fallback attempts hit a different mirror each time.
+    for (let i = filteredMirrors.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [filteredMirrors[i], filteredMirrors[j]] = [
+            filteredMirrors[j],
+            filteredMirrors[i]
+        ];
+    }
+    const fallbackCount = filteredMirrors.length - 1;
+    const fallbackInfo = fallbackCount > 0
+        ? `, with ${fallbackCount} additional mirror(s) available as fallback`
+        : '';
+    info(`Selected mirror ${filteredMirrors[0]} (TeX Live ${highestVersion}, rev. ${highestRevision})${fallbackInfo}`);
+    return [filteredMirrors, highestVersion, highestRevision];
 }
 function handleExecResult(description, status) {
     if (status === 0)
@@ -103942,12 +103954,12 @@ async function installTexLive(initialInstall, repository, tlPlatform, packages) 
         const http = new lib_HttpClient('install-texlive GitHub Action', [], {
             allowRedirectDowngrade: true
         });
-        const response = await http.get((repository ?? 'https://mirrors.ctan.org/systems/texlive/tlnet') +
-            (tlPlatform === 'windows'
-                ? '/install-tl.zip'
-                : '/install-tl-unx.tar.gz'));
+        const installerUrl = (repository ?? 'https://mirrors.ctan.org/systems/texlive/tlnet') +
+            (tlPlatform === 'windows' ? '/install-tl.zip' : '/install-tl-unx.tar.gz');
+        info(`Downloading TeX Live installer from ${installerUrl}`);
+        const response = await http.get(installerUrl);
         if (response.message.statusCode !== 200) {
-            throw new Error(`Downloading installer failed with status code ${response.message.statusCode}`);
+            throw new Error(`Downloading installer from ${installerUrl} failed with status code ${response.message.statusCode}`);
         }
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const installerBlob = await response.readBodyBuffer();
@@ -103974,15 +103986,36 @@ async function installTexLive(initialInstall, repository, tlPlatform, packages) 
         windowsVerbatimArguments: true
     }));
 }
+// Try installing from each repository in turn, moving on to the next one if a
+// mirror fails (e.g. a transient HTTP 403 while downloading the installer). A
+// single `undefined` entry means "let install-tl/tlmgr pick a CTAN mirror".
+async function installFromRepositories(initialInstall, repositories, tlPlatform, packages) {
+    let lastError;
+    for (let i = 0; i < repositories.length; i++) {
+        const repository = repositories[i];
+        try {
+            await installTexLive(initialInstall, repository, tlPlatform, packages);
+            return;
+        }
+        catch (error) {
+            lastError = error;
+            const remaining = repositories.length - i - 1;
+            if (remaining > 0) {
+                warning(`Installation using ${repository ?? 'CTAN auto-selection'} failed, retrying with another mirror (${remaining} left): ${error}`);
+            }
+        }
+    }
+    throw lastError;
+}
 async function resolveRepository(texlive_version, requested_repository) {
     if (requested_repository !== undefined) {
-        return [requested_repository, texlive_version, undefined];
+        return [[requested_repository], texlive_version, undefined];
     }
     return ((await findRepository(texlive_version)) || [undefined, undefined, undefined]);
 }
 async function run() {
     try {
-        const [repository, texlive_version, revision] = await resolveRepository(getOptionalNumberInput('texlive_version'), getOptionalInput('repository'));
+        const [repositories, texlive_version, revision] = await resolveRepository(getOptionalNumberInput('texlive_version'), getOptionalInput('repository'));
         const packageFile = getOptionalInput('package_file');
         const packagesInline = getOptionalInput('packages');
         const cacheVersion = getMandatoryInput('cache_version');
@@ -104002,7 +104035,7 @@ async function run() {
         addPath(`${home}/texlive/bin/${tlPlatform}`);
         let restoredCache;
         if (cacheKey) {
-            info(`Trying to restore with key ${cacheKey.full}`);
+            info(`Trying to restore cache with key ${cacheKey.full}`);
             restoredCache = await restoreCache(['~/texlive'], cacheKey.full, [
                 cacheKey.prefix
             ]);
@@ -104011,10 +104044,19 @@ async function run() {
                 info(`Restored cache with key ${restoredCache}`);
                 return;
             }
+            if (restoredCache === undefined) {
+                info('No usable cache found, installing TeX Live from a mirror instead');
+            }
+            else {
+                info(`Restored partial cache ${restoredCache}, updating it from a mirror`);
+            }
         }
+        // A single `undefined` entry means no explicit repository was resolved, so
+        // install-tl/tlmgr falls back to CTAN auto-selection.
+        const repositoriesToTry = repositories ?? [undefined];
         // Installing TeX Live gets another try block to handle acceptStale
         try {
-            await installTexLive(restoredCache === undefined, repository, tlPlatform, packages);
+            await installFromRepositories(restoredCache === undefined, repositoriesToTry, tlPlatform, packages);
         }
         catch (error) {
             if (!acceptStale) {

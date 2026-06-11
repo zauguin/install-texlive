@@ -137,7 +137,7 @@ function mirrorIsApplicable(
 
 async function findRepository(
   version: number | undefined
-): Promise<[string, number, number] | undefined> {
+): Promise<[string[], number, number] | undefined> {
   const http = new HttpClient()
   let mirrorList: MirrorList | undefined
   try {
@@ -162,16 +162,16 @@ async function findRepository(
     ([_, data]) => mirrorIsApplicable(data, version)
   ) as [string, AliveMirror][]
   if (candidateMirrors.length === 0) {
-    candidateMirrors = Object.entries(mirrorList['North America'])
-      .flatMap(([_, mirrors]) => Object.entries(mirrors))
+    candidateMirrors = Object.values(mirrorList['North America'])
+      .flatMap(mirrors => Object.entries(mirrors))
       .filter(([_, data]) => mirrorIsApplicable(data, version)) as [
       string,
       AliveMirror
     ][]
     if (candidateMirrors.length === 0) {
-      candidateMirrors = Object.entries(mirrorList)
-        .flatMap(([_, countryMirrors]) =>
-          Object.entries(countryMirrors).flatMap(([_, mirrors]) =>
+      candidateMirrors = Object.values(mirrorList)
+        .flatMap(countryMirrors =>
+          Object.values(countryMirrors).flatMap(mirrors =>
             Object.entries(mirrors)
           )
         )
@@ -196,12 +196,24 @@ async function findRepository(
   const filteredMirrors = versionFilteredMirrors
     .filter(([_, { revision }]) => revision === highestRevision)
     .map(([mirror, _]) => mirror)
-  const mirror =
-    filteredMirrors[Math.floor(Math.random() * filteredMirrors.length)]
+  // Shuffle (Fisher-Yates) so that load is spread across the equivalent
+  // mirrors and so that fallback attempts hit a different mirror each time.
+  for (let i = filteredMirrors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[filteredMirrors[i], filteredMirrors[j]] = [
+      filteredMirrors[j],
+      filteredMirrors[i]
+    ]
+  }
+  const fallbackCount = filteredMirrors.length - 1
+  const fallbackInfo =
+    fallbackCount > 0
+      ? `, with ${fallbackCount} additional mirror(s) available as fallback`
+      : ''
   core.info(
-    `Selected mirror ${mirror} (TeX Live ${highestVersion}, rev. ${highestRevision})`
+    `Selected mirror ${filteredMirrors[0]} (TeX Live ${highestVersion}, rev. ${highestRevision})${fallbackInfo}`
   )
-  return [mirror, highestVersion, highestRevision]
+  return [filteredMirrors, highestVersion, highestRevision]
 }
 
 function handleExecResult(description: string, status: number): void {
@@ -220,15 +232,14 @@ async function installTexLive(
     const http = new HttpClient('install-texlive GitHub Action', [], {
       allowRedirectDowngrade: true
     })
-    const response = await http.get(
+    const installerUrl =
       (repository ?? 'https://mirrors.ctan.org/systems/texlive/tlnet') +
-        (tlPlatform === 'windows'
-          ? '/install-tl.zip'
-          : '/install-tl-unx.tar.gz')
-    )
+      (tlPlatform === 'windows' ? '/install-tl.zip' : '/install-tl-unx.tar.gz')
+    core.info(`Downloading TeX Live installer from ${installerUrl}`)
+    const response = await http.get(installerUrl)
     if (response.message.statusCode !== 200) {
       throw new Error(
-        `Downloading installer failed with status code ${response.message.statusCode}`
+        `Downloading installer from ${installerUrl} failed with status code ${response.message.statusCode}`
       )
     }
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -280,12 +291,40 @@ async function installTexLive(
   )
 }
 
+// Try installing from each repository in turn, moving on to the next one if a
+// mirror fails (e.g. a transient HTTP 403 while downloading the installer). A
+// single `undefined` entry means "let install-tl/tlmgr pick a CTAN mirror".
+async function installFromRepositories(
+  initialInstall: boolean,
+  repositories: (string | undefined)[],
+  tlPlatform: TlPlatform,
+  packages: string[]
+): Promise<void> {
+  let lastError: unknown
+  for (let i = 0; i < repositories.length; i++) {
+    const repository = repositories[i]
+    try {
+      await installTexLive(initialInstall, repository, tlPlatform, packages)
+      return
+    } catch (error) {
+      lastError = error
+      const remaining = repositories.length - i - 1
+      if (remaining > 0) {
+        core.warning(
+          `Installation using ${repository ?? 'CTAN auto-selection'} failed, retrying with another mirror (${remaining} left): ${error}`
+        )
+      }
+    }
+  }
+  throw lastError
+}
+
 async function resolveRepository(
   texlive_version: number | undefined,
   requested_repository: string | undefined
-): Promise<[string | undefined, number | undefined, number | undefined]> {
+): Promise<[string[] | undefined, number | undefined, number | undefined]> {
   if (requested_repository !== undefined) {
-    return [requested_repository, texlive_version, undefined]
+    return [[requested_repository], texlive_version, undefined]
   }
   return (
     (await findRepository(texlive_version)) || [undefined, undefined, undefined]
@@ -294,7 +333,7 @@ async function resolveRepository(
 
 export async function run(): Promise<void> {
   try {
-    const [repository, texlive_version, revision] = await resolveRepository(
+    const [repositories, texlive_version, revision] = await resolveRepository(
       getOptionalNumberInput('texlive_version'),
       getOptionalInput('repository')
     )
@@ -330,7 +369,7 @@ export async function run(): Promise<void> {
 
     let restoredCache: string | undefined
     if (cacheKey) {
-      core.info(`Trying to restore with key ${cacheKey.full}`)
+      core.info(`Trying to restore cache with key ${cacheKey.full}`)
       restoredCache = await cache.restoreCache(['~/texlive'], cacheKey.full, [
         cacheKey.prefix
       ])
@@ -339,13 +378,26 @@ export async function run(): Promise<void> {
         core.info(`Restored cache with key ${restoredCache}`)
         return
       }
+      if (restoredCache === undefined) {
+        core.info(
+          'No usable cache found, installing TeX Live from a mirror instead'
+        )
+      } else {
+        core.info(
+          `Restored partial cache ${restoredCache}, updating it from a mirror`
+        )
+      }
     }
+
+    // A single `undefined` entry means no explicit repository was resolved, so
+    // install-tl/tlmgr falls back to CTAN auto-selection.
+    const repositoriesToTry = repositories ?? [undefined]
 
     // Installing TeX Live gets another try block to handle acceptStale
     try {
-      await installTexLive(
+      await installFromRepositories(
         restoredCache === undefined,
-        repository,
+        repositoriesToTry,
         tlPlatform,
         packages
       )
