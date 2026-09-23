@@ -95,10 +95,7 @@ async function calculateCacheKey(
 }
 
 type TlPlatform =
-  | 'universal-darwin'
-  | 'windows'
-  | 'x86_64-linux'
-  | 'aarch64-linux'
+  'universal-darwin' | 'windows' | 'x86_64-linux' | 'aarch64-linux'
 function detectTlPlatform(): TlPlatform {
   const osPlatform = os.platform()
   switch (osPlatform) {
