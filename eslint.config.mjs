@@ -1,6 +1,7 @@
 import stylistic from '@stylistic/eslint-plugin'
 import ts from 'typescript-eslint'
-import github from 'eslint-plugin-github'
+import prettier from 'eslint-plugin-prettier/recommended'
+// import github from 'eslint-plugin-github'
 import js from '@eslint/js'
 import globals from 'globals'
 
@@ -10,7 +11,8 @@ export default [
   },
   js.configs.recommended,
   ...ts.configs.recommended,
-  github.getFlatConfigs().recommended,
+  prettier,
+  // github.getFlatConfigs().recommended,
   {
     plugins: {
       '@typescript-eslint': ts.plugin,

@@ -7175,7 +7175,7 @@ exports.colors = [6, 2, 3, 4, 5, 1];
 try {
 	// Optional dependency (as in, doesn't need to be installed, NOT like optionalDependencies in package.json)
 	// eslint-disable-next-line import/no-extraneous-dependencies
-	const supportsColor = __nccwpck_require__(1450);
+	const supportsColor = __nccwpck_require__(75);
 
 	if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
 		exports.colors = [
@@ -11798,21 +11798,6 @@ function patch (fs) {
 
 /***/ }),
 
-/***/ 3813:
-/***/ ((module) => {
-
-
-
-module.exports = (flag, argv = process.argv) => {
-	const prefix = flag.startsWith('-') ? '' : (flag.length === 1 ? '-' : '--');
-	const position = argv.indexOf(prefix + flag);
-	const terminatorPosition = argv.indexOf('--');
-	return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
-};
-
-
-/***/ }),
-
 /***/ 497:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -15004,7 +14989,7 @@ var pna = __nccwpck_require__(1564);
 module.exports = Readable;
 
 /*<replacement>*/
-var isArray = __nccwpck_require__(7484);
+var isArray = __nccwpck_require__(2513);
 /*</replacement>*/
 
 /*<replacement>*/
@@ -17084,18 +17069,6 @@ module.exports = {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 module.exports = __nccwpck_require__(2203);
-
-
-/***/ }),
-
-/***/ 7484:
-/***/ ((module) => {
-
-var toString = {}.toString;
-
-module.exports = Array.isArray || function (arr) {
-  return toString.call(arr) == '[object Array]';
-};
 
 
 /***/ }),
@@ -21403,148 +21376,6 @@ module.exports = function stripDirs(pathStr, count, option) {
 
 /***/ }),
 
-/***/ 1450:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-const os = __nccwpck_require__(857);
-const tty = __nccwpck_require__(2018);
-const hasFlag = __nccwpck_require__(3813);
-
-const {env} = process;
-
-let forceColor;
-if (hasFlag('no-color') ||
-	hasFlag('no-colors') ||
-	hasFlag('color=false') ||
-	hasFlag('color=never')) {
-	forceColor = 0;
-} else if (hasFlag('color') ||
-	hasFlag('colors') ||
-	hasFlag('color=true') ||
-	hasFlag('color=always')) {
-	forceColor = 1;
-}
-
-if ('FORCE_COLOR' in env) {
-	if (env.FORCE_COLOR === 'true') {
-		forceColor = 1;
-	} else if (env.FORCE_COLOR === 'false') {
-		forceColor = 0;
-	} else {
-		forceColor = env.FORCE_COLOR.length === 0 ? 1 : Math.min(parseInt(env.FORCE_COLOR, 10), 3);
-	}
-}
-
-function translateLevel(level) {
-	if (level === 0) {
-		return false;
-	}
-
-	return {
-		level,
-		hasBasic: true,
-		has256: level >= 2,
-		has16m: level >= 3
-	};
-}
-
-function supportsColor(haveStream, streamIsTTY) {
-	if (forceColor === 0) {
-		return 0;
-	}
-
-	if (hasFlag('color=16m') ||
-		hasFlag('color=full') ||
-		hasFlag('color=truecolor')) {
-		return 3;
-	}
-
-	if (hasFlag('color=256')) {
-		return 2;
-	}
-
-	if (haveStream && !streamIsTTY && forceColor === undefined) {
-		return 0;
-	}
-
-	const min = forceColor || 0;
-
-	if (env.TERM === 'dumb') {
-		return min;
-	}
-
-	if (process.platform === 'win32') {
-		// Windows 10 build 10586 is the first Windows release that supports 256 colors.
-		// Windows 10 build 14931 is the first release that supports 16m/TrueColor.
-		const osRelease = os.release().split('.');
-		if (
-			Number(osRelease[0]) >= 10 &&
-			Number(osRelease[2]) >= 10586
-		) {
-			return Number(osRelease[2]) >= 14931 ? 3 : 2;
-		}
-
-		return 1;
-	}
-
-	if ('CI' in env) {
-		if (['TRAVIS', 'CIRCLECI', 'APPVEYOR', 'GITLAB_CI', 'GITHUB_ACTIONS', 'BUILDKITE'].some(sign => sign in env) || env.CI_NAME === 'codeship') {
-			return 1;
-		}
-
-		return min;
-	}
-
-	if ('TEAMCITY_VERSION' in env) {
-		return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
-	}
-
-	if (env.COLORTERM === 'truecolor') {
-		return 3;
-	}
-
-	if ('TERM_PROGRAM' in env) {
-		const version = parseInt((env.TERM_PROGRAM_VERSION || '').split('.')[0], 10);
-
-		switch (env.TERM_PROGRAM) {
-			case 'iTerm.app':
-				return version >= 3 ? 3 : 2;
-			case 'Apple_Terminal':
-				return 2;
-			// No default
-		}
-	}
-
-	if (/-256(color)?$/i.test(env.TERM)) {
-		return 2;
-	}
-
-	if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
-		return 1;
-	}
-
-	if ('COLORTERM' in env) {
-		return 1;
-	}
-
-	return min;
-}
-
-function getSupportLevel(stream) {
-	const level = supportsColor(stream, stream && stream.isTTY);
-	return translateLevel(level);
-}
-
-module.exports = {
-	supportsColor: getSupportLevel,
-	stdout: translateLevel(supportsColor(true, tty.isatty(1))),
-	stderr: translateLevel(supportsColor(true, tty.isatty(2)))
-};
-
-
-/***/ }),
-
 /***/ 5763:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -22492,7 +22323,7 @@ function through (write, end, opts) {
 
 
 var Buffer = (__nccwpck_require__(3058).Buffer);
-var isArray = __nccwpck_require__(2513);
+var isArray = __nccwpck_require__(3803);
 var typedArrayBuffer = __nccwpck_require__(8489);
 
 var isView = ArrayBuffer.isView || function isView(obj) {
@@ -22597,6 +22428,18 @@ module.exports = function toBuffer(data, encoding) {
 	}
 
 	throw new TypeError('The "data" argument must be a string, an Array, a Buffer, a Uint8Array, or a DataView.');
+};
+
+
+/***/ }),
+
+/***/ 3803:
+/***/ ((module) => {
+
+var toString = {}.toString;
+
+module.exports = Array.isArray || function (arr) {
+  return toString.call(arr) == '[object Array]';
 };
 
 
@@ -52302,6 +52145,14 @@ function defaultCallback(err) {
 
 /***/ }),
 
+/***/ 75:
+/***/ ((module) => {
+
+module.exports = eval("require")("supports-color");
+
+
+/***/ }),
+
 /***/ 2613:
 /***/ ((module) => {
 
@@ -52498,13 +52349,6 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:zlib");
 
 /***/ }),
 
-/***/ 857:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("os");
-
-/***/ }),
-
 /***/ 6928:
 /***/ ((module) => {
 
@@ -52686,6 +52530,9 @@ module.exports = /*#__PURE__*/JSON.parse('{"name":"seek-bzip","version":"1.0.6",
 /******/ }
 /******/ 
 /************************************************************************/
+/******/ /* webpack/runtime/asset-relocator-loader */
+/******/ if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = decodeURIComponent(new URL('.', import.meta.url).pathname).slice(import.meta.url.match(/^file:\/\/\/\w:/) ? 1 : 0, -1) + "/";
+/******/ 
 /******/ /* webpack/runtime/compat get default export */
 /******/ (() => {
 /******/ 	// getDefaultExport function for compatibility with non-harmony modules
@@ -52755,10 +52602,6 @@ module.exports = /*#__PURE__*/JSON.parse('{"name":"seek-bzip","version":"1.0.6",
 /******/ 		Object.defineProperty(exports, '__esModule', { value: true });
 /******/ 	};
 /******/ })();
-/******/ 
-/******/ /* webpack/runtime/compat */
-/******/ 
-/******/ if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = new URL('.', import.meta.url).pathname.slice(import.meta.url.match(/^file:\/\/\/\w:/) ? 1 : 0, -1) + "/";
 /******/ 
 /************************************************************************/
 var __webpack_exports__ = {};
@@ -52948,3108 +52791,695 @@ __nccwpck_require__.d(mappers_namespaceObject, {
   UserDelegationKey: () => (UserDelegationKey)
 });
 
+;// CONCATENATED MODULE: ./node_modules/temporal-polyfill/chunks/root.js
+const root_NativeTemporal = globalThis.Temporal;
+
+
+
+;// CONCATENATED MODULE: ./node_modules/temporal-utils/dist/errorMessages.js
+// Low-Level
+const expectedPositive = (entityName, num) => `Non-positive ${entityName}: ${num}`;
+const expectedFinite = (entityName, num) => `Non-finite ${entityName}: ${num}`;
+const forbiddenBigIntToNumber = (entityName) => `Cannot convert bigint to ${entityName}`;
+const invalidObject = 'Invalid object';
+const numberOutOfRange = (entityName, val, min, max) => invalidEntity(entityName, val) + `; must be between ${min}-${max}`;
+// Entity/Fields/Bags
+const invalidEntity = (fieldName, val) => `Invalid ${fieldName}: ${val}`;
+// Calendar
+const unsupportedWeekNumbers = 'Calendar week operations forbidden';
+// Rounding
+const nonOneRoundingIncrement = 'Non-1 roundingIncrement not allowed';
+// Options
+const invalidOverflowOption = 'Invalid overflow option';
+
+;// CONCATENATED MODULE: ./node_modules/temporal-utils/dist/utils.js
+
+const nanoInMicro = 1_000;
+const nanoInMilli = 1_000_000;
+const nanoInSec = 1_000_000_000;
+const nanoInMinute = 60_000_000_000;
+const nanoInHour = 3_600_000_000_000;
+function normalizeOptions(options) {
+    if (options === undefined) {
+        return Object.create(null);
+    }
+    return requireObjectLike(options);
+}
+function toFiniteNumber(arg, entityName = 'number') {
+    if (typeof arg === 'bigint') {
+        throw new TypeError(forbiddenBigIntToNumber(entityName));
+    }
+    arg = Number(arg);
+    if (!Number.isFinite(arg)) {
+        throw new RangeError(expectedFinite(entityName, arg));
+    }
+    return arg;
+}
+function utils_toIntegerWithTrunc(arg, entityName) {
+    return Math.trunc(toFiniteNumber(arg, entityName)) || 0; // ensure no -0
+}
+function toPositiveIntegerWithTruncation(arg, entityName) {
+    return requireNumberIsPositive(utils_toIntegerWithTrunc(arg, entityName), entityName);
+}
+/*
+Already known to be number.
+*/
+function requireNumberIsPositive(num, entityName = 'number') {
+    if (num <= 0) {
+        throw new RangeError(expectedPositive(entityName, num));
+    }
+    return num;
+}
+/*
+min/max are inclusive
+*/
+function constrainToRange(num, min, max) {
+    return Math.min(Math.max(num, min), max);
+}
+function isObjectLike(arg) {
+    return arg !== null && (typeof arg === 'object' || typeof arg === 'function');
+}
+function requireObjectLike(arg) {
+    if (!isObjectLike(arg)) {
+        throw new TypeError(invalidObject);
+    }
+    return arg;
+}
+// Options-bag-parsing-adjacent
+// ----------------------------
+/*
+Already known to be number
+*/
+function normalizeNumberInRange(num, min, max, // inclusive
+options) {
+    const clamped = constrainToRange(num, min, max);
+    if (normalizeOverflow(options) === 'reject' && num !== clamped) {
+        throw new RangeError(errorMessages.numberOutOfRange('number', num, min, max));
+    }
+    return clamped;
+}
+/*
+Match Temporal's field overflow shape without depending on the polyfill's
+internal option readers. Undefined defaults to constrain; explicit reject asks
+for exact in-range input.
+*/
+function normalizeOverflow(options) {
+    options = normalizeOptions(options);
+    const overflow = options.overflow;
+    if (overflow === undefined) {
+        return 'constrain';
+    }
+    if (overflow === 'constrain' || overflow === 'reject') {
+        return overflow;
+    }
+    throw new RangeError(errorMessages.invalidOverflowOption);
+}
+
+;// CONCATENATED MODULE: ./node_modules/temporal-polyfill/chunks/options.js
+
+
+
+
+
+
+function normalizeOptionsOrString(options, optionName) {
+  return "string" == typeof options ? ((optionName, optionVal) => {
+    const res = Object.create(null);
+    return res[optionName] = optionVal, res;
+  })(optionName, options) : requireObjectLike(options);
+}
+
+const smallestUnitStr = "smallestUnit";
+
+const overflowMap = {
+  constrain: 0,
+  reject: 1
+};
+
+const epochDisambigMap = {
+  compatible: 0,
+  reject: 1,
+  earlier: 2,
+  later: 3
+};
+
+const offsetDisambigMap = {
+  reject: 0,
+  use: 1,
+  prefer: 2,
+  ignore: 3
+};
+
+const calendarDisplayMap = {
+  auto: 0,
+  never: 1,
+  critical: 2,
+  always: 3
+};
+
+const timeZoneDisplayMap = {
+  auto: 0,
+  never: 1,
+  critical: 2
+};
+
+const offsetDisplayMap = {
+  auto: 0,
+  never: 1
+};
+
+const roundingModeMap = {
+  floor: 0,
+  halfFloor: 1,
+  ceil: 2,
+  halfCeil: 3,
+  trunc: 4,
+  halfTrunc: 5,
+  expand: 6,
+  halfExpand: 7,
+  halfEven: 8
+};
+
+const roundingModeFuncs = [ Math.floor, roundHalfFloor, Math.ceil, roundHalfCeil, Math.trunc, roundHalfTrunc, roundExpand, roundHalfExpand, roundHalfEven ];
+
+const directionMap = {
+  previous: -1,
+  next: 1
+};
+
+function coerceRoundingIncInteger(options) {
+  const roundingInc = options.roundingIncrement;
+  return void 0 === roundingInc ? 1 : utils_toIntegerWithTrunc(roundingInc, "roundingIncrement");
+}
+
+function coerceFractionalSecondDigits(options) {
+  let subsecDigits = options.fractionalSecondDigits;
+  if (void 0 !== subsecDigits) {
+    if ("number" != typeof subsecDigits) {
+      if ("auto" === internal_toString(subsecDigits)) {
+        return;
+      }
+      throwRangeError(internal_invalidEntity("fractionalSecondDigits", subsecDigits));
+    }
+    subsecDigits = clampEntity("fractionalSecondDigits", Math.floor(subsecDigits), 0, 9, 1);
+  }
+  return subsecDigits;
+}
+
+function coerceUnitOption(optionName, options, minUnit = 0, ensureDefined) {
+  let unitStr = options[optionName];
+  if (void 0 === unitStr) {
+    return ensureDefined ? minUnit : void 0;
+  }
+  if (unitStr = internal_toString(unitStr), "auto" === unitStr) {
+    return ensureDefined ? minUnit : null;
+  }
+  let unit = unitNameMap[unitStr];
+  return void 0 === unit && (unit = durationFieldNamesAsc.indexOf(unitStr)), unit < 0 && throwRangeError(invalidChoice(optionName, unitStr, unitNameMap)), 
+  unit;
+}
+
+function coerceChoiceOption(optionName, enumNameMap, options, defaultChoice = 0) {
+  const enumArg = options[optionName];
+  if (void 0 === enumArg) {
+    return defaultChoice;
+  }
+  const enumStr = internal_toString(enumArg);
+  const enumNum = enumNameMap[enumStr];
+  return void 0 === enumNum && throwRangeError(invalidChoice(optionName, enumStr, enumNameMap)), 
+  enumNum;
+}
+
+const coerceSmallestUnit = /*@__PURE__*/ internal_bindArgs(coerceUnitOption, smallestUnitStr);
+
+const coerceLargestUnit = /*@__PURE__*/ internal_bindArgs(coerceUnitOption, "largestUnit");
+
+const coerceTotalUnit = /*@__PURE__*/ internal_bindArgs(coerceUnitOption, "unit");
+
+const coerceOverflow = /*@__PURE__*/ internal_bindArgs(coerceChoiceOption, "overflow", overflowMap);
+
+const coerceEpochDisambig = /*@__PURE__*/ internal_bindArgs(coerceChoiceOption, "disambiguation", epochDisambigMap);
+
+const coerceOffsetDisambig = /*@__PURE__*/ internal_bindArgs(coerceChoiceOption, "offset", offsetDisambigMap);
+
+const coerceCalendarDisplay = /*@__PURE__*/ internal_bindArgs(coerceChoiceOption, "calendarName", calendarDisplayMap);
+
+const coerceTimeZoneDisplay = /*@__PURE__*/ internal_bindArgs(coerceChoiceOption, "timeZoneName", timeZoneDisplayMap);
+
+const coerceOffsetDisplay = /*@__PURE__*/ internal_bindArgs(coerceChoiceOption, "offset", offsetDisplayMap);
+
+const coerceRoundingMode = /*@__PURE__*/ internal_bindArgs(coerceChoiceOption, "roundingMode", roundingModeMap);
+
+const coerceDirection = /*@__PURE__*/ internal_bindArgs(coerceChoiceOption, "direction", directionMap);
+
+function validateRoundingInc(roundingInc, smallestUnit, allowManyLargeUnits, solarMode) {
+  const upUnitNano = solarMode ? nanoInUtcDay : unitNanoMap[smallestUnit + 1];
+  if (upUnitNano) {
+    const unitNano = unitNanoMap[smallestUnit];
+    upUnitNano % ((roundingInc = clampEntity("roundingIncrement", roundingInc, 1, upUnitNano / unitNano - (solarMode ? 0 : 1), 1)) * unitNano) && throwRangeError(internal_invalidEntity("roundingIncrement", roundingInc));
+  } else {
+    roundingInc = clampEntity("roundingIncrement", roundingInc, 1, allowManyLargeUnits ? 10 ** 9 : 1, 1);
+  }
+  return roundingInc;
+}
+
+function validateUnitRange(optionName, unit, minUnit, maxUnit) {
+  return null != unit && clampEntity(optionName, unit, minUnit, maxUnit, 1, unitNamesAsc), 
+  unit;
+}
+
+function checkLargestSmallestUnit(largestUnit, smallestUnit) {
+  smallestUnit > largestUnit && throwRangeError(flippedSmallestLargestUnit);
+}
+
+function refineDiffOptions(roundingModeInvert, options, defaultLargestUnit, maxUnit = 9, minUnit = 0, defaultRoundingMode = 4) {
+  options = normalizeOptions(options);
+  let largestUnit = coerceLargestUnit(options, minUnit);
+  let roundingInc = coerceRoundingIncInteger(options);
+  let roundingMode = coerceRoundingMode(options, defaultRoundingMode);
+  let smallestUnit = coerceSmallestUnit(options, minUnit, 1);
+  return largestUnit = validateUnitRange("largestUnit", largestUnit, minUnit, maxUnit), 
+  smallestUnit = validateUnitRange(smallestUnitStr, smallestUnit, minUnit, maxUnit), 
+  null == largestUnit ? largestUnit = Math.max(defaultLargestUnit, smallestUnit) : checkLargestSmallestUnit(largestUnit, smallestUnit), 
+  roundingInc = validateRoundingInc(roundingInc, smallestUnit, 1), roundingModeInvert && (roundingMode = (roundingMode => roundingMode < 4 ? (roundingMode + 2) % 4 : roundingMode)(roundingMode)), 
+  [ largestUnit, smallestUnit, roundingInc, roundingMode ];
+}
+
+function refineDurationRoundOptions(options, defaultLargestUnit, refineRelativeTo) {
+  options = normalizeOptionsOrString(options, smallestUnitStr);
+  let largestUnit = coerceLargestUnit(options);
+  const relativeToInternals = refineRelativeTo(options.relativeTo);
+  let roundingInc = coerceRoundingIncInteger(options);
+  const roundingMode = coerceRoundingMode(options, 7);
+  let smallestUnit = coerceSmallestUnit(options);
+  return void 0 === largestUnit && void 0 === smallestUnit && throwRangeError(missingSmallestLargestUnit), 
+  null == smallestUnit && (smallestUnit = 0), null == largestUnit && (largestUnit = Math.max(smallestUnit, defaultLargestUnit)), 
+  checkLargestSmallestUnit(largestUnit, smallestUnit), roundingInc = validateRoundingInc(roundingInc, smallestUnit, 1), 
+  roundingInc > 1 && smallestUnit > 5 && largestUnit !== smallestUnit && throwRangeError("For calendar units with roundingIncrement > 1, use largestUnit = smallestUnit"), 
+  [ largestUnit, smallestUnit, roundingInc, roundingMode, relativeToInternals ];
+}
+
+function refineRoundingOptions(options, maxUnit = 6, solarMode) {
+  let roundingInc = coerceRoundingIncInteger(options = normalizeOptionsOrString(options, smallestUnitStr));
+  const roundingMode = coerceRoundingMode(options, 7);
+  let smallestUnit = coerceSmallestUnit(options);
+  return smallestUnit = requirePropDefined(smallestUnitStr, smallestUnit), smallestUnit = validateUnitRange(smallestUnitStr, smallestUnit, 0, maxUnit), 
+  roundingInc = validateRoundingInc(roundingInc, smallestUnit, void 0, solarMode), 
+  [ smallestUnit, roundingInc, roundingMode ];
+}
+
+function options_refineUnitDiffOptions(unit, options) {
+  return "string" == typeof options || Boolean(options && (options.roundingMode || void 0 !== options.roundingIncrement)) ? ((smallestUnit, options, allowManyLargeUnits, defaultRoundingMode = 7) => {
+    let roundingInc = coerceRoundingIncInteger(options = normalizeOptionsOrString(options, "roundingMode"));
+    const roundingMode = coerceRoundingMode(options, defaultRoundingMode);
+    return roundingInc = validateRoundingInc(roundingInc, smallestUnit, allowManyLargeUnits), 
+    [ roundingInc, roundingMode ];
+  })(unit, options, 1, 4) : [ 1, void 0 ];
+}
+
+function refineUnitRoundOptions(smallestUnit, options, solarMode) {
+  let roundingInc = coerceRoundingIncInteger(options = normalizeUnitRoundOptions(options));
+  const roundingMode = coerceRoundingMode(options, 7);
+  return roundingInc = validateRoundingInc(roundingInc, smallestUnit, void 0, solarMode), 
+  [ roundingInc, roundingMode ];
+}
+
+function normalizeUnitRoundOptions(options) {
+  return void 0 === options ? Object.create(null) : normalizeOptionsOrString(options, "roundingMode");
+}
+
+function refineTotalOptions(options, refineRelativeTo) {
+  const relativeToInternals = refineRelativeTo((options = normalizeOptionsOrString(options, "unit")).relativeTo);
+  let totalUnit = coerceTotalUnit(options);
+  return totalUnit = requirePropDefined("unit", totalUnit), [ totalUnit, relativeToInternals ];
+}
+
+function options_refineOverflowOptions(options) {
+  return void 0 === options ? 0 : coerceOverflow(requireObjectLike(options));
+}
+
+function refineZonedFieldOptions(options, defaultOffsetDisambig = 0) {
+  options = normalizeOptions(options);
+  const epochDisambig = coerceEpochDisambig(options);
+  const offsetDisambig = coerceOffsetDisambig(options, defaultOffsetDisambig);
+  return [ coerceOverflow(options), offsetDisambig, epochDisambig ];
+}
+
+function refineEpochDisambigOptions(options) {
+  return coerceEpochDisambig(normalizeOptions(options));
+}
+
+function refineTimeDisplayTuple(options, maxSmallestUnit = 4) {
+  const subsecDigits = coerceFractionalSecondDigits(options);
+  const roundingMode = coerceRoundingMode(options, 4);
+  const smallestUnit = coerceSmallestUnit(options);
+  return [ roundingMode, ...resolveSmallestUnitAndSubsecDigits(validateUnitRange(smallestUnitStr, smallestUnit, 0, maxSmallestUnit), subsecDigits) ];
+}
+
+function refineDateTimeDisplayOptions(options) {
+  return options = normalizeOptions(options), [ coerceCalendarDisplay(options), ...refineTimeDisplayTuple(options) ];
+}
+
+function refineDateDisplayOptions(options) {
+  return coerceCalendarDisplay(normalizeOptions(options));
+}
+
+function refineTimeDisplayOptions(options, maxSmallestUnit) {
+  return refineTimeDisplayTuple(normalizeOptions(options), maxSmallestUnit);
+}
+
+function refineZonedDateTimeDisplayOptions(options) {
+  options = normalizeOptions(options);
+  const calendarDisplay = coerceCalendarDisplay(options);
+  const subsecDigits = coerceFractionalSecondDigits(options);
+  const offsetDisplay = coerceOffsetDisplay(options);
+  const roundingMode = coerceRoundingMode(options, 4);
+  const smallestUnit = coerceSmallestUnit(options);
+  return [ calendarDisplay, coerceTimeZoneDisplay(options), offsetDisplay, roundingMode, ...resolveSmallestUnitAndSubsecDigits(validateUnitRange(smallestUnitStr, smallestUnit, 0, 4), subsecDigits) ];
+}
+
+function refineInstantDisplayOptions(options) {
+  const subsecDigits = coerceFractionalSecondDigits(options = normalizeOptions(options));
+  const roundingMode = coerceRoundingMode(options, 4);
+  const smallestUnit = coerceSmallestUnit(options);
+  return [ options.timeZone, roundingMode, ...resolveSmallestUnitAndSubsecDigits(validateUnitRange(smallestUnitStr, smallestUnit, 0, 4), subsecDigits) ];
+}
+
+function resolveSmallestUnitAndSubsecDigits(smallestUnit, subsecDigits) {
+  return null != smallestUnit ? [ unitNanoMap[smallestUnit], smallestUnit < 4 ? 9 - 3 * smallestUnit : -1 ] : [ void 0 === subsecDigits ? 1 : 10 ** (9 - subsecDigits), subsecDigits ];
+}
+
+function refineDirectionOptions(options) {
+  const normalizedOptions = normalizeOptionsOrString(options, "direction");
+  const res = coerceDirection(normalizedOptions, 0);
+  return res || throwRangeError(internal_invalidEntity("direction", res)), res;
+}
+
+
+
 ;// CONCATENATED MODULE: ./node_modules/temporal-polyfill/chunks/internal.js
-function clampProp(e, n, t, o, r) {
-  return ba(n, ((e, n) => {
-    const t = e[n];
-    if (void 0 === t) {
-      throw new TypeError(missingField(n));
+
+
+
+
+
+
+
+
+const internal_invalidEntity = invalidEntity;
+
+const internal_unsupportedWeekNumbers = unsupportedWeekNumbers;
+
+const missingField = fieldName => `Missing ${fieldName}`;
+
+const noValidFields = validFields => "No valid fields: " + validFields.join();
+
+const invalidBag = "Invalid bag";
+
+const invalidChoice = (fieldName, val, choiceMap) => invalidEntity(fieldName, val) + "; must be " + Object.keys(choiceMap).join();
+
+const forbiddenValueOf = "Cannot use valueOf";
+
+const invalidCallingContext = "Invalid calling context";
+
+const missingYear = allowEra => "Missing year" + (allowEra ? "/era/eraYear" : "");
+
+const invalidLeapMonth = "Invalid leap month";
+
+const invalidCalendar = calendarId => invalidEntity("Calendar", calendarId);
+
+const exoticCalendarRequired = (calendarId, remedy) => `Unknown calendar ${calendarId}; might need ${remedy}`;
+
+const invalidTimeZone = calendarId => invalidEntity("TimeZone", calendarId);
+
+const outOfBoundsDate = "Out-of-bounds date";
+
+const invalidRelativeTo = arg => internal_invalidEntity("relativeTo", arg);
+
+const missingSmallestLargestUnit = "Required smallestUnit or largestUnit";
+
+const flippedSmallestLargestUnit = "smallestUnit > largestUnit";
+
+const failedParse = s => `Cannot parse: ${s}`;
+
+const invalidSubstring = substring => `Invalid substring: ${substring}`;
+
+const invalidFormatType = branding => `Cannot format ${branding}`;
+
+const mismatchingFormatTypes = "Mismatching types for formatting";
+
+const internal_constrainToRange = constrainToRange;
+
+const internal_isObjectLike = isObjectLike;
+
+function throwRangeError(message) {
+  throw new RangeError(message);
+}
+
+function throwTypeError(message) {
+  throw new TypeError(message);
+}
+
+function clampProp(props, propName, min, max, overflow) {
+  return clampEntity(propName, ((props, propName) => {
+    const propVal = props[propName];
+    return void 0 === propVal && throwTypeError(missingField(propName)), propVal;
+  })(props, propName), min, max, overflow);
+}
+
+function clampEntity(entityName, num, min, max, overflow, choices) {
+  const clamped = internal_constrainToRange(num, min, max);
+  return overflow && num !== clamped && throwRangeError(((entityName, val, min, max, choices) => choices ? numberOutOfRange(entityName, choices[val], choices[min], choices[max]) : numberOutOfRange(entityName, val, min, max))(entityName, num, min, max, choices)), 
+  clamped;
+}
+
+function memoize(generator, MapClass = Map) {
+  const map = new MapClass;
+  return (key, ...otherArgs) => {
+    if (map.has(key)) {
+      return map.get(key);
     }
-    return t;
-  })(e, n), t, o, r);
-}
-
-function ba(e, n, t, o, r, i) {
-  const a = clampNumber(n, t, o);
-  if (r && n !== a) {
-    throw new RangeError(numberOutOfRange(e, n, t, o, i));
-  }
-  return a;
-}
-
-function s(e) {
-  return null !== e && /object|function/.test(typeof e);
-}
-
-function on(e, n = Map) {
-  const t = new n;
-  return (n, ...o) => {
-    if (t.has(n)) {
-      return t.get(n);
-    }
-    const r = e(n, ...o);
-    return t.set(n, r), r;
+    const val = generator(key, ...otherArgs);
+    return map.set(key, val), val;
   };
 }
 
-function r(e) {
-  return n({
-    name: e
-  }, 1);
-}
+const createNameDescriptors = name => createPropDescriptors({
+  name: name
+}, 1);
 
-function n(n, t) {
-  return e((e => ({
-    value: e,
-    configurable: 1,
-    writable: !t
-  })), n);
-}
+const createPropDescriptors = (propVals, readonly) => mapProps(value => ({
+  value: value,
+  configurable: 1,
+  writable: !readonly
+}), propVals);
 
-function t(n) {
-  return e((e => ({
-    get: e,
+const createStringTagDescriptors = value => ({
+  [Symbol.toStringTag]: {
+    value: value,
     configurable: 1
-  })), n);
-}
-
-function o(e) {
-  return {
-    [Symbol.toStringTag]: {
-      value: e,
-      configurable: 1
-    }
-  };
-}
-
-function zipProps(e, n) {
-  const t = {};
-  let o = e.length;
-  for (const r of n) {
-    t[e[--o]] = r;
   }
-  return t;
-}
+});
 
-function e(e, n, t) {
-  const o = {};
-  for (const r in n) {
-    o[r] = e(n[r], r, t);
+function mapProps(transformer, props) {
+  const res = {};
+  for (const propName in props) {
+    res[propName] = transformer(props[propName], propName);
   }
-  return o;
+  return res;
 }
 
-function P(e, n, t) {
-  const o = {};
-  for (let r = 0; r < n.length; r++) {
-    const i = n[r];
-    o[i] = e(i, r, t);
+function zipPropsConst(propNames, propVal) {
+  const res = {};
+  for (const propName of propNames) {
+    res[propName] = propVal;
   }
-  return o;
+  return res;
 }
 
-function remapProps(e, n, t) {
-  const o = {};
-  for (let r = 0; r < e.length; r++) {
-    o[n[r]] = t[e[r]];
+function internal_createPropGetters(propNames) {
+  const getters = {};
+  for (const propName of propNames) {
+    getters[propName] = slots => slots[propName];
   }
-  return o;
+  return getters;
 }
 
-function nn(e, n) {
-  const t = Object.create(null);
-  for (const o of e) {
-    t[o] = n[o];
+function pluckProps(propNames, props, dest = Object.create(null)) {
+  for (const propName of propNames) {
+    dest[propName] = props[propName];
   }
-  return t;
+  return dest;
 }
 
-function hasAnyPropsByName(e, n) {
-  for (const t of n) {
-    if (t in e) {
-      return 1;
-    }
-  }
-  return 0;
-}
-
-function allPropsEqual(e, n, t) {
-  for (const o of e) {
-    if (n[o] !== t[o]) {
+function allPropsEqual(propNames, props0, props1) {
+  for (const propName of propNames) {
+    if (props0[propName] !== props1[propName]) {
       return 0;
     }
   }
   return 1;
 }
 
-function zeroOutProps(e, n, t) {
-  const o = {
-    ...t
+function zeroOutProps(propNames, clearUntilI, props) {
+  const copy = {
+    ...props
   };
-  for (let t = 0; t < n; t++) {
-    o[e[t]] = 0;
+  for (let i = 0; i < clearUntilI; i++) {
+    copy[propNames[i]] = 0;
   }
-  return o;
+  return copy;
 }
 
-function gt(e, ...n) {
-  return (...t) => e(...n, ...t);
+function internal_bindArgs(f, ...boundArgs) {
+  return (...dynamicArgs) => f(...boundArgs, ...dynamicArgs);
 }
 
-function Io(e) {
-  return e;
+function identity(arg) {
+  return arg;
 }
 
 function noop() {}
 
-function capitalize(e) {
-  return e[0].toUpperCase() + e.substring(1);
+function capitalize(s) {
+  return s[0].toUpperCase() + s.substring(1);
 }
 
-function sortStrings(e) {
-  return e.slice().sort();
+function sortStrings(...strss) {
+  return [].concat(...strss).sort();
 }
 
-function padNumber(e, n) {
-  return String(n).padStart(e, "0");
+function createRegExp(meat) {
+  return new RegExp(`^${meat}$`, "i");
 }
 
-function compareNumbers(e, n) {
-  return Math.sign(e - n);
+function parseSubsecNano(fracStr) {
+  return parseInt(fracStr.padEnd(9, "0"));
 }
 
-function clampNumber(e, n, t) {
-  return Math.min(Math.max(e, n), t);
+function parseSign(s) {
+  return s && "+" !== s ? -1 : 1;
 }
 
-function divModFloor(e, n) {
-  return [ Math.floor(e / n), modFloor(e, n) ];
+function parseInt0(s) {
+  return void 0 === s ? 0 : parseInt(s);
 }
 
-function modFloor(e, n) {
-  return (e % n + n) % n;
+function padNumber(digits, num) {
+  return String(num).padStart(digits, "0");
 }
 
-function divModTrunc(e, n) {
-  return [ divTrunc(e, n), modTrunc(e, n) ];
-}
-
-function divTrunc(e, n) {
-  return Math.trunc(e / n) || 0;
-}
-
-function modTrunc(e, n) {
-  return e % n || 0;
-}
-
-function hasHalf(e) {
-  return .5 === Math.abs(e % 1);
-}
-
-function givenFieldsToBigNano(e, n, t) {
-  let o = 0, r = 0;
-  for (let i = 0; i <= n; i++) {
-    const n = e[t[i]], a = Zu[i], s = go / a, [c, u] = divModTrunc(n, s);
-    o += u * a, r += c;
-  }
-  const [i, a] = divModTrunc(o, go);
-  return [ r + i, a ];
-}
-
-function nanoToGivenFields(e, n, t) {
-  const o = {};
-  for (let r = n; r >= 0; r--) {
-    const n = Zu[r];
-    o[t[r]] = divTrunc(e, n), e = modTrunc(e, n);
-  }
-  return o;
-}
-
-function m(e) {
-  if (void 0 !== e) {
-    return d(e);
-  }
-}
-
-function g(e) {
-  if (void 0 !== e) {
-    return h(e);
-  }
-}
-
-function S(e) {
-  if (void 0 !== e) {
-    return T(e);
-  }
-}
-
-function h(e) {
-  return requireNumberIsPositive(T(e));
-}
-
-function T(e) {
-  return internal_e(rl(e));
-}
-
-function requirePropDefined(e, n) {
-  if (null == n) {
-    throw new RangeError(missingField(e));
-  }
-  return n;
-}
-
-function oa(e) {
-  if (!s(e)) {
-    throw new TypeError(ru);
-  }
-  return e;
-}
-
-function requireType(e, n, t = e) {
-  if (typeof n !== e) {
-    throw new TypeError(invalidEntity(t, n));
-  }
-  return n;
-}
-
-function internal_e(e, n = "number") {
-  if (!Number.isInteger(e)) {
-    throw new RangeError(expectedInteger(n, e));
-  }
-  return e || 0;
-}
-
-function requireNumberIsPositive(e, n = "number") {
-  if (e <= 0) {
-    throw new RangeError(expectedPositive(n, e));
-  }
-  return e;
-}
-
-function tu(e) {
-  if ("symbol" == typeof e) {
-    throw new TypeError(ou);
-  }
-  return String(e);
-}
-
-function toStringViaPrimitive(e, n) {
-  return s(e) ? String(e) : d(e, n);
-}
-
-function toBigInt(e) {
-  if ("string" == typeof e) {
-    return BigInt(e);
-  }
-  if ("bigint" != typeof e) {
-    throw new TypeError(invalidBigInt(e));
-  }
-  return e;
-}
-
-function toNumber(e, n = "number") {
-  if ("bigint" == typeof e) {
-    throw new TypeError(forbiddenBigIntToNumber(n));
-  }
-  if (e = Number(e), !Number.isFinite(e)) {
-    throw new RangeError(expectedFinite(n, e));
-  }
-  return e;
-}
-
-function Za(e, n) {
-  return Math.trunc(toNumber(e, n)) || 0;
-}
-
-function Ba(e, n) {
-  return internal_e(toNumber(e, n), n);
-}
-
-function toPositiveInteger(e, n) {
-  return requireNumberIsPositive(Za(e, n), n);
-}
-
-function createBigNano(e, n) {
-  let [t, o] = divModTrunc(n, go), r = e + t;
-  const i = Math.sign(r);
-  return i && i === -Math.sign(o) && (r -= i, o += i * go), [ r, o ];
-}
-
-function so(e, n, t = 1) {
-  return createBigNano(e[0] + n[0] * t, e[1] + n[1] * t);
-}
-
-function Ta(e, n) {
-  return createBigNano(e[0], e[1] + n);
-}
-
-function va(e, n) {
-  return so(n, e, -1);
-}
-
-function pa(e, n) {
-  return compareNumbers(e[0], n[0]) || compareNumbers(e[1], n[1]);
-}
-
-function bigNanoOutside(e, n, t) {
-  return -1 === pa(e, n) || 1 === pa(e, t);
-}
-
-function bigIntToBigNano(e, n = 1) {
-  const t = BigInt(go / n);
-  return [ Number(e / t), Number(e % t) * n ];
-}
-
-function internal_Ge(e, n = 1) {
-  const t = go / n, [o, r] = divModTrunc(e, t);
-  return [ o, r * n ];
-}
-
-function bigNanoToBigInt(e, n = 1) {
-  const [t, o] = e, r = Math.floor(o / n), i = go / n;
-  return BigInt(t) * BigInt(i) + BigInt(r);
-}
-
-function La(e, n = 1, t) {
-  const [o, r] = e, [i, a] = divModTrunc(r, n);
-  return o * (go / n) + (i + (t ? a / n : 0));
-}
-
-function Oa(e) {
-  return e[0] + e[1] / go;
-}
-
-function divModBigNano(e, n, t = divModFloor) {
-  const [o, r] = e, [i, a] = t(r, n);
-  return [ o * (go / n) + i, a ];
-}
-
-function checkIsoYearMonthInBounds(e) {
-  return clampProp(e, "isoYear", Nl, yl, 1), e.isoYear === Nl ? clampProp(e, "isoMonth", 4, 12, 1) : e.isoYear === yl && clampProp(e, "isoMonth", 1, 9, 1), 
-  e;
-}
-
-function To(e) {
-  return Do({
-    ...e,
-    ...At,
-    isoHour: 12
-  }), e;
-}
-
-function Do(e) {
-  const n = clampProp(e, "isoYear", Nl, yl, 1), t = n === Nl ? 1 : n === yl ? -1 : 0;
-  return t && io(ma({
-    ...e,
-    isoDay: e.isoDay + t,
-    isoNanosecond: e.isoNanosecond - t
-  })), e;
-}
-
-function io(e) {
-  if (!e || bigNanoOutside(e, Ml, Tl)) {
-    throw new RangeError(Mu);
-  }
-  return e;
-}
-
-function isoTimeFieldsToNano(e) {
-  return givenFieldsToBigNano(e, 5, w)[1];
-}
-
-function nanoToIsoTimeAndDay(e) {
-  const [n, t] = divModFloor(e, go);
-  return [ nanoToGivenFields(t, 5, w), n ];
-}
-
-function epochNanoToSec(e) {
-  return epochNanoToSecMod(e)[0];
-}
-
-function epochNanoToSecMod(e) {
-  return divModBigNano(e, oo);
-}
-
-function isoToEpochMilli(e) {
-  return isoArgsToEpochMilli(e.isoYear, e.isoMonth, e.isoDay, e.isoHour, e.isoMinute, e.isoSecond, e.isoMillisecond);
-}
-
-function ma(e) {
-  const n = isoToEpochMilli(e);
-  if (void 0 !== n) {
-    const [t, o] = divModTrunc(n, Cu);
-    return [ t, o * internal_Ke + (e.isoMicrosecond || 0) * ro + (e.isoNanosecond || 0) ];
-  }
-}
-
-function isoToEpochNanoWithOffset(e, n) {
-  const [t, o] = nanoToIsoTimeAndDay(isoTimeFieldsToNano(e) - n);
-  return io(ma({
-    ...e,
-    isoDay: e.isoDay + o,
-    ...t
-  }));
-}
-
-function isoArgsToEpochSec(...e) {
-  return isoArgsToEpochMilli(...e) / ku;
-}
-
-function isoArgsToEpochMilli(...e) {
-  const [n, t] = isoToLegacyDate(...e), o = n.valueOf();
-  if (!isNaN(o)) {
-    return o - t * Cu;
-  }
-}
-
-function isoToLegacyDate(e, n = 1, t = 1, o = 0, r = 0, i = 0, a = 0) {
-  const s = e === Nl ? 1 : e === yl ? -1 : 0, c = new Date;
-  return c.setUTCHours(o, r, i, a), c.setUTCFullYear(e, n - 1, t + s), [ c, s ];
-}
-
-function So(e, n) {
-  let [t, o] = Ta(e, n);
-  o < 0 && (o += go, t -= 1);
-  const [r, i] = divModFloor(o, internal_Ke), [a, s] = divModFloor(i, ro);
-  return Pa(t * Cu + r, a, s);
-}
-
-function Pa(e, n = 0, t = 0) {
-  const o = Math.ceil(Math.max(0, Math.abs(e) - gl) / Cu) * Math.sign(e), r = new Date(e - o * Cu);
-  return zipProps(pl, [ r.getUTCFullYear(), r.getUTCMonth() + 1, r.getUTCDate() + o, r.getUTCHours(), r.getUTCMinutes(), r.getUTCSeconds(), r.getUTCMilliseconds(), n, t ]);
-}
-
-function hashIntlFormatParts(e, n) {
-  if (n < -gl) {
-    throw new RangeError(Mu);
-  }
-  const t = e.formatToParts(n), o = {};
-  for (const e of t) {
-    o[e.type] = e.value;
-  }
-  return o;
-}
-
-function computeIsoDay(e) {
-  return e.isoDay;
-}
-
-function computeIsoDateParts(e) {
-  return [ e.isoYear, e.isoMonth, e.isoDay ];
-}
-
-function computeIsoMonthCodeParts(e, n) {
-  return [ n, 0 ];
-}
-
-function computeIsoYearMonthForMonthDay(e, n) {
-  if (!n) {
-    return [ Pl, e ];
-  }
-}
-
-function computeIsoFieldsFromParts(e, n, t) {
-  return {
-    isoYear: e,
-    isoMonth: n,
-    isoDay: t
-  };
-}
-
-function fo() {
-  return 7;
-}
-
-function computeIsoMonthsInYear() {
-  return Fl;
-}
-
-function computeIsoDaysInMonth(e, n) {
-  switch (n) {
-   case 2:
-    return computeIsoInLeapYear(e) ? 29 : 28;
-
-   case 4:
-   case 6:
-   case 9:
-   case 11:
-    return 30;
-  }
-  return 31;
-}
-
-function computeIsoDaysInYear(e) {
-  return computeIsoInLeapYear(e) ? 366 : 365;
-}
-
-function computeIsoInLeapYear(e) {
-  return e % 4 == 0 && (e % 100 != 0 || e % 400 == 0);
-}
-
-function Ha(e) {
-  const [n, t] = isoToLegacyDate(e.isoYear, e.isoMonth, e.isoDay);
-  return modFloor(n.getUTCDay() - t, 7) || 7;
-}
-
-function computeIsoEraParts(e) {
-  return this.id === Xu ? (({isoYear: e}) => e < 1 ? [ "gregory-inverse", 1 - e ] : [ "gregory", e ])(e) : this.id === el ? Ol(e) : [];
-}
-
-function computeJapaneseEraParts(e) {
-  const n = isoToEpochMilli(e);
-  if (n < El) {
-    const {isoYear: n} = e;
-    return n < 1 ? [ "japanese-inverse", 1 - n ] : [ "japanese", n ];
-  }
-  const t = hashIntlFormatParts(bf(el), n), {era: o, eraYear: r} = parseIntlYear(t, el);
-  return [ o, r ];
-}
-
-function checkIsoDateTimeFields(e) {
-  return checkIsoDateFields(e), constrainIsoTimeFields(e, 1), e;
-}
-
-function checkIsoDateFields(e) {
-  return constrainIsoDateFields(e, 1), e;
-}
-
-function isIsoDateFieldsValid(e) {
-  return allPropsEqual(ml, e, constrainIsoDateFields(e));
-}
-
-function constrainIsoDateFields(e, n) {
-  const {isoYear: t} = e, o = clampProp(e, "isoMonth", 1, computeIsoMonthsInYear(), n);
-  return {
-    isoYear: t,
-    isoMonth: o,
-    isoDay: clampProp(e, "isoDay", 1, computeIsoDaysInMonth(t, o), n)
-  };
-}
-
-function constrainIsoTimeFields(e, n) {
-  return zipProps(w, [ clampProp(e, "isoHour", 0, 23, n), clampProp(e, "isoMinute", 0, 59, n), clampProp(e, "isoSecond", 0, 59, n), clampProp(e, "isoMillisecond", 0, 999, n), clampProp(e, "isoMicrosecond", 0, 999, n), clampProp(e, "isoNanosecond", 0, 999, n) ]);
-}
-
-function dt(e) {
-  return void 0 === e ? 0 : Gl(oa(e));
-}
-
-function je(e, n = 0) {
-  e = normalizeOptions(e);
-  const t = Vl(e), o = _l(e, n);
-  return [ Gl(e), o, t ];
-}
-
-function refineDiffOptions(e, n, t, o = 9, r = 0, i = 4) {
-  n = normalizeOptions(n);
-  let a = $l(n, o, r), s = parseRoundingIncInteger(n), c = Xl(n, i);
-  const u = xl(n, o, r, 1);
-  return null == a ? a = Math.max(t, u) : checkLargestSmallestUnit(a, u), s = refineRoundingInc(s, u, 1), 
-  e && (c = (e => e < 4 ? (e + 2) % 4 : e)(c)), [ a, u, s, c ];
-}
-
-function refineRoundingOptions(e, n = 6, t) {
-  let o = parseRoundingIncInteger(e = normalizeOptionsOrString(e, bl));
-  const r = Xl(e, 7);
-  let i = xl(e, n);
-  return i = requirePropDefined(bl, i), o = refineRoundingInc(o, i, void 0, t), [ i, o, r ];
-}
-
-function refineRoundingMathOptions(e, n, t) {
-  let o = parseRoundingIncInteger(n = normalizeOptionsOrString(n, wl));
-  const r = Xl(n, 7);
-  return o = refineRoundingInc(o, e, t), [ o, r ];
-}
-
-function Ma(e, n) {
-  return void 0 !== n ? refineRoundingMathOptions(e, n, 1) : [];
-}
-
-function co(e, n) {
-  return void 0 !== n ? refineRoundingMathOptions(e, n) : [ 1, 7 ];
-}
-
-function refineDateDisplayOptions(e) {
-  return Jl(normalizeOptions(e));
-}
-
-function refineTimeDisplayOptions(e, n) {
-  return refineTimeDisplayTuple(normalizeOptions(e), n);
-}
-
-function Ze(e) {
-  const n = normalizeOptionsOrString(e, kl), t = refineChoiceOption(kl, Wl, n, 0);
-  if (!t) {
-    throw new RangeError(invalidEntity(kl, t));
-  }
-  return t;
-}
-
-function refineTimeDisplayTuple(e, n = 4) {
-  const t = refineSubsecDigits(e);
-  return [ Xl(e, 4), ...refineSmallestUnitAndSubsecDigits(xl(e, n), t) ];
-}
-
-function refineSmallestUnitAndSubsecDigits(e, n) {
-  return null != e ? [ Zu[e], e < 4 ? 9 - 3 * e : -1 ] : [ void 0 === n ? 1 : 10 ** (9 - n), n ];
-}
-
-function parseRoundingIncInteger(e) {
-  const n = e[Bl];
-  return void 0 === n ? 1 : Za(n, Bl);
-}
-
-function refineRoundingInc(e, n, t, o) {
-  const r = o ? go : Zu[n + 1];
-  if (r) {
-    const t = Zu[n];
-    if (r % ((e = ba(Bl, e, 1, r / t - (o ? 0 : 1), 1)) * t)) {
-      throw new RangeError(invalidEntity(Bl, e));
-    }
-  } else {
-    e = ba(Bl, e, 1, t ? 10 ** 9 : 1, 1);
-  }
-  return e;
-}
-
-function refineSubsecDigits(e) {
-  let n = e[Yl];
-  if (void 0 !== n) {
-    if ("number" != typeof n) {
-      if ("auto" === tu(n)) {
-        return;
-      }
-      throw new RangeError(invalidEntity(Yl, n));
-    }
-    n = ba(Yl, Math.floor(n), 0, 9, 1);
-  }
-  return n;
-}
-
-function normalizeOptions(e) {
-  return void 0 === e ? {} : oa(e);
-}
-
-function normalizeOptionsOrString(e, n) {
-  return "string" == typeof e ? {
-    [n]: e
-  } : oa(e);
-}
-
-function fabricateOverflowOptions(e) {
-  return {
-    overflow: Rl[e]
-  };
-}
-
-function refineUnitOption(e, n, t = 9, o = 0, r) {
-  let i = n[e];
-  if (void 0 === i) {
-    return r ? o : void 0;
-  }
-  if (i = tu(i), "auto" === i) {
-    return r ? o : null;
-  }
-  let a = Bu[i];
-  if (void 0 === a && (a = ul[i]), void 0 === a) {
-    throw new RangeError(invalidChoice(e, i, Bu));
-  }
-  return ba(e, a, o, t, 1, Yu), a;
-}
-
-function refineChoiceOption(e, n, t, o = 0) {
-  const r = t[e];
-  if (void 0 === r) {
-    return o;
-  }
-  const i = tu(r), a = n[i];
-  if (void 0 === a) {
-    throw new RangeError(invalidChoice(e, i, n));
-  }
-  return a;
-}
-
-function checkLargestSmallestUnit(e, n) {
-  if (n > e) {
-    throw new RangeError(Eu);
-  }
-}
-
-function internal_xe(e) {
-  return {
-    branding: Re,
-    epochNanoseconds: e
-  };
-}
-
-function Xe(e, n, t) {
-  return {
-    branding: _,
-    calendar: t,
-    timeZone: n,
-    epochNanoseconds: e
-  };
-}
-
-function jt(e, n = e.calendar) {
-  return {
-    branding: x,
-    calendar: n,
-    ...nn(Il, e)
-  };
-}
-
-function W(e, n = e.calendar) {
-  return {
-    branding: G,
-    calendar: n,
-    ...nn(Ca, e)
-  };
-}
-
-function createPlainYearMonthSlots(e, n = e.calendar) {
-  return {
-    branding: Qt,
-    calendar: n,
-    ...nn(Ca, e)
-  };
-}
-
-function createPlainMonthDaySlots(e, n = e.calendar) {
-  return {
-    branding: qt,
-    calendar: n,
-    ...nn(Ca, e)
-  };
-}
-
-function St(e) {
-  return {
-    branding: ft,
-    ...nn(hl, e)
-  };
-}
-
-function pe(e) {
-  return {
-    branding: A,
-    sign: computeDurationSign(e),
-    ...nn(il, e)
-  };
-}
-
-function ta(e) {
-  return epochNanoToSec(e.epochNanoseconds);
-}
-
-function I(e) {
-  return divModBigNano(e.epochNanoseconds, internal_Ke)[0];
-}
-
-function aa(e) {
-  return bigNanoToBigInt(e.epochNanoseconds, ro);
-}
-
-function b(e) {
-  return bigNanoToBigInt(e.epochNanoseconds);
-}
-
-function fa(e) {
-  return e.epochNanoseconds;
-}
-
-function J(e, n, t, o, r) {
-  const i = getMaxDurationUnit(o), [a, s] = ((e, n) => {
-    const t = n((e = normalizeOptionsOrString(e, Sl))[Cl]);
-    let o = Hl(e);
-    return o = requirePropDefined(Sl, o), [ o, t ];
-  })(r, e), c = Math.max(a, i);
-  if (!s && isUniformUnit(c, s)) {
-    return totalDayTimeDuration(o, a);
-  }
-  if (!s) {
-    throw new RangeError(vu);
-  }
-  if (!o.sign) {
-    return 0;
-  }
-  const [u, l, f] = createMarkerSystem(n, t, s), d = createMarkerToEpochNano(f), m = createMoveMarker(f), p = createDiffMarkers(f), h = m(l, u, o);
-  isZonedEpochSlots(s) || (Do(u), Do(h));
-  const I = p(l, u, h, a);
-  return isUniformUnit(a, s) ? totalDayTimeDuration(I, a) : ya(I, d(h), a, l, u, d, m);
-}
-
-function ya(e, n, t, o, r, i, a) {
-  const s = computeDurationSign(e), [c, u] = clampRelativeDuration(o, dl(t, e), t, s, r, i, a), l = ja(n, c, u);
-  return e[O[t]] + l * s;
-}
-
-function totalDayTimeDuration(e, n) {
-  return La(durationFieldsToBigNano(e), Zu[n], 1);
-}
-
-function clampRelativeDuration(e, n, t, o, r, i, a) {
-  const s = O[t], c = {
-    ...n,
-    [s]: n[s] + o
-  }, u = a(e, r, n), l = a(e, r, c);
-  return [ i(u), i(l) ];
-}
-
-function ja(e, n, t) {
-  const o = La(va(n, t));
-  if (!o) {
-    throw new RangeError(du);
-  }
-  return La(va(n, e)) / o;
-}
-
-function Le(e, n) {
-  const [t, o, r] = refineRoundingOptions(n, 5, 1);
-  return internal_xe(roundBigNano(e.epochNanoseconds, t, o, r, 1));
-}
-
-function Ie(e, n, t) {
-  let {epochNanoseconds: o, timeZone: r, calendar: i} = n;
-  const [a, s, c] = refineRoundingOptions(t);
-  if (0 === a && 1 === s) {
-    return n;
-  }
-  const u = e(r);
-  if (6 === a) {
-    o = uo(computeDayInterval, u, n, c);
-  } else {
-    const e = u.N(o);
-    o = getMatchingInstantFor(u, roundDateTime(So(o, e), a, s, c), e, 2, 0, 1);
-  }
-  return Xe(o, r, i);
-}
-
-function bt(e, n) {
-  return jt(roundDateTime(e, ...refineRoundingOptions(n)), e.calendar);
-}
-
-function lt(e, n) {
-  const [t, o, r] = refineRoundingOptions(n, 5);
-  var i;
-  return St((i = r, roundTimeToNano(e, computeNanoInc(t, o), i)[0]));
-}
-
-function Te(e, n) {
-  const t = e(n.timeZone), o = he(n, t), [r, i] = computeDayInterval(o), a = La(va(getStartOfDayInstantFor(t, r), getStartOfDayInstantFor(t, i)), no, 1);
-  if (a <= 0) {
-    throw new RangeError(du);
-  }
-  return a;
-}
-
-function be(e, n) {
-  const {timeZone: t, calendar: o} = n;
-  return Xe(lo(ho, e(t), n), t, o);
-}
-
-function lo(e, n, t) {
-  return getStartOfDayInstantFor(n, e(he(t, n)));
-}
-
-function uo(e, n, t, o) {
-  const r = he(t, n), [i, a] = e(r), s = t.epochNanoseconds, c = getStartOfDayInstantFor(n, i), u = getStartOfDayInstantFor(n, a);
-  if (bigNanoOutside(s, c, u)) {
-    throw new RangeError(du);
-  }
-  return Ea(ja(s, c, u), o) ? u : c;
-}
-
-function roundDateTime(e, n, t, o) {
-  return roundDateTimeToNano(e, computeNanoInc(n, t), o);
-}
-
-function roundDateTimeToNano(e, n, t) {
-  const [o, r] = roundTimeToNano(e, n, t);
-  return Do({
-    ...Ua(e, r),
-    ...o
-  });
-}
-
-function roundTimeToNano(e, n, t) {
-  return nanoToIsoTimeAndDay(Da(isoTimeFieldsToNano(e), n, t));
-}
-
-function roundToMinute(e) {
-  return Da(e, ao, 7);
-}
-
-function computeNanoInc(e, n) {
-  return Zu[e] * n;
-}
-
-function computeDayInterval(e) {
-  const n = ho(e);
-  return [ n, Ua(n, 1) ];
-}
-
-function ho(e) {
-  return Ra(6, e);
-}
-
-function roundDayTimeDurationByInc(e, n, t) {
-  const o = Math.min(getMaxDurationUnit(e), 6);
-  return nanoToDurationDayTimeFields(Ya(durationFieldsToBigNano(e, o), n, t), o);
-}
-
-function roundRelativeDuration(e, n, t, o, r, i, a, s, c, u) {
-  if (0 === o && 1 === r) {
-    return e;
-  }
-  const l = isUniformUnit(o, s) ? isZonedEpochSlots(s) && o < 6 && t >= 6 ? nudgeZonedTimeDuration : nudgeDayTimeDuration : nudgeRelativeDuration;
-  let [f, d, m] = l(e, n, t, o, r, i, a, s, c, u);
-  return m && 7 !== o && (f = ((e, n, t, o, r, i, a, s) => {
-    const c = computeDurationSign(e);
-    for (let u = o + 1; u <= t; u++) {
-      if (7 === u && 7 !== t) {
-        continue;
-      }
-      const o = dl(u, e);
-      o[O[u]] += c;
-      const l = La(va(a(s(r, i, o)), n));
-      if (l && Math.sign(l) !== c) {
-        break;
-      }
-      e = o;
-    }
-    return e;
-  })(f, d, t, Math.max(6, o), a, s, c, u)), f;
-}
-
-function roundBigNano(e, n, t, o, r) {
-  return 6 === n ? [ Da(Oa(e), t, o), 0 ] : Ya(e, computeNanoInc(n, t), o, r);
-}
-
-function Ya(e, n, t, o) {
-  let [r, i] = e;
-  o && i < 0 && (i += go, r -= 1);
-  const [a, s] = divModFloor(Da(i, n, t), go);
-  return createBigNano(r + a, s);
-}
-
-function Da(e, n, t) {
-  return Ea(e / n, t) * n;
-}
-
-function Ea(e, n) {
-  return ef[n](e);
-}
-
-function nudgeDayTimeDuration(e, n, t, o, r, i) {
-  const a = computeDurationSign(e), s = durationFieldsToBigNano(e), c = roundBigNano(s, o, r, i), u = va(s, c), l = Math.sign(c[0] - s[0]) === a, f = nanoToDurationDayTimeFields(c, Math.min(t, 6));
-  return [ {
-    ...e,
-    ...f
-  }, so(n, u), l ];
-}
-
-function nudgeZonedTimeDuration(e, n, t, o, r, i, a, s, c, u) {
-  const l = computeDurationSign(e) || 1, f = La(durationFieldsToBigNano(e, 5)), d = computeNanoInc(o, r);
-  let m = Da(f, d, i);
-  const [p, h] = clampRelativeDuration(a, {
-    ...e,
-    ...fl
-  }, 6, l, s, c, u), I = m - La(va(p, h));
-  let D = 0;
-  I && Math.sign(I) !== l ? n = Ta(p, m) : (D += l, m = Da(I, d, i), n = Ta(h, m));
-  const g = nanoToDurationTimeFields(m);
-  return [ {
-    ...e,
-    ...g,
-    days: e.days + D
-  }, n, Boolean(D) ];
-}
-
-function nudgeRelativeDuration(e, n, t, o, r, i, a, s, c, u) {
-  const l = computeDurationSign(e), f = O[o], d = dl(o, e);
-  7 === o && (e = {
-    ...e,
-    weeks: e.weeks + Math.trunc(e.days / 7)
-  });
-  const m = divTrunc(e[f], r) * r;
-  d[f] = m;
-  const [p, h] = clampRelativeDuration(a, d, o, r * l, s, c, u), I = m + ja(n, p, h) * l * r, D = Da(I, r, i), g = Math.sign(D - I) === l;
-  return d[f] = D, [ d, g ? h : p, g ];
-}
-
-function ke(e, n, t, o) {
-  const [r, i, a, s] = (e => {
-    const n = refineTimeDisplayTuple(e = normalizeOptions(e));
-    return [ e.timeZone, ...n ];
-  })(o), c = void 0 !== r;
-  return ((e, n, t, o, r, i) => {
-    t = Ya(t, r, o, 1);
-    const a = n.N(t);
-    return formatIsoDateTimeFields(So(t, a), i) + (e ? Se(roundToMinute(a)) : "Z");
-  })(c, n(c ? e(r) : nf), t.epochNanoseconds, i, a, s);
-}
-
-function Fe(e, n, t) {
-  const [o, r, i, a, s, c] = (e => {
-    e = normalizeOptions(e);
-    const n = Jl(e), t = refineSubsecDigits(e), o = Ql(e), r = Xl(e, 4), i = xl(e, 4);
-    return [ n, Kl(e), o, r, ...refineSmallestUnitAndSubsecDigits(i, t) ];
-  })(t);
-  return ((e, n, t, o, r, i, a, s, c, u) => {
-    o = Ya(o, c, s, 1);
-    const l = e(t).N(o);
-    return formatIsoDateTimeFields(So(o, l), u) + Se(roundToMinute(l), a) + ((e, n) => 1 !== n ? "[" + (2 === n ? "!" : "") + e + "]" : "")(t, i) + formatCalendar(n, r);
-  })(e, n.calendar, n.timeZone, n.epochNanoseconds, o, r, i, a, s, c);
-}
-
-function Ft(e, n) {
-  const [t, o, r, i] = (e => (e = normalizeOptions(e), [ Jl(e), ...refineTimeDisplayTuple(e) ]))(n);
-  return a = e.calendar, s = t, c = i, formatIsoDateTimeFields(roundDateTimeToNano(e, r, o), c) + formatCalendar(a, s);
-  var a, s, c;
-}
-
-function ce(e, n) {
-  return t = e.calendar, o = e, r = refineDateDisplayOptions(n), formatIsoDateFields(o) + formatCalendar(t, r);
-  var t, o, r;
-}
-
-function Ht(e, n) {
-  return formatDateLikeIso(e.calendar, formatIsoYearMonthFields, e, refineDateDisplayOptions(n));
-}
-
-function Jt(e, n) {
-  return formatDateLikeIso(e.calendar, formatIsoMonthDayFields, e, refineDateDisplayOptions(n));
-}
-
-function ct(e, n) {
-  const [t, o, r] = refineTimeDisplayOptions(n);
-  return i = r, formatIsoTimeFields(roundTimeToNano(e, o, t)[0], i);
-  var i;
-}
-
-function k(e, n) {
-  const [t, o, r] = refineTimeDisplayOptions(n, 3);
-  return o > 1 && checkDurationUnits(e = {
-    ...e,
-    ...roundDayTimeDurationByInc(e, o, t)
-  }), ((e, n) => {
-    const {sign: t} = e, o = -1 === t ? negateDurationFields(e) : e, {hours: r, minutes: i} = o, [a, s] = divModBigNano(durationFieldsToBigNano(o, 3), oo, divModTrunc);
-    checkDurationTimeUnit(a);
-    const c = formatSubsecNano(s, n), u = n >= 0 || !t || c;
-    return (t < 0 ? "-" : "") + "P" + formatDurationFragments({
-      Y: formatDurationNumber(o.years),
-      M: formatDurationNumber(o.months),
-      W: formatDurationNumber(o.weeks),
-      D: formatDurationNumber(o.days)
-    }) + (r || i || a || u ? "T" + formatDurationFragments({
-      H: formatDurationNumber(r),
-      M: formatDurationNumber(i),
-      S: formatDurationNumber(a, u) + c
-    }) : "");
-  })(e, r);
-}
-
-function formatDateLikeIso(e, n, t, o) {
-  const r = o > 1 || 0 === o && e !== l;
-  return 1 === o ? e === l ? n(t) : formatIsoDateFields(t) : r ? formatIsoDateFields(t) + formatCalendarId(e, 2 === o) : n(t);
-}
-
-function formatDurationFragments(e) {
-  const n = [];
-  for (const t in e) {
-    const o = e[t];
-    o && n.push(o, t);
-  }
-  return n.join("");
-}
-
-function formatIsoDateTimeFields(e, n) {
-  return formatIsoDateFields(e) + "T" + formatIsoTimeFields(e, n);
-}
-
-function formatIsoDateFields(e) {
-  return formatIsoYearMonthFields(e) + "-" + wu(e.isoDay);
-}
-
-function formatIsoYearMonthFields(e) {
-  const {isoYear: n} = e;
-  return (n < 0 || n > 9999 ? getSignStr(n) + padNumber(6, Math.abs(n)) : padNumber(4, n)) + "-" + wu(e.isoMonth);
-}
-
-function formatIsoMonthDayFields(e) {
-  return wu(e.isoMonth) + "-" + wu(e.isoDay);
-}
-
-function formatIsoTimeFields(e, n) {
-  const t = [ wu(e.isoHour), wu(e.isoMinute) ];
-  return -1 !== n && t.push(wu(e.isoSecond) + ((e, n, t, o) => formatSubsecNano(e * internal_Ke + n * ro + t, o))(e.isoMillisecond, e.isoMicrosecond, e.isoNanosecond, n)), 
-  t.join(":");
-}
-
-function Se(e, n = 0) {
-  if (1 === n) {
-    return "";
-  }
-  const [t, o] = divModFloor(Math.abs(e), no), [r, i] = divModFloor(o, ao), [a, s] = divModFloor(i, oo);
-  return getSignStr(e) + wu(t) + ":" + wu(r) + (a || s ? ":" + wu(a) + formatSubsecNano(s) : "");
-}
-
-function formatCalendar(e, n) {
-  return 1 !== n && (n > 1 || 0 === n && e !== l) ? formatCalendarId(e, 2 === n) : "";
-}
-
-function formatCalendarId(e, n) {
-  return "[" + (n ? "!" : "") + "u-ca=" + e + "]";
-}
-
-function formatSubsecNano(e, n) {
-  let t = padNumber(9, e);
-  return t = void 0 === n ? t.replace(af, "") : t.slice(0, n), t ? "." + t : "";
-}
-
-function getSignStr(e) {
-  return e < 0 ? "-" : "+";
-}
-
-function formatDurationNumber(e, n) {
-  return e || n ? e.toLocaleString("fullwide", {
-    useGrouping: 0
-  }) : "";
-}
-
-function _zonedEpochSlotsToIso(e, n) {
-  const {epochNanoseconds: t} = e, o = (n.N ? n : n(e.timeZone)).N(t), r = So(t, o);
-  return {
-    calendar: e.calendar,
-    ...r,
-    offsetNanoseconds: o
-  };
-}
-
-function Ja(e, n) {
-  const t = he(n, e);
-  return {
-    calendar: n.calendar,
-    ...nn(Il, t),
-    offset: Se(t.offsetNanoseconds),
-    timeZone: n.timeZone
-  };
-}
-
-function getMatchingInstantFor(e, n, t, o = 0, r = 0, i, a) {
-  if (void 0 !== t && 1 === o && (1 === o || a)) {
-    return isoToEpochNanoWithOffset(n, t);
-  }
-  const s = e.v(n);
-  if (void 0 !== t && 3 !== o) {
-    const e = ((e, n, t, o) => {
-      const r = ma(n);
-      o && (t = roundToMinute(t));
-      for (const n of e) {
-        let e = La(va(n, r));
-        if (o && (e = roundToMinute(e)), e === t) {
-          return n;
-        }
-      }
-    })(s, n, t, i);
-    if (void 0 !== e) {
-      return e;
-    }
-    if (0 === o) {
-      throw new RangeError(gu);
-    }
-  }
-  return a ? ma(n) : $o(e, n, r, s);
-}
-
-function $o(e, n, t = 0, o = e.v(n)) {
-  if (1 === o.length) {
-    return o[0];
-  }
-  if (1 === t) {
-    throw new RangeError(Tu);
-  }
-  if (o.length) {
-    return o[3 === t ? 1 : 0];
-  }
-  const r = ma(n), i = ((e, n) => {
-    const t = e.N(Ta(n, -go));
-    return (e => {
-      if (e > go) {
-        throw new RangeError(Du);
-      }
-      return e;
-    })(e.N(Ta(n, go)) - t);
-  })(e, r), a = i * (2 === t ? -1 : 1);
-  return (o = e.v(So(r, a)))[2 === t ? 0 : o.length - 1];
-}
-
-function getStartOfDayInstantFor(e, n) {
-  const t = e.v(n);
-  if (t.length) {
-    return t[0];
-  }
-  const o = Ta(ma(n), -go);
-  return e.l(o, 1);
-}
-
-function Ye(e, n, t) {
-  return internal_xe(io(so(n.epochNanoseconds, (e => {
-    if (durationHasDateParts(e)) {
-      throw new RangeError(Pu);
-    }
-    return durationFieldsToBigNano(e, 5);
-  })(e ? negateDurationFields(t) : t))));
-}
-
-function Oe(e, n, t, o, r, i = Object.create(null)) {
-  const a = n(o.timeZone), s = e(o.calendar);
-  return {
-    ...o,
-    ...Fa(a, s, o, t ? negateDurationFields(r) : r, i)
-  };
-}
-
-function wt(e, n, t, o, r = Object.create(null)) {
-  const {calendar: i} = t;
-  return jt(ka(e(i), t, n ? negateDurationFields(o) : o, r), i);
-}
-
-function ne(e, n, t, o, r) {
-  const {calendar: i} = t;
-  return W(moveDate(e(i), t, n ? negateDurationFields(o) : o, r), i);
-}
-
-function Gt(e, n, t, o, r) {
-  const i = t.calendar, a = e(i);
-  let s = To(Na(a, t));
-  n && (o = B(o)), o.sign < 0 && (s = a.P(s, {
-    ...ll,
-    months: 1
-  }), s = Ua(s, -1));
-  const c = a.P(s, o, r);
-  return createPlainYearMonthSlots(Na(a, c), i);
-}
-
-function at(e, n, t) {
-  return St(moveTime(n, e ? negateDurationFields(t) : t)[0]);
-}
-
-function Fa(e, n, t, o, r) {
-  const i = durationFieldsToBigNano(o, 5);
-  let a = t.epochNanoseconds;
-  if (durationHasDateParts(o)) {
-    const s = he(t, e);
-    a = so($o(e, {
-      ...moveDate(n, s, {
-        ...o,
-        ...fl
-      }, r),
-      ...nn(w, s)
-    }), i);
-  } else {
-    a = so(a, i), dt(r);
-  }
-  return {
-    epochNanoseconds: io(a)
-  };
-}
-
-function ka(e, n, t, o) {
-  const [r, i] = moveTime(n, t);
-  return Do({
-    ...moveDate(e, n, {
-      ...t,
-      ...fl,
-      days: t.days + i
-    }, o),
-    ...r
-  });
-}
-
-function moveDate(e, n, t, o) {
-  if (t.years || t.months || t.weeks) {
-    return e.P(n, t, o);
-  }
-  dt(o);
-  const r = t.days + durationFieldsToBigNano(t, 5)[0];
-  return r ? To(Ua(n, r)) : n;
-}
-
-function Na(e, n, t = 1) {
-  return Ua(n, t - e.day(n));
-}
-
-function moveTime(e, n) {
-  const [t, o] = durationFieldsToBigNano(n, 5), [r, i] = nanoToIsoTimeAndDay(isoTimeFieldsToNano(e) + o);
-  return [ r, t + i ];
-}
-
-function nativeDateAdd(e, n, t) {
-  const o = dt(t);
-  let r, {years: i, months: a, weeks: s, days: c} = n;
-  if (c += durationFieldsToBigNano(n, 5)[0], i || a) {
-    r = wa(this, e, i, a, o);
-  } else {
-    if (!s && !c) {
-      return e;
-    }
-    r = isoToEpochMilli(e);
-  }
-  if (void 0 === r) {
-    throw new RangeError(Mu);
-  }
-  return r += (7 * s + c) * Cu, To(Pa(r));
-}
-
-function wa(e, n, t, o, r) {
-  let [i, a, s] = e.u(n);
-  if (t) {
-    const [n, o] = e.m(i, a);
-    i += t, a = monthCodeNumberToMonth(n, o, e.F(i)), a = ba("month", a, 1, e.O(i), r);
-  }
-  return o && ([i, a] = e.p(i, a, o)), s = ba("day", s, 1, e.B(i, a), r), e.M(i, a, s);
-}
-
-function isoMonthAdd(e, n, t) {
-  return e += divTrunc(t, Fl), (n += modTrunc(t, Fl)) < 1 ? (e--, n += Fl) : n > Fl && (e++, 
-  n -= Fl), [ e, n ];
-}
-
-function intlMonthAdd(e, n, t) {
-  if (t) {
-    if (n += t, !Number.isSafeInteger(n)) {
-      throw new RangeError(Mu);
-    }
-    if (t < 0) {
-      for (;n < 1; ) {
-        n += computeIntlMonthsInYear.call(this, --e);
-      }
-    } else {
-      let t;
-      for (;n > (t = computeIntlMonthsInYear.call(this, e)); ) {
-        n -= t, e++;
-      }
-    }
-  }
-  return [ e, n ];
-}
-
-function Ua(e, n) {
-  return n ? {
-    ...e,
-    ...Pa(isoToEpochMilli(e) + n * Cu)
-  } : e;
-}
-
-function createMarkerSystem(e, n, t) {
-  const o = e(t.calendar);
-  return isZonedEpochSlots(t) ? [ t, o, n(t.timeZone) ] : [ {
-    ...t,
-    ...At
-  }, o ];
-}
-
-function createMarkerToEpochNano(e) {
-  return e ? fa : ma;
-}
-
-function createMoveMarker(e) {
-  return e ? gt(Fa, e) : ka;
-}
-
-function createDiffMarkers(e) {
-  return e ? gt(diffZonedEpochsExact, e) : diffDateTimesExact;
-}
-
-function isZonedEpochSlots(e) {
-  return e && e.epochNanoseconds;
-}
-
-function isUniformUnit(e, n) {
-  return e <= 6 - (isZonedEpochSlots(n) ? 1 : 0);
-}
-
-function E(e, n, t, o, r, i, a) {
-  const s = e(normalizeOptions(a).relativeTo), c = Math.max(getMaxDurationUnit(r), getMaxDurationUnit(i));
-  if (isUniformUnit(c, s)) {
-    return pe(checkDurationUnits(((e, n, t, o) => {
-      const r = so(durationFieldsToBigNano(e), durationFieldsToBigNano(n), o ? -1 : 1);
-      if (!Number.isFinite(r[0])) {
-        throw new RangeError(Mu);
-      }
-      return {
-        ...ll,
-        ...nanoToDurationDayTimeFields(r, t)
-      };
-    })(r, i, c, o)));
-  }
-  if (!s) {
-    throw new RangeError(vu);
-  }
-  o && (i = negateDurationFields(i));
-  const [u, l, f] = createMarkerSystem(n, t, s), d = createMoveMarker(f), m = createDiffMarkers(f), p = d(l, u, r);
-  return pe(m(l, u, d(l, p, i), c));
-}
-
-function V(e, n, t, o, r) {
-  const i = getMaxDurationUnit(o), [a, s, c, u, l] = ((e, n, t) => {
-    e = normalizeOptionsOrString(e, bl);
-    let o = $l(e);
-    const r = t(e[Cl]);
-    let i = parseRoundingIncInteger(e);
-    const a = Xl(e, 7);
-    let s = xl(e);
-    if (void 0 === o && void 0 === s) {
-      throw new RangeError(Fu);
-    }
-    if (null == s && (s = 0), null == o && (o = Math.max(s, n)), checkLargestSmallestUnit(o, s), 
-    i = refineRoundingInc(i, s, 1), i > 1 && s > 5 && o !== s) {
-      throw new RangeError("For calendar units with roundingIncrement > 1, use largestUnit = smallestUnit");
-    }
-    return [ o, s, i, a, r ];
-  })(r, i, e), f = Math.max(i, a);
-  if (!l && f <= 6) {
-    return pe(checkDurationUnits(((e, n, t, o, r) => {
-      const i = roundBigNano(durationFieldsToBigNano(e), t, o, r);
-      return {
-        ...ll,
-        ...nanoToDurationDayTimeFields(i, n)
-      };
-    })(o, a, s, c, u)));
-  }
-  if (!isZonedEpochSlots(l) && !o.sign) {
-    return o;
-  }
-  if (!l) {
-    throw new RangeError(vu);
-  }
-  const [d, m, p] = createMarkerSystem(n, t, l), h = createMarkerToEpochNano(p), I = createMoveMarker(p), D = createDiffMarkers(p), g = I(m, d, o);
-  isZonedEpochSlots(l) || (Do(d), Do(g));
-  let T = D(m, d, g, a);
-  const M = o.sign, y = computeDurationSign(T);
-  if (M && y && M !== y) {
-    throw new RangeError(du);
-  }
-  return T = roundRelativeDuration(T, h(g), a, s, c, u, m, d, h, I), pe(T);
-}
-
-function Y(e) {
-  return -1 === e.sign ? B(e) : e;
-}
-
-function B(e) {
-  return pe(negateDurationFields(e));
-}
-
-function negateDurationFields(e) {
-  const n = {};
-  for (const t of O) {
-    n[t] = -1 * e[t] || 0;
-  }
-  return n;
-}
-
-function y(e) {
-  return !e.sign;
-}
-
-function computeDurationSign(e, n = O) {
-  let t = 0;
-  for (const o of n) {
-    const n = Math.sign(e[o]);
-    if (n) {
-      if (t && t !== n) {
-        throw new RangeError(Nu);
-      }
-      t = n;
-    }
-  }
-  return t;
-}
-
-function checkDurationUnits(e) {
-  for (const n of cl) {
-    ba(n, e[n], -sf, sf, 1);
-  }
-  return checkDurationTimeUnit(La(durationFieldsToBigNano(e), oo)), e;
-}
-
-function checkDurationTimeUnit(e) {
-  if (!Number.isSafeInteger(e)) {
-    throw new RangeError(yu);
-  }
-}
-
-function durationFieldsToBigNano(e, n = 6) {
-  return givenFieldsToBigNano(e, n, O);
-}
-
-function nanoToDurationDayTimeFields(e, n = 6) {
-  const [t, o] = e, r = nanoToGivenFields(o, n, O);
-  if (r[O[n]] += t * (go / Zu[n]), !Number.isFinite(r[O[n]])) {
-    throw new RangeError(Mu);
-  }
-  return r;
-}
-
-function nanoToDurationTimeFields(e, n = 5) {
-  return nanoToGivenFields(e, n, O);
-}
-
-function durationHasDateParts(e) {
-  return Boolean(computeDurationSign(e, sl));
-}
-
-function getMaxDurationUnit(e) {
-  let n = 9;
-  for (;n > 0 && !e[O[n]]; n--) {}
-  return n;
-}
-
-function createSplitTuple(e, n) {
-  return [ e, n ];
-}
-
-function computePeriod(e) {
-  const n = Math.floor(e / tf) * tf;
-  return [ n, n + tf ];
-}
-
-function We(e) {
-  const n = parseDateTimeLike(e = toStringViaPrimitive(e));
-  if (!n) {
-    throw new RangeError(failedParse(e));
-  }
-  let t;
-  if (n.C) {
-    t = 0;
-  } else {
-    if (!n.offset) {
-      throw new RangeError(failedParse(e));
-    }
-    t = parseOffsetNano(n.offset);
-  }
-  return n.timeZone && parseOffsetNanoMaybe(n.timeZone, 1), internal_xe(isoToEpochNanoWithOffset(checkIsoDateTimeFields(n), t));
-}
-
-function $(e) {
-  const n = parseDateTimeLike(d(e));
-  if (!n) {
-    throw new RangeError(failedParse(e));
-  }
-  if (n.timeZone) {
-    return finalizeZonedDateTime(n, n.offset ? parseOffsetNano(n.offset) : void 0);
-  }
-  if (n.C) {
-    throw new RangeError(failedParse(e));
-  }
-  return finalizeDate(n);
-}
-
-function Ne(e, n) {
-  const t = parseDateTimeLike(d(e));
-  if (!t || !t.timeZone) {
-    throw new RangeError(failedParse(e));
-  }
-  const {offset: o} = t, r = o ? parseOffsetNano(o) : void 0, [, i, a] = je(n);
-  return finalizeZonedDateTime(t, r, i, a);
-}
-
-function parseOffsetNano(e) {
-  const n = parseOffsetNanoMaybe(e);
-  if (void 0 === n) {
-    throw new RangeError(failedParse(e));
-  }
-  return n;
-}
-
-function Bt(e) {
-  const n = parseDateTimeLike(d(e));
-  if (!n || n.C) {
-    throw new RangeError(failedParse(e));
-  }
-  return jt(finalizeDateTime(n));
-}
-
-function me(e, n, t) {
-  let o = parseDateTimeLike(d(e));
-  if (!o || o.C) {
-    throw new RangeError(failedParse(e));
-  }
-  return n ? o.calendar === l && (o = -271821 === o.isoYear && 4 === o.isoMonth ? {
-    ...o,
-    isoDay: 20,
-    ...At
-  } : {
-    ...o,
-    isoDay: 1,
-    ...At
-  }) : t && o.calendar === l && (o = {
-    ...o,
-    isoYear: Pl
-  }), W(o.k ? finalizeDateTime(o) : finalizeDate(o));
-}
-
-function Xt(e, n) {
-  const t = parseYearMonthOnly(d(n));
-  if (t) {
-    return requireIsoCalendar(t), createPlainYearMonthSlots(checkIsoYearMonthInBounds(checkIsoDateFields(t)));
-  }
-  const o = me(n, 1);
-  return createPlainYearMonthSlots(Na(e(o.calendar), o));
-}
-
-function requireIsoCalendar(e) {
-  if (e.calendar !== l) {
-    throw new RangeError(invalidSubstring(e.calendar));
-  }
-}
-
-function xt(e, n) {
-  const t = parseMonthDayOnly(d(n));
-  if (t) {
-    return requireIsoCalendar(t), createPlainMonthDaySlots(checkIsoDateFields(t));
-  }
-  const o = me(n, 0, 1), {calendar: r} = o, i = e(r), [a, s, c] = i.u(o), [u, l] = i.m(a, s), [f, m] = i.R(u, l, c);
-  return createPlainMonthDaySlots(To(i.U(f, m, c)), r);
-}
-
-function ht(e) {
-  let n, t = (e => {
-    const n = Tf.exec(e);
-    return n ? (organizeAnnotationParts(n[10]), organizeTimeParts(n)) : void 0;
-  })(d(e));
-  if (!t) {
-    if (t = parseDateTimeLike(e), !t) {
-      throw new RangeError(failedParse(e));
-    }
-    if (!t.k) {
-      throw new RangeError(failedParse(e));
-    }
-    if (t.C) {
-      throw new RangeError(invalidSubstring("Z"));
-    }
-    requireIsoCalendar(t);
-  }
-  if ((n = parseYearMonthOnly(e)) && isIsoDateFieldsValid(n)) {
-    throw new RangeError(failedParse(e));
-  }
-  if ((n = parseMonthDayOnly(e)) && isIsoDateFieldsValid(n)) {
-    throw new RangeError(failedParse(e));
-  }
-  return St(constrainIsoTimeFields(t, 1));
-}
-
-function R(e) {
-  const n = (e => {
-    const n = Nf.exec(e);
-    return n ? (e => {
-      function parseUnit(e, r, i) {
-        let a = 0, s = 0;
-        if (i && ([a, o] = divModFloor(o, Zu[i])), void 0 !== e) {
-          if (t) {
-            throw new RangeError(invalidSubstring(e));
-          }
-          s = (e => {
-            const n = parseInt(e);
-            if (!Number.isFinite(n)) {
-              throw new RangeError(invalidSubstring(e));
-            }
-            return n;
-          })(e), n = 1, r && (o = parseSubsecNano(r) * (Zu[i] / oo), t = 1);
-        }
-        return a + s;
-      }
-      let n = 0, t = 0, o = 0, r = {
-        ...zipProps(O, [ parseUnit(e[2]), parseUnit(e[3]), parseUnit(e[4]), parseUnit(e[5]), parseUnit(e[6], e[7], 5), parseUnit(e[8], e[9], 4), parseUnit(e[10], e[11], 3) ]),
-        ...nanoToGivenFields(o, 2, O)
-      };
-      if (!n) {
-        throw new RangeError(noValidFields(O));
-      }
-      return parseSign(e[1]) < 0 && (r = negateDurationFields(r)), r;
-    })(n) : void 0;
-  })(d(e));
-  if (!n) {
-    throw new RangeError(failedParse(e));
-  }
-  return pe(checkDurationUnits(n));
-}
-
-function f(e) {
-  const n = parseDateTimeLike(e) || parseYearMonthOnly(e) || parseMonthDayOnly(e);
-  return n ? n.calendar : e;
-}
-
-function M(e) {
-  const n = parseDateTimeLike(e);
-  return n && (n.timeZone || n.C && nf || n.offset) || e;
-}
-
-function finalizeZonedDateTime(e, n, t = 0, o = 0) {
-  const r = Z(e.timeZone), i = L(r);
-  let a;
-  return checkIsoDateTimeFields(e), a = e.k ? getMatchingInstantFor(i, e, n, t, o, !i.j, e.C) : getStartOfDayInstantFor(i, e), 
-  Xe(a, r, u(e.calendar));
-}
-
-function finalizeDateTime(e) {
-  return resolveSlotsCalendar(Do(checkIsoDateTimeFields(e)));
-}
-
-function finalizeDate(e) {
-  return resolveSlotsCalendar(To(checkIsoDateFields(e)));
-}
-
-function resolveSlotsCalendar(e) {
-  return {
-    ...e,
-    calendar: u(e.calendar)
-  };
-}
-
-function parseDateTimeLike(e) {
-  const n = gf.exec(e);
-  return n ? (e => {
-    const n = e[10], t = "Z" === (n || "").toUpperCase();
-    return {
-      isoYear: organizeIsoYearParts(e),
-      isoMonth: parseInt(e[4]),
-      isoDay: parseInt(e[5]),
-      ...organizeTimeParts(e.slice(5)),
-      ...organizeAnnotationParts(e[16]),
-      k: Boolean(e[6]),
-      C: t,
-      offset: t ? void 0 : n
-    };
-  })(n) : void 0;
-}
-
-function parseYearMonthOnly(e) {
-  const n = If.exec(e);
-  return n ? (e => ({
-    isoYear: organizeIsoYearParts(e),
-    isoMonth: parseInt(e[4]),
-    isoDay: 1,
-    ...organizeAnnotationParts(e[5])
-  }))(n) : void 0;
-}
-
-function parseMonthDayOnly(e) {
-  const n = Df.exec(e);
-  return n ? (e => ({
-    isoYear: Pl,
-    isoMonth: parseInt(e[1]),
-    isoDay: parseInt(e[2]),
-    ...organizeAnnotationParts(e[3])
-  }))(n) : void 0;
-}
-
-function parseOffsetNanoMaybe(e, n) {
-  const t = Mf.exec(e);
-  return t ? ((e, n) => {
-    const t = e[4] || e[5];
-    if (n && t) {
-      throw new RangeError(invalidSubstring(t));
-    }
-    return (e => {
-      if (Math.abs(e) >= go) {
-        throw new RangeError(Iu);
-      }
-      return e;
-    })((parseInt0(e[2]) * no + parseInt0(e[3]) * ao + parseInt0(e[4]) * oo + parseSubsecNano(e[5] || "")) * parseSign(e[1]));
-  })(t, n) : void 0;
-}
-
-function organizeIsoYearParts(e) {
-  const n = parseSign(e[1]), t = parseInt(e[2] || e[3]);
-  if (n < 0 && !t) {
-    throw new RangeError(invalidSubstring(-0));
-  }
-  return n * t;
-}
-
-function organizeTimeParts(e) {
-  const n = parseInt0(e[3]);
-  return {
-    ...nanoToIsoTimeAndDay(parseSubsecNano(e[4] || ""))[0],
-    isoHour: parseInt0(e[1]),
-    isoMinute: parseInt0(e[2]),
-    isoSecond: 60 === n ? 59 : n
-  };
-}
-
-function organizeAnnotationParts(e) {
-  let n, t;
-  const o = [];
-  if (e.replace(yf, ((e, r, i) => {
-    const a = Boolean(r), [s, c] = i.split("=").reverse();
-    if (c) {
-      if ("u-ca" === c) {
-        o.push(s), n || (n = a);
-      } else if (a || /[A-Z]/.test(c)) {
-        throw new RangeError(invalidSubstring(e));
-      }
-    } else {
-      if (t) {
-        throw new RangeError(invalidSubstring(e));
-      }
-      t = s;
-    }
-    return "";
-  })), o.length > 1 && n) {
-    throw new RangeError(invalidSubstring(e));
-  }
-  return {
-    timeZone: t,
-    calendar: o[0] || l
-  };
-}
-
-function parseSubsecNano(e) {
-  return parseInt(e.padEnd(9, "0"));
-}
-
-function createRegExp(e) {
-  return new RegExp(`^${e}$`, "i");
-}
-
-function parseSign(e) {
-  return e && "+" !== e ? -1 : 1;
-}
-
-function parseInt0(e) {
-  return void 0 === e ? 0 : parseInt(e);
-}
-
-function Me(e) {
-  return Z(d(e));
-}
-
-function Z(e) {
-  const n = getTimeZoneEssence(e);
-  return "number" == typeof n ? Se(n) : n ? (e => {
-    if (Ff.test(e)) {
-      throw new RangeError(F(e));
-    }
-    if (Pf.test(e)) {
-      throw new RangeError(hu);
-    }
-    return e.toLowerCase().split("/").map(((e, n) => (e.length <= 3 || /\d/.test(e)) && !/etc|yap/.test(e) ? e.toUpperCase() : e.replace(/baja|dumont|[a-z]+/g, ((e, t) => e.length <= 2 && !n || "in" === e || "chat" === e ? e.toUpperCase() : e.length > 2 || !t ? capitalize(e).replace(/island|noronha|murdo|rivadavia|urville/, capitalize) : e)))).join("/");
-  })(e) : nf;
-}
-
-function getTimeZoneAtomic(e) {
-  const n = getTimeZoneEssence(e);
-  return "number" == typeof n ? n : n ? n.resolvedOptions().timeZone : nf;
-}
-
-function getTimeZoneEssence(e) {
-  const n = parseOffsetNanoMaybe(e = e.toUpperCase(), 1);
-  return void 0 !== n ? n : e !== nf ? vf(e) : void 0;
-}
-
-function He(e, n) {
-  return pa(e.epochNanoseconds, n.epochNanoseconds);
-}
+const padNumber2 = /*@__PURE__*/ internal_bindArgs(padNumber, 2);
 
-function Be(e, n) {
-  return pa(e.epochNanoseconds, n.epochNanoseconds);
+function compareNumbers(a, b) {
+  return Math.sign(a - b);
 }
 
-function H(e, n, t, o, r, i) {
-  const a = e(normalizeOptions(i).relativeTo), s = Math.max(getMaxDurationUnit(o), getMaxDurationUnit(r));
-  if (allPropsEqual(O, o, r)) {
-    return 0;
-  }
-  if (isUniformUnit(s, a)) {
-    return pa(durationFieldsToBigNano(o), durationFieldsToBigNano(r));
-  }
-  if (!a) {
-    throw new RangeError(vu);
-  }
-  const [c, u, l] = createMarkerSystem(n, t, a), f = createMarkerToEpochNano(l), d = createMoveMarker(l);
-  return pa(f(d(u, c, o)), f(d(u, c, r)));
+function compareBigInts(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
-function Yt(e, n) {
-  return te(e, n) || Dt(e, n);
+function divFloorBigInt(num, denom) {
+  const whole = num / denom;
+  return num % denom < 0n ? whole - 1n : whole;
 }
 
-function te(e, n) {
-  return compareNumbers(isoToEpochMilli(e), isoToEpochMilli(n));
+function divModFloorBigInt(num, divisor) {
+  const quotient = divFloorBigInt(num, divisor);
+  return [ quotient, num - quotient * divisor ];
 }
 
-function Dt(e, n) {
-  return compareNumbers(isoTimeFieldsToNano(e), isoTimeFieldsToNano(n));
+function divModFloor(num, divisor) {
+  return [ Math.floor(num / divisor), modFloor(num, divisor) ];
 }
 
-function Ve(e, n) {
-  return !He(e, n);
+function modFloor(num, divisor) {
+  return (num % divisor + divisor) % divisor;
 }
 
-function ve(e, n) {
-  return !Be(e, n) && !!isTimeZoneIdsEqual(e.timeZone, n.timeZone) && e.calendar === n.calendar;
+function divTrunc(num, divisor) {
+  return Math.trunc(num / divisor) || 0;
 }
 
-function vt(e, n) {
-  return !Yt(e, n) && e.calendar === n.calendar;
+function modTrunc(num, divisor) {
+  return num % divisor || 0;
 }
 
-function re(e, n) {
-  return !te(e, n) && e.calendar === n.calendar;
+function roundExpand(num) {
+  return num < 0 ? Math.floor(num) : Math.ceil(num);
 }
 
-function zt(e, n) {
-  return !te(e, n) && e.calendar === n.calendar;
+function fabricateNearHalfFraction(halfCompare, sign = 1) {
+  return sign * (.5 + halfCompare / 5);
 }
 
-function Lt(e, n) {
-  return !te(e, n) && e.calendar === n.calendar;
+function roundHalfExpand(num) {
+  return Math.sign(num) * Math.round(Math.abs(num)) || 0;
 }
 
-function st(e, n) {
-  return !Dt(e, n);
+function roundHalfFloor(num) {
+  return hasHalf(num) ? Math.floor(num) : Math.round(num);
 }
 
-function isTimeZoneIdsEqual(e, n) {
-  if (e === n) {
-    return 1;
-  }
-  try {
-    return getTimeZoneAtomic(e) === getTimeZoneAtomic(n);
-  } catch (e) {}
+function roundHalfCeil(num) {
+  return hasHalf(num) ? Math.ceil(num) : Math.round(num);
 }
 
-function Ee(e, n, t, o) {
-  const r = refineDiffOptions(e, o, 3, 5), i = diffEpochNanos(n.epochNanoseconds, t.epochNanoseconds, ...r);
-  return pe(e ? negateDurationFields(i) : i);
+function roundHalfTrunc(num) {
+  return hasHalf(num) ? Math.trunc(num) || 0 : Math.round(num);
 }
 
-function we(e, n, t, o, r, i) {
-  const a = ha(o.calendar, r.calendar), [s, c, u, l] = refineDiffOptions(t, i, 5), f = o.epochNanoseconds, d = r.epochNanoseconds, m = pa(d, f);
-  let p;
-  if (m) {
-    if (s < 6) {
-      p = diffEpochNanos(f, d, s, c, u, l);
-    } else {
-      const t = n(ga(o.timeZone, r.timeZone)), f = e(a);
-      p = diffZonedEpochsBig(f, t, o, r, m, s, i), p = roundRelativeDuration(p, d, s, c, u, l, f, o, fa, gt(Fa, t));
-    }
-  } else {
-    p = ll;
-  }
-  return pe(t ? negateDurationFields(p) : p);
+function roundHalfEven(num) {
+  return hasHalf(num) ? (num = Math.trunc(num) || 0) + num % 2 : Math.round(num);
 }
 
-function It(e, n, t, o, r) {
-  const i = ha(t.calendar, o.calendar), [a, s, c, u] = refineDiffOptions(n, r, 6), l = ma(t), f = ma(o), d = pa(f, l);
-  let m;
-  if (d) {
-    if (a <= 6) {
-      m = diffEpochNanos(l, f, a, s, c, u);
-    } else {
-      const n = e(i);
-      m = diffDateTimesBig(n, t, o, d, a, r), m = roundRelativeDuration(m, f, a, s, c, u, n, t, ma, ka);
-    }
-  } else {
-    m = ll;
-  }
-  return pe(n ? negateDurationFields(m) : m);
+function hasHalf(num) {
+  return .5 === Math.abs(num % 1);
 }
 
-function oe(e, n, t, o, r) {
-  const i = ha(t.calendar, o.calendar);
-  return diffDateLike(n, (() => e(i)), t, o, ...refineDiffOptions(n, r, 6, 9, 6));
-}
-
-function _t(e, n, t, o, r) {
-  const i = ha(t.calendar, o.calendar), a = refineDiffOptions(n, r, 9, 9, 8), s = e(i), c = Na(s, t), u = Na(s, o);
-  return c.isoYear === u.isoYear && c.isoMonth === u.isoMonth && c.isoDay === u.isoDay ? pe(ll) : diffDateLike(n, (() => s), To(c), To(u), ...a, 8);
-}
-
-function diffDateLike(e, n, t, o, r, i, a, s, c = 6) {
-  const u = ma(t), l = ma(o);
-  if (void 0 === u || void 0 === l) {
-    throw new RangeError(Mu);
-  }
-  let f;
-  if (pa(l, u)) {
-    if (6 === r) {
-      f = diffEpochNanos(u, l, r, i, a, s);
-    } else {
-      const e = n();
-      f = e.h(t, o, r), i === c && 1 === a || (f = roundRelativeDuration(f, l, r, i, a, s, e, t, ma, moveDate));
-    }
-  } else {
-    f = ll;
-  }
-  return pe(e ? negateDurationFields(f) : f);
-}
-
-function it(e, n, t, o) {
-  const [r, i, a, s] = refineDiffOptions(e, o, 5, 5), c = Da(diffTimes(n, t), computeNanoInc(i, a), s), u = {
-    ...ll,
-    ...nanoToDurationTimeFields(c, r)
-  };
-  return pe(e ? negateDurationFields(u) : u);
-}
-
-function diffZonedEpochsExact(e, n, t, o, r, i) {
-  const a = pa(o.epochNanoseconds, t.epochNanoseconds);
-  return a ? r < 6 ? diffEpochNanosExact(t.epochNanoseconds, o.epochNanoseconds, r) : diffZonedEpochsBig(n, e, t, o, a, r, i) : ll;
-}
-
-function diffDateTimesExact(e, n, t, o, r) {
-  const i = ma(n), a = ma(t), s = pa(a, i);
-  return s ? o <= 6 ? diffEpochNanosExact(i, a, o) : diffDateTimesBig(e, n, t, s, o, r) : ll;
-}
-
-function diffZonedEpochsBig(e, n, t, o, r, i, a) {
-  const [s, c, u] = Sa(n, t, o, r);
-  var l, f;
-  return {
-    ...6 === i ? (l = s, f = c, {
-      ...ll,
-      days: td(l, f)
-    }) : e.h(s, c, i, a),
-    ...nanoToDurationTimeFields(u)
-  };
-}
-
-function diffDateTimesBig(e, n, t, o, r, i) {
-  const [a, s, c] = ((e, n, t) => {
-    let o = n, r = diffTimes(e, n);
-    return Math.sign(r) === -t && (o = Ua(n, -t), r += go * t), [ e, o, r ];
-  })(n, t, o);
-  return {
-    ...e.h(a, s, r, i),
-    ...nanoToDurationTimeFields(c)
-  };
-}
-
-function Sa(e, n, t, o) {
-  function updateMid() {
-    return l = {
-      ...Ua(a, c++ * -o),
-      ...i
-    }, f = $o(e, l), pa(s, f) === -o;
-  }
-  const r = he(n, e), i = nn(w, r), a = he(t, e), s = t.epochNanoseconds;
-  let c = 0;
-  const u = diffTimes(r, a);
-  let l, f;
-  if (Math.sign(u) === -o && c++, updateMid() && (-1 === o || updateMid())) {
-    throw new RangeError(du);
-  }
-  const d = La(va(f, s));
-  return [ r, l, d ];
-}
-
-function diffEpochNanos(e, n, t, o, r, i) {
-  return {
-    ...ll,
-    ...nanoToDurationDayTimeFields(roundBigNano(va(e, n), o, r, i), t)
-  };
-}
-
-function diffEpochNanosExact(e, n, t) {
-  return {
-    ...ll,
-    ...nanoToDurationDayTimeFields(va(e, n), t)
-  };
-}
-
-function td(e, n) {
-  return diffEpochMilliByDay(isoToEpochMilli(e), isoToEpochMilli(n));
-}
-
-function diffEpochMilliByDay(e, n) {
-  return Math.trunc((n - e) / Cu);
-}
-
-function diffTimes(e, n) {
-  return isoTimeFieldsToNano(n) - isoTimeFieldsToNano(e);
-}
-
-function nativeDateUntil(e, n, t) {
-  if (t <= 7) {
-    let o = 0, r = td({
-      ...e,
-      ...At
-    }, {
-      ...n,
-      ...At
-    });
-    return 7 === t && ([o, r] = divModTrunc(r, 7)), {
-      ...ll,
-      weeks: o,
-      days: r
-    };
-  }
-  const o = this.u(e), r = this.u(n);
-  let [i, a, s] = ((e, n, t, o, r, i, a) => {
-    let s = r - n, c = i - t, u = a - o;
-    if (s || c) {
-      const l = Math.sign(s || c);
-      let f = e.B(r, i), d = 0;
-      if (Math.sign(u) === -l) {
-        const o = f;
-        [r, i] = e.p(r, i, -l), s = r - n, c = i - t, f = e.B(r, i), d = l < 0 ? -o : f;
-      }
-      if (u = a - Math.min(o, f) + d, s) {
-        const [o, a] = e.m(n, t), [u, f] = e.m(r, i);
-        if (c = u - o || Number(f) - Number(a), Math.sign(c) === -l) {
-          const t = l < 0 && -e.O(r);
-          s = (r -= l) - n, c = i - monthCodeNumberToMonth(o, a, e.F(r)) + (t || e.O(r));
-        }
-      }
-    }
-    return [ s, c, u ];
-  })(this, ...o, ...r);
-  return 8 === t && (a += this.q(i, o[0]), i = 0), {
-    ...ll,
-    years: i,
-    months: a,
-    days: s
-  };
-}
-
-function computeIsoMonthsInYearSpan(e) {
-  return e * Fl;
-}
-
-function computeIntlMonthsInYearSpan(e, n) {
-  const t = n + e, o = Math.sign(e), r = o < 0 ? -1 : 0;
-  let i = 0;
-  for (let e = n; e !== t; e += o) {
-    i += computeIntlMonthsInYear.call(this, e + r);
-  }
-  return i;
-}
-
-function ha(e, n) {
-  if (e !== n) {
-    throw new RangeError(mu);
-  }
-  return e;
-}
-
-function ga(e, n) {
-  if (!isTimeZoneIdsEqual(e, n)) {
-    throw new RangeError(pu);
-  }
-  return e;
-}
-
-function computeNativeWeekOfYear(e) {
-  return this.I(e)[0];
-}
-
-function computeNativeYearOfWeek(e) {
-  return this.I(e)[1];
-}
-
-function computeNativeInLeapYear(e) {
-  const [n] = this.u(e);
-  return this.L(n);
-}
-
-function computeNativeMonthsInYear(e) {
-  const [n] = this.u(e);
-  return this.O(n);
-}
-
-function computeNativeDaysInMonth(e) {
-  const [n, t] = this.u(e);
-  return this.B(n, t);
-}
-
-function computeNativeDaysInYear(e) {
-  const [n] = this.u(e);
-  return this.G(n);
-}
-
-function computeNativeDayOfYear(e) {
-  const [n] = this.u(e);
-  return diffEpochMilliByDay(this.M(n), isoToEpochMilli(e)) + 1;
-}
-
-function parseMonthCode(e) {
-  const n = Ef.exec(e);
-  if (!n) {
-    throw new RangeError(invalidMonthCode(e));
-  }
-  return [ parseInt(n[1]), Boolean(n[2]) ];
-}
-
-function sa(e, n) {
-  return "M" + wu(e) + (n ? "L" : "");
-}
-
-function monthCodeNumberToMonth(e, n, t) {
-  return e + (n || t && e >= t ? 1 : 0);
-}
-
-function monthToMonthCodeNumber(e, n) {
-  return e - (n && e >= n ? 1 : 0);
-}
-
-function eraYearToYear(e, n) {
-  return (n + e) * (Math.sign(n) || 1) || 0;
-}
-
-function getCalendarEraOrigins(e) {
-  return nl[getCalendarIdBase(e)];
-}
-
-function getCalendarLeapMonthMeta(e) {
-  return ol[getCalendarIdBase(e)];
-}
-
-function getCalendarIdBase(e) {
-  return computeCalendarIdBase(e.id || l);
-}
-
-function createIntlCalendar(e) {
-  function epochMilliToIntlFields(e) {
-    return ((e, n) => ({
-      ...parseIntlYear(e, n),
-      V: e.month,
-      day: parseInt(e.day)
-    }))(hashIntlFormatParts(n, e), t);
-  }
-  const n = bf(e), t = computeCalendarIdBase(e);
-  return {
-    id: e,
-    _: createIntlFieldCache(epochMilliToIntlFields),
-    J: createIntlYearDataCache(epochMilliToIntlFields)
-  };
-}
-
-function createIntlFieldCache(e) {
-  return on((n => {
-    const t = isoToEpochMilli(n);
-    return e(t);
-  }), WeakMap);
-}
-
-function createIntlYearDataCache(e) {
-  const n = e(0).year - vl;
-  return on((t => {
-    let o, r = isoArgsToEpochMilli(t - n), i = 0;
-    const a = [], s = [];
-    do {
-      r += 400 * Cu;
-    } while ((o = e(r)).year <= t);
-    do {
-      if (r += (1 - o.day) * Cu, o.year === t && (a.push(r), s.push(o.V)), r -= Cu, ++i > 100 || r < -gl) {
-        throw new RangeError(du);
-      }
-    } while ((o = e(r)).year >= t);
-    return {
-      K: a.reverse(),
-      X: bu(s.reverse())
-    };
-  }));
-}
-
-function parseIntlYear(e, n) {
-  let t, o, r = parseIntlPartsYear(e);
-  if (e.era) {
-    const i = nl[n], a = tl[n] || {};
-    void 0 !== i && (t = "islamic" === n ? "ah" : e.era.normalize("NFD").toLowerCase().replace(/[^a-z0-9]/g, ""), 
-    "bc" === t || "b" === t ? t = "bce" : "ad" === t || "a" === t ? t = "ce" : "beforeroc" === t && (t = "broc"), 
-    t = a[t] || t, o = r, r = eraYearToYear(o, i[t] || 0));
-  }
-  return {
-    era: t,
-    eraYear: o,
-    year: r
-  };
-}
-
-function parseIntlPartsYear(e) {
-  return parseInt(e.relatedYear || e.year);
-}
-
-function computeIntlDay(e) {
-  return this._(e).day;
-}
-
-function computeIntlDateParts(e) {
-  const {year: n, V: t, day: o} = this._(e), {X: r} = this.J(n);
-  return [ n, r[t] + 1, o ];
-}
-
-function computeIsoFieldsFromIntlParts(e, n, t) {
-  return Pa(computeIntlEpochMilli.call(this, e, n, t));
-}
-
-function computeIntlEpochMilli(e, n = 1, t = 1) {
-  return this.J(e).K[n - 1] + (t - 1) * Cu;
-}
-
-function computeIntlMonthCodeParts(e, n) {
-  const t = computeIntlLeapMonth.call(this, e);
-  return [ monthToMonthCodeNumber(n, t), t === n ];
-}
-
-function computeIntlLeapMonth(e) {
-  const n = queryMonthStrings(this, e), t = queryMonthStrings(this, e - 1), o = n.length;
-  if (o > t.length) {
-    const e = getCalendarLeapMonthMeta(this);
-    if (e < 0) {
-      return -e;
-    }
-    for (let e = 0; e < o; e++) {
-      if (n[e] !== t[e]) {
-        return e + 1;
-      }
-    }
-  }
-}
-
-function computeIntlInLeapYear(e) {
-  const n = computeIntlDaysInYear.call(this, e);
-  return n > computeIntlDaysInYear.call(this, e - 1) && n > computeIntlDaysInYear.call(this, e + 1);
-}
-
-function computeIntlDaysInYear(e) {
-  return diffEpochMilliByDay(computeIntlEpochMilli.call(this, e), computeIntlEpochMilli.call(this, e + 1));
-}
-
-function computeIntlDaysInMonth(e, n) {
-  const {K: t} = this.J(e);
-  let o = n + 1, r = t;
-  return o > t.length && (o = 1, r = this.J(e + 1).K), diffEpochMilliByDay(t[n - 1], r[o - 1]);
-}
-
-function computeIntlMonthsInYear(e) {
-  return this.J(e).K.length;
-}
-
-function computeIntlEraParts(e) {
-  const n = this._(e);
-  return [ n.era, n.eraYear ];
-}
-
-function computeIntlYearMonthForMonthDay(e, n, t) {
-  const o = this.id && "chinese" === computeCalendarIdBase(this.id) ? ((e, n, t) => {
-    if (n) {
-      switch (e) {
-       case 1:
-        return 1651;
-
-       case 2:
-        return t < 30 ? 1947 : 1765;
-
-       case 3:
-        return t < 30 ? 1966 : 1955;
-
-       case 4:
-        return t < 30 ? 1963 : 1944;
-
-       case 5:
-        return t < 30 ? 1971 : 1952;
-
-       case 6:
-        return t < 30 ? 1960 : 1941;
-
-       case 7:
-        return t < 30 ? 1968 : 1938;
-
-       case 8:
-        return t < 30 ? 1957 : 1718;
-
-       case 9:
-        return 1832;
-
-       case 10:
-        return 1870;
-
-       case 11:
-        return 1814;
-
-       case 12:
-        return 1890;
-      }
-    }
-    return 1972;
-  })(e, n, t) : Pl;
-  let [r, i, a] = computeIntlDateParts.call(this, {
-    isoYear: o,
-    isoMonth: Fl,
-    isoDay: 31
-  });
-  const s = computeIntlLeapMonth.call(this, r), c = i === s;
-  1 === (compareNumbers(e, monthToMonthCodeNumber(i, s)) || compareNumbers(Number(n), Number(c)) || compareNumbers(t, a)) && r--;
-  for (let o = 0; o < 100; o++) {
-    const i = r - o, a = computeIntlLeapMonth.call(this, i), s = monthCodeNumberToMonth(e, n, a);
-    if (n === (s === a) && t <= computeIntlDaysInMonth.call(this, i, s)) {
-      return [ i, s ];
-    }
-  }
-}
-
-function queryMonthStrings(e, n) {
-  return Object.keys(e.J(n).X);
-}
-
-function Zt(e) {
-  return u(d(e));
-}
-
-function u(e) {
-  if ((e = e.toLowerCase()) !== l && e !== Xu) {
-    const n = bf(e).resolvedOptions().calendar;
-    if (computeCalendarIdBase(e) !== computeCalendarIdBase(n)) {
-      throw new RangeError(c(e));
-    }
-    return n;
-  }
-  return e;
-}
-
-function computeCalendarIdBase(e) {
-  return "islamicc" === e && (e = "islamic"), e.split("-")[0];
-}
-
-function createNativeOpsCreator(e, n) {
-  return t => t === l ? e : t === Xu || t === el ? Object.assign(Object.create(e), {
-    id: t
-  }) : Object.assign(Object.create(n), Of(t));
-}
-
-function z(e, n, t, o) {
-  const r = refineCalendarFields(t, o, _u, [], ju);
-  if (void 0 !== r.timeZone) {
-    const o = t.ee(r), i = refineTimeBag(r), a = e(r.timeZone);
-    return {
-      epochNanoseconds: getMatchingInstantFor(n(a), {
-        ...o,
-        ...i
-      }, void 0 !== r.offset ? parseOffsetNano(r.offset) : void 0),
-      timeZone: a
-    };
-  }
-  return {
-    ...t.ee(r),
-    ...At
-  };
-}
-
-function Ae(e, n, t, o, r, i) {
-  const a = refineCalendarFields(t, r, _u, Au, ju), s = e(a.timeZone), [c, u, l] = je(i), f = t.ee(a, fabricateOverflowOptions(c)), d = refineTimeBag(a, c);
-  return Xe(getMatchingInstantFor(n(s), {
-    ...f,
-    ...d
-  }, void 0 !== a.offset ? parseOffsetNano(a.offset) : void 0, u, l), s, o);
-}
-
-function Nt(e, n, t) {
-  const o = refineCalendarFields(e, n, _u, [], p), r = dt(t);
-  return jt(Do({
-    ...e.ee(o, fabricateOverflowOptions(r)),
-    ...refineTimeBag(o, r)
-  }));
-}
+const isoCalendarId = "iso8601";
 
-function de(e, n, t, o = []) {
-  const r = refineCalendarFields(e, n, _u, o);
-  return e.ee(r, t);
-}
-
-function Ut(e, n, t, o) {
-  const r = refineCalendarFields(e, n, Gu, o);
-  return e.ne(r, t);
-}
-
-function Rt(e, n, t, o) {
-  const r = refineCalendarFields(e, t, _u, Hu);
-  return n && void 0 !== r.month && void 0 === r.monthCode && void 0 === r.year && (r.year = Pl), 
-  e.te(r, o);
-}
-
-function Tt(e, n) {
-  return St(refineTimeBag(refineFields(e, Ru, [], 1), dt(n)));
-}
-
-function q(e) {
-  const n = refineFields(e, il);
-  return pe(checkDurationUnits({
-    ...ll,
-    ...n
-  }));
-}
-
-function refineCalendarFields(e, n, t, o = [], r = []) {
-  return refineFields(n, [ ...e.fields(t), ...r ].sort(), o);
-}
-
-function refineFields(e, n, t, o = !t) {
-  const r = {};
-  let i, a = 0;
-  for (const o of n) {
-    if (o === i) {
-      throw new RangeError(duplicateFields(o));
-    }
-    if ("constructor" === o || "__proto__" === o) {
-      throw new RangeError(forbiddenField(o));
-    }
-    let n = e[o];
-    if (void 0 !== n) {
-      a = 1, Rm[o] && (n = Rm[o](n, o)), r[o] = n;
-    } else if (t) {
-      if (t.includes(o)) {
-        throw new TypeError(missingField(o));
-      }
-      r[o] = Qu[o];
-    }
-    i = o;
-  }
-  if (o && !a) {
-    throw new TypeError(noValidFields(n));
-  }
-  return r;
-}
-
-function refineTimeBag(e, n) {
-  return constrainIsoTimeFields(zm({
-    ...Qu,
-    ...e
-  }), n);
-}
-
-function De(e, n, t, o, r) {
-  const {calendar: i, timeZone: a} = t, s = e(i), c = n(a), u = [ ...s.fields(_u), ...Uu ].sort(), l = (e => {
-    const n = he(e, L), t = Se(n.offsetNanoseconds), o = ra(e.calendar), [r, i, a] = o.u(n), [s, c] = o.m(r, i), u = sa(s, c);
-    return {
-      ...Ga(n),
-      year: r,
-      monthCode: u,
-      day: a,
-      offset: t
-    };
-  })(t), f = refineFields(o, u), d = s.oe(l, f), m = {
-    ...l,
-    ...f
-  }, [p, h, I] = je(r, 2);
-  return Xe(getMatchingInstantFor(c, {
-    ...s.ee(d, fabricateOverflowOptions(p)),
-    ...constrainIsoTimeFields(zm(m), p)
-  }, parseOffsetNano(m.offset), h, I), a, i);
-}
-
-function Pt(e, n, t, o) {
-  const r = e(n.calendar), i = [ ...r.fields(_u), ...p ].sort(), a = {
-    ...computeDateEssentials(s = n),
-    hour: s.isoHour,
-    minute: s.isoMinute,
-    second: s.isoSecond,
-    millisecond: s.isoMillisecond,
-    microsecond: s.isoMicrosecond,
-    nanosecond: s.isoNanosecond
-  };
-  var s;
-  const c = refineFields(t, i), u = dt(o), l = r.oe(a, c), f = {
-    ...a,
-    ...c
-  };
-  return jt(Do({
-    ...r.ee(l, fabricateOverflowOptions(u)),
-    ...constrainIsoTimeFields(zm(f), u)
-  }));
-}
-
-function ee(e, n, t, o) {
-  const r = e(n.calendar), i = r.fields(_u).sort(), a = computeDateEssentials(n), s = refineFields(t, i), c = r.oe(a, s);
-  return r.ee(c, o);
-}
-
-function Wt(e, n, t, o) {
-  const r = e(n.calendar), i = r.fields(Gu).sort(), a = (e => {
-    const n = ra(e.calendar), [t, o] = n.u(e), [r, i] = n.m(t, o);
-    return {
-      year: t,
-      monthCode: sa(r, i)
-    };
-  })(n), s = refineFields(t, i), c = r.oe(a, s);
-  return r.ne(c, o);
-}
-
-function Et(e, n, t, o) {
-  const r = e(n.calendar), i = r.fields(_u).sort(), a = (e => {
-    const n = ra(e.calendar), [t, o, r] = n.u(e), [i, a] = n.m(t, o);
-    return {
-      monthCode: sa(i, a),
-      day: r
-    };
-  })(n), s = refineFields(t, i), c = r.oe(a, s);
-  return r.te(c, o);
-}
-
-function rt(e, n, t) {
-  return St(((e, n, t) => refineTimeBag({
-    ...nn(Ru, e),
-    ...refineFields(n, Ru)
-  }, dt(t)))(e, n, t));
-}
-
-function N(e, n) {
-  return pe((t = e, o = n, checkDurationUnits({
-    ...t,
-    ...refineFields(o, il)
-  })));
-  var t, o;
-}
-
-function convertToPlainMonthDay(e, n) {
-  const t = refineCalendarFields(e, n, Ku);
-  return e.te(t);
-}
-
-function convertToPlainYearMonth(e, n, t) {
-  const o = refineCalendarFields(e, n, Vu);
-  return e.ne(o, t);
-}
-
-function convertToIso(e, n, t, o, r) {
-  n = nn(t = e.fields(t), n), o = refineFields(o, r = e.fields(r), []);
-  let i = e.oe(n, o);
-  return i = refineFields(i, [ ...t, ...r ].sort(), []), e.ee(i);
-}
-
-function nativeDateFromFields(e, n) {
-  const t = dt(n), o = refineYear(this, e), r = refineMonth(this, e, o, t), i = refineDay(this, e, r, o, t);
-  return W(To(this.U(o, r, i)), this.id || l);
-}
-
-function nativeYearMonthFromFields(e, n) {
-  const t = dt(n), o = refineYear(this, e), r = refineMonth(this, e, o, t);
-  return createPlainYearMonthSlots(checkIsoYearMonthInBounds(this.U(o, r, 1)), this.id || l);
-}
-
-function nativeMonthDayFromFields(e, n) {
-  const t = dt(n);
-  let o, r, i, a = void 0 !== e.eraYear || void 0 !== e.year ? refineYear(this, e) : void 0;
-  const s = !this.id;
-  if (void 0 === a && s && (a = Pl), void 0 !== a) {
-    const n = refineMonth(this, e, a, t);
-    o = refineDay(this, e, n, a, t);
-    const s = this.F(a);
-    r = monthToMonthCodeNumber(n, s), i = n === s;
-  } else {
-    if (void 0 === e.monthCode) {
-      throw new TypeError(lu);
-    }
-    if ([r, i] = parseMonthCode(e.monthCode), this.id && this.id !== Xu && this.id !== el) {
-      if (this.id && "coptic" === computeCalendarIdBase(this.id) && 0 === t) {
-        const n = i || 13 !== r ? 30 : 6;
-        o = e.day, o = clampNumber(o, 1, n);
-      } else if (this.id && "chinese" === computeCalendarIdBase(this.id) && 0 === t) {
-        const n = !i || 1 !== r && 9 !== r && 10 !== r && 11 !== r && 12 !== r ? 30 : 29;
-        o = e.day, o = clampNumber(o, 1, n);
-      } else {
-        o = e.day;
-      }
-    } else {
-      o = refineDay(this, e, refineMonth(this, e, Pl, t), Pl, t);
-    }
-  }
-  const c = this.R(r, i, o);
-  if (!c) {
-    throw new RangeError("Cannot guess year");
-  }
-  const [u, f] = c;
-  return createPlainMonthDaySlots(To(this.U(u, f, o)), this.id || l);
-}
-
-function nativeFieldsMethod(e) {
-  return getCalendarEraOrigins(this) && e.includes("year") ? [ ...e, ...qu ] : e;
-}
-
-function nativeMergeFields(e, n) {
-  const t = Object.assign(Object.create(null), e);
-  return spliceFields(t, n, $u), getCalendarEraOrigins(this) && (spliceFields(t, n, Lu), 
-  this.id === el && spliceFields(t, n, Ju, qu)), t;
-}
-
-function refineYear(e, n) {
-  const t = getCalendarEraOrigins(e), o = tl[e.id || ""] || {};
-  let {era: r, eraYear: i, year: a} = n;
-  if (void 0 !== r || void 0 !== i) {
-    if (void 0 === r || void 0 === i) {
-      throw new TypeError(su);
-    }
-    if (!t) {
-      throw new RangeError(iu);
-    }
-    const e = t[o[r] || r];
-    if (void 0 === e) {
-      throw new RangeError(invalidEra(r));
-    }
-    const n = eraYearToYear(i, e);
-    if (void 0 !== a && a !== n) {
-      throw new RangeError(cu);
-    }
-    a = n;
-  } else if (void 0 === a) {
-    throw new TypeError(missingYear(t));
-  }
-  return a;
-}
-
-function refineMonth(e, n, t, o) {
-  let {month: r, monthCode: i} = n;
-  if (void 0 !== i) {
-    const n = ((e, n, t, o) => {
-      const r = e.F(t), [i, a] = parseMonthCode(n);
-      let s = monthCodeNumberToMonth(i, a, r);
-      if (a) {
-        const n = getCalendarLeapMonthMeta(e);
-        if (void 0 === n) {
-          throw new RangeError(fu);
-        }
-        if (n > 0) {
-          if (s > n) {
-            throw new RangeError(fu);
-          }
-          if (void 0 === r) {
-            if (1 === o) {
-              throw new RangeError(fu);
-            }
-            s--;
-          }
-        } else {
-          if (s !== -n) {
-            throw new RangeError(fu);
-          }
-          if (void 0 === r && 1 === o) {
-            throw new RangeError(fu);
-          }
-        }
-      }
-      return s;
-    })(e, i, t, o);
-    if (void 0 !== r && r !== n) {
-      throw new RangeError(uu);
-    }
-    r = n, o = 1;
-  } else if (void 0 === r) {
-    throw new TypeError(lu);
-  }
-  return ba("month", r, 1, e.O(t), o);
-}
-
-function refineDay(e, n, t, o, r) {
-  return clampProp(n, "day", 1, e.B(o, t), r);
-}
-
-function spliceFields(e, n, t, o) {
-  let r = 0;
-  const i = [];
-  for (const e of t) {
-    void 0 !== n[e] ? r = 1 : i.push(e);
-  }
-  if (Object.assign(e, n), r) {
-    for (const n of o || i) {
-      delete e[n];
-    }
-  }
-}
-
-function computeDateEssentials(e) {
-  const n = ra(e.calendar), [t, o, r] = n.u(e), [i, a] = n.m(t, o);
-  return {
-    year: t,
-    monthCode: sa(i, a),
-    day: r
-  };
-}
-
-function qe(e) {
-  return internal_xe(io(bigIntToBigNano(toBigInt(e))));
-}
-
-function ye(e, n, t, o, r = l) {
-  return Xe(io(bigIntToBigNano(toBigInt(t))), n(o), e(r));
-}
-
-function Mt(n, t, o, r, i = 0, a = 0, s = 0, c = 0, u = 0, f = 0, d = l) {
-  return jt(Do(checkIsoDateTimeFields(e(Za, zipProps(pl, [ t, o, r, i, a, s, c, u, f ])))), n(d));
-}
-
-function ue(n, t, o, r, i = l) {
-  return W(To(checkIsoDateFields(e(Za, {
-    isoYear: t,
-    isoMonth: o,
-    isoDay: r
-  }))), n(i));
-}
-
-function Kt(e, n, t, o = l, r = 1) {
-  const i = Za(n), a = Za(t), s = e(o);
-  return createPlainYearMonthSlots(checkIsoYearMonthInBounds(checkIsoDateFields({
-    isoYear: i,
-    isoMonth: a,
-    isoDay: Za(r)
-  })), s);
-}
-
-function kt(e, n, t, o = l, r = Pl) {
-  const i = Za(n), a = Za(t), s = e(o);
-  return createPlainMonthDaySlots(To(checkIsoDateFields({
-    isoYear: Za(r),
-    isoMonth: i,
-    isoDay: a
-  })), s);
-}
-
-function ut(n = 0, t = 0, o = 0, r = 0, i = 0, a = 0) {
-  return St(constrainIsoTimeFields(e(Za, zipProps(w, [ n, t, o, r, i, a ])), 1));
-}
-
-function j(n = 0, t = 0, o = 0, r = 0, i = 0, a = 0, s = 0, c = 0, u = 0, l = 0) {
-  return pe(checkDurationUnits(e(Ba, zipProps(O, [ n, t, o, r, i, a, s, c, u, l ]))));
-}
-
-function Je(e, n, t = l) {
-  return Xe(e.epochNanoseconds, n, t);
-}
-
-function Ce(e) {
-  return internal_xe(e.epochNanoseconds);
-}
-
-function yt(e, n) {
-  return jt(he(n, e));
-}
-
-function fe(e, n) {
-  return W(he(n, e));
-}
-
-function Qa(e, n, t) {
-  return convertToPlainYearMonth(e(n.calendar), t);
-}
-
-function Xa(e, n, t) {
-  return convertToPlainMonthDay(e(n.calendar), t);
-}
-
-function mt(e, n) {
-  return St(he(n, e));
-}
-
-function Ct(e, n, t, o) {
-  const r = ((e, n, t, o) => {
-    const r = (e => Vl(normalizeOptions(e)))(o);
-    return $o(e(n), t, r);
-  })(e, t, n, o);
-  return Xe(io(r), t, n.calendar);
-}
-
-function po(e, n, t) {
-  const o = e(n.calendar);
-  return createPlainYearMonthSlots({
-    ...n,
-    ...convertToPlainYearMonth(o, t)
-  });
-}
-
-function yo(e, n, t) {
-  return convertToPlainMonthDay(e(n.calendar), t);
-}
-
-function ae(e, n, t, o, r) {
-  const i = e(r.timeZone), a = r.plainTime, s = void 0 !== a ? n(a) : void 0, c = t(i);
-  let u;
-  return u = s ? $o(c, {
-    ...o,
-    ...s
-  }) : getStartOfDayInstantFor(c, {
-    ...o,
-    ...At
-  }), Xe(u, i, o.calendar);
-}
-
-function ie(e, n = At) {
-  return jt(Do({
-    ...e,
-    ...n
-  }));
-}
-
-function le(e, n, t) {
-  return convertToPlainYearMonth(e(n.calendar), t);
-}
-
-function se(e, n, t) {
-  return convertToPlainMonthDay(e(n.calendar), t);
-}
-
-function $t(e, n, t, o) {
-  return ((e, n, t) => convertToIso(e, n, Vu, oa(t), Hu))(e(n.calendar), t, o);
-}
-
-function Vt(e, n, t, o) {
-  return ((e, n, t) => convertToIso(e, n, Ku, oa(t), Wu))(e(n.calendar), t, o);
-}
-
-function vo(e, n, t, o, r) {
-  const i = oa(r), a = n(i.re), s = e(i.timeZone);
-  return Xe($o(t(s), {
-    ...a,
-    ...o
-  }), s, a.calendar);
-}
-
-function Oo(e, n) {
-  return jt(Do({
-    ...e,
-    ...n
-  }));
-}
-
-function ea(e) {
-  return internal_xe(io(internal_Ge(Ba(e), oo)));
-}
-
-function ze(e) {
-  return internal_xe(io(internal_Ge(Ba(e), internal_Ke)));
-}
-
-function na(e) {
-  return internal_xe(io(bigIntToBigNano(toBigInt(e), ro)));
-}
-
-function $e(e) {
-  return internal_xe(io(bigIntToBigNano(toBigInt(e))));
-}
-
-function createOptionsTransformer(e, n, t) {
-  const o = new Set(t);
-  return (r, i) => {
-    const a = t && hasAnyPropsByName(r, t);
-    if (!hasAnyPropsByName(r = ((e, n) => {
-      const t = {};
-      for (const o in n) {
-        e.has(o) || (t[o] = n[o]);
-      }
-      return t;
-    })(o, r), e)) {
-      if (i && a) {
-        throw new TypeError("Invalid formatting options");
-      }
-      r = {
-        ...n,
-        ...r
-      };
-    }
-    return t && (r.timeZone = nf, [ "full", "long" ].includes(r.ie) && (r.ie = "medium")), 
-    r;
-  };
-}
-
-function K(e, n = an, t = 0) {
-  const [o, , , r] = e;
-  return (i, a = mp, ...s) => {
-    const c = n(r && r(...s), i, a, o, t), u = c.resolvedOptions();
-    return [ c, ...toEpochMillis(e, u, s) ];
-  };
-}
-
-function an(e, n, t, o, r) {
-  if (t = o(t, r), e) {
-    if (void 0 !== t.timeZone) {
-      throw new TypeError(Ou);
-    }
-    t.timeZone = e;
-  }
-  return new en(n, t);
-}
-
-function computeNonBuggyIsoResolve() {
-  return new en(void 0, {
-    calendar: l
-  }).resolvedOptions().calendar === l;
-}
-
-function toEpochMillis(e, n, t) {
-  const [, o, r] = e;
-  return t.map((e => (e.calendar && ((e, n, t) => {
-    if ((t || e !== l) && e !== n) {
-      throw new RangeError(mu);
-    }
-  })(e.calendar, n.calendar, r), o(e, n))));
-}
+const gregoryCalendarId = "gregory";
 
-function Pe(e, n, t) {
-  const o = n.timeZone, r = e(o), i = {
-    ...he(n, r),
-    ...t || At
-  };
-  let a;
-  return a = t ? getMatchingInstantFor(r, i, i.offsetNanoseconds, 2) : getStartOfDayInstantFor(r, i), 
-  Xe(a, o, n.calendar);
-}
+const gregoryEraOrigins = {
+  "bce": -1,
+  "ce": 0
+};
 
-function Ka(e, n, t) {
-  const o = n.timeZone, r = e(o), i = {
-    ...he(n, r),
-    ...t
-  }, a = getPreferredCalendarId(n.calendar, t.calendar);
-  return Xe(getMatchingInstantFor(r, i, i.offsetNanoseconds, 2), o, a);
+function normalizeEraName(era) {
+  const normalized = era.normalize("NFD").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return "bc" === normalized || "b" === normalized ? "bce" : "ad" === normalized || "a" === normalized ? "ce" : normalized;
 }
 
-function pt(e, n = At) {
-  return jt(Do({
-    ...e,
-    ...n
-  }));
-}
+const isoCalendarImpl = void 0;
 
-function Mo(e, n) {
-  return jt({
-    ...e,
-    ...n
-  }, getPreferredCalendarId(e.calendar, n.calendar));
-}
+const gregoryCalendarImpl = 0;
 
-function Ot(e, n) {
-  return {
-    ...e,
-    calendar: n
-  };
+function getCalendarSlotId(calendar) {
+  return calendar === isoCalendarImpl ? "iso8601" : 0 === calendar ? "gregory" : calendar.id;
 }
 
-function ge(e, n) {
-  return {
-    ...e,
-    timeZone: n
-  };
-}
+const monthCodeRegExp = /^M(\d{2})(L?)$/;
 
-function getPreferredCalendarId(e, n) {
-  if (e === n) {
-    return e;
-  }
-  if (e === n || e === l) {
-    return n;
-  }
-  if (n === l) {
-    return e;
-  }
-  throw new RangeError(mu);
+function parseMonthCode(monthCode) {
+  const m = monthCodeRegExp.exec(monthCode);
+  return m || throwRangeError((monthCode => `Invalid monthCode: ${monthCode}`)(monthCode)), 
+  [ parseInt(m[1]), Boolean(m[2]) ];
 }
 
-function tn(e) {
-  const n = Ue();
-  return So(n, e.N(n));
+function formatMonthCode(monthCodeNumber, isLeapMonth) {
+  return "M" + padNumber2(monthCodeNumber) + (isLeapMonth ? "L" : "");
 }
 
-function Ue() {
-  return internal_Ge(Date.now(), internal_Ke);
+function monthCodeNumberToMonth(monthCodeNumber, isLeapMonth, leapMonth) {
+  return monthCodeNumber + (isLeapMonth || leapMonth && monthCodeNumber >= leapMonth ? 1 : 0);
 }
 
-function Qe() {
-  return (new en).resolvedOptions().timeZone;
+function monthToMonthCodeNumber(month, leapMonth) {
+  return month - (leapMonth && month >= leapMonth ? 1 : 0);
 }
 
-const expectedInteger = (e, n) => `Non-integer ${e}: ${n}`, expectedPositive = (e, n) => `Non-positive ${e}: ${n}`, expectedFinite = (e, n) => `Non-finite ${e}: ${n}`, forbiddenBigIntToNumber = e => `Cannot convert bigint to ${e}`, invalidBigInt = e => `Invalid bigint: ${e}`, ou = "Cannot convert Symbol to string", ru = "Invalid object", numberOutOfRange = (e, n, t, o, r) => r ? numberOutOfRange(e, r[n], r[t], r[o]) : invalidEntity(e, n) + `; must be between ${t}-${o}`, invalidEntity = (e, n) => `Invalid ${e}: ${n}`, missingField = e => `Missing ${e}`, forbiddenField = e => `Invalid field ${e}`, duplicateFields = e => `Duplicate field ${e}`, noValidFields = e => "No valid fields: " + e.join(), i = "Invalid bag", invalidChoice = (e, n, t) => invalidEntity(e, n) + "; must be " + Object.keys(t).join(), C = "Cannot use valueOf", a = "Invalid calling context", iu = "Forbidden era/eraYear", su = "Mismatching era/eraYear", cu = "Mismatching year/eraYear", invalidEra = e => `Invalid era: ${e}`, missingYear = e => "Missing year" + (e ? "/era/eraYear" : ""), invalidMonthCode = e => `Invalid monthCode: ${e}`, uu = "Mismatching month/monthCode", lu = "Missing month/monthCode", fu = "Invalid leap month", du = "Invalid protocol results", c = e => invalidEntity("Calendar", e), mu = "Mismatching Calendars", qa = "Calendar week operations forbidden", F = e => invalidEntity("TimeZone", e), pu = "Mismatching TimeZones", hu = "Forbidden ICU TimeZone", Iu = "Out-of-bounds offset", Du = "Out-of-bounds TimeZone gap", gu = "Invalid TimeZone offset", Tu = "Ambiguous offset", Mu = "Out-of-bounds date", yu = "Out-of-bounds duration", Nu = "Cannot mix duration signs", vu = "Missing relativeTo", Pu = "Cannot use large units", Fu = "Required smallestUnit or largestUnit", Eu = "smallestUnit > largestUnit", failedParse = e => `Cannot parse: ${e}`, invalidSubstring = e => `Invalid substring: ${e}`, rn = e => `Cannot format ${e}`, ln = "Mismatching types for formatting", Ou = "Cannot specify TimeZone", bu = /*@__PURE__*/ gt(P, ((e, n) => n)), Su = /*@__PURE__*/ gt(P, ((e, n, t) => t)), wu = /*@__PURE__*/ gt(padNumber, 2), Bu = {
+const unitNameMap = {
   nanosecond: 0,
   microsecond: 1,
   millisecond: 2,
@@ -56060,1076 +53490,4414 @@ const expectedInteger = (e, n) => `Non-integer ${e}: ${n}`, expectedPositive = (
   week: 7,
   month: 8,
   year: 9
-}, Yu = /*@__PURE__*/ Object.keys(Bu), Cu = 864e5, ku = 1e3, ro = 1e3, internal_Ke = 1e6, oo = 1e9, ao = 6e10, no = 36e11, go = 864e11, Zu = [ 1, ro, internal_Ke, oo, ao, no, go ], p = /*@__PURE__*/ Yu.slice(0, 6), Ru = /*@__PURE__*/ sortStrings(p), zu = [ "offset" ], Au = [ "timeZone" ], Uu = /*@__PURE__*/ p.concat(zu), ju = /*@__PURE__*/ Uu.concat(Au), qu = [ "era", "eraYear" ], Lu = /*@__PURE__*/ qu.concat([ "year" ]), Wu = [ "year" ], xu = [ "monthCode" ], $u = /*@__PURE__*/ [ "month" ].concat(xu), Hu = [ "day" ], Gu = /*@__PURE__*/ $u.concat(Wu), Vu = /*@__PURE__*/ xu.concat(Wu), _u = /*@__PURE__*/ Hu.concat(Gu), Ju = /*@__PURE__*/ Hu.concat($u), Ku = /*@__PURE__*/ Hu.concat(xu), Qu = /*@__PURE__*/ Su(p, 0), l = "iso8601", Xu = "gregory", el = "japanese", nl = {
-  [Xu]: {
-    "gregory-inverse": -1,
-    gregory: 0
-  },
-  [el]: {
-    "japanese-inverse": -1,
-    japanese: 0,
-    meiji: 1867,
-    taisho: 1911,
-    showa: 1925,
-    heisei: 1988,
-    reiwa: 2018
-  },
-  ethiopic: {
-    ethioaa: 0,
-    ethiopic: 5500
-  },
-  coptic: {
-    "coptic-inverse": -1,
-    coptic: 0
-  },
-  roc: {
-    "roc-inverse": -1,
-    roc: 0
-  },
-  buddhist: {
-    be: 0
-  },
-  islamic: {
-    ah: 0
-  },
-  indian: {
-    saka: 0
-  },
-  persian: {
-    ap: 0
-  }
-}, tl = {
-  [Xu]: {
-    bce: "gregory-inverse",
-    ce: "gregory"
-  },
-  [el]: {
-    bce: "japanese-inverse",
-    ce: "japanese"
-  },
-  ethiopic: {
-    era0: "ethioaa",
-    era1: "ethiopic"
-  },
-  coptic: {
-    era0: "coptic-inverse",
-    era1: "coptic"
-  },
-  roc: {
-    broc: "roc-inverse",
-    minguo: "roc"
-  }
-}, ol = {
-  chinese: 13,
-  dangi: 13,
-  hebrew: -6
-}, d = /*@__PURE__*/ gt(requireType, "string"), D = /*@__PURE__*/ gt(requireType, "boolean"), rl = /*@__PURE__*/ gt(requireType, "number"), O = /*@__PURE__*/ Yu.map((e => e + "s")), il = /*@__PURE__*/ sortStrings(O), al = /*@__PURE__*/ O.slice(0, 6), sl = /*@__PURE__*/ O.slice(6), cl = /*@__PURE__*/ sl.slice(1), ul = /*@__PURE__*/ bu(O), ll = /*@__PURE__*/ Su(O, 0), fl = /*@__PURE__*/ Su(al, 0), dl = /*@__PURE__*/ gt(zeroOutProps, O), w = [ "isoNanosecond", "isoMicrosecond", "isoMillisecond", "isoSecond", "isoMinute", "isoHour" ], ml = [ "isoDay", "isoMonth", "isoYear" ], pl = /*@__PURE__*/ w.concat(ml), Ca = /*@__PURE__*/ sortStrings(ml), hl = /*@__PURE__*/ sortStrings(w), Il = /*@__PURE__*/ sortStrings(pl), At = /*@__PURE__*/ Su(hl, 0), Ra = /*@__PURE__*/ gt(zeroOutProps, pl), Dl = 1e8, gl = Dl * Cu, Tl = [ Dl, 0 ], Ml = [ -Dl, 0 ], yl = 275760, Nl = -271821, en = Intl.DateTimeFormat, vl = 1970, Pl = 1972, Fl = 12, El = /*@__PURE__*/ isoArgsToEpochMilli(1868, 9, 8), Ol = /*@__PURE__*/ on(computeJapaneseEraParts, WeakMap), bl = "smallestUnit", Sl = "unit", wl = "roundingMode", Bl = "roundingIncrement", Yl = "fractionalSecondDigits", Cl = "relativeTo", kl = "direction", Zl = {
-  constrain: 0,
-  reject: 1
-}, Rl = /*@__PURE__*/ Object.keys(Zl), zl = {
-  compatible: 0,
-  reject: 1,
-  earlier: 2,
-  later: 3
-}, Al = {
-  reject: 0,
-  use: 1,
-  prefer: 2,
-  ignore: 3
-}, Ul = {
-  auto: 0,
-  never: 1,
-  critical: 2,
-  always: 3
-}, jl = {
-  auto: 0,
-  never: 1,
-  critical: 2
-}, ql = {
-  auto: 0,
-  never: 1
-}, Ll = {
-  floor: 0,
-  halfFloor: 1,
-  ceil: 2,
-  halfCeil: 3,
-  trunc: 4,
-  halfTrunc: 5,
-  expand: 6,
-  halfExpand: 7,
-  halfEven: 8
-}, Wl = {
-  previous: -1,
-  next: 1
-}, xl = /*@__PURE__*/ gt(refineUnitOption, bl), $l = /*@__PURE__*/ gt(refineUnitOption, "largestUnit"), Hl = /*@__PURE__*/ gt(refineUnitOption, Sl), Gl = /*@__PURE__*/ gt(refineChoiceOption, "overflow", Zl), Vl = /*@__PURE__*/ gt(refineChoiceOption, "disambiguation", zl), _l = /*@__PURE__*/ gt(refineChoiceOption, "offset", Al), Jl = /*@__PURE__*/ gt(refineChoiceOption, "calendarName", Ul), Kl = /*@__PURE__*/ gt(refineChoiceOption, "timeZoneName", jl), Ql = /*@__PURE__*/ gt(refineChoiceOption, "offset", ql), Xl = /*@__PURE__*/ gt(refineChoiceOption, wl, Ll), Qt = "PlainYearMonth", qt = "PlainMonthDay", G = "PlainDate", x = "PlainDateTime", ft = "PlainTime", _ = "ZonedDateTime", Re = "Instant", A = "Duration", ef = [ Math.floor, e => hasHalf(e) ? Math.floor(e) : Math.round(e), Math.ceil, e => hasHalf(e) ? Math.ceil(e) : Math.round(e), Math.trunc, e => hasHalf(e) ? Math.trunc(e) || 0 : Math.round(e), e => e < 0 ? Math.floor(e) : Math.ceil(e), e => Math.sign(e) * Math.round(Math.abs(e)) || 0, e => hasHalf(e) ? (e = Math.trunc(e) || 0) + e % 2 : Math.round(e) ], nf = "UTC", tf = 5184e3, of = /*@__PURE__*/ isoArgsToEpochSec(1847), rf = /*@__PURE__*/ isoArgsToEpochSec((() => {
-  const e = new Date;
-  return (0 === e.getTime() ? 2040 : e.getUTCFullYear()) + 10;
-})()), af = /0+$/, he = /*@__PURE__*/ on(_zonedEpochSlotsToIso, WeakMap), sf = 2 ** 32 - 1, L = /*@__PURE__*/ on((e => {
-  const n = getTimeZoneEssence(e);
-  return "object" == typeof n ? new IntlTimeZone(n) : new FixedTimeZone(n || 0);
-}));
+};
 
-class FixedTimeZone {
-  constructor(e) {
-    this.j = e;
-  }
-  N() {
-    return this.j;
-  }
-  v(e) {
-    return (e => {
-      const n = ma({
-        ...e,
-        ...At
-      });
-      if (!n || Math.abs(n[0]) > 1e8) {
-        throw new RangeError(Mu);
-      }
-    })(e), [ isoToEpochNanoWithOffset(e, this.j) ];
-  }
-  l() {}
+const unitNamesAsc = /*@__PURE__*/ Object.keys(unitNameMap);
+
+const milliInUtcDay = 864e5;
+
+const internal_nanoInMicro = nanoInMicro;
+
+const internal_nanoInMilli = nanoInMilli;
+
+const internal_nanoInSec = nanoInSec;
+
+const internal_nanoInMinute = nanoInMinute;
+
+const internal_nanoInHour = nanoInHour;
+
+const nanoInUtcDay = 864e11;
+
+const unitNanoMap = [ 1, internal_nanoInMicro, internal_nanoInMilli, internal_nanoInSec, internal_nanoInMinute, internal_nanoInHour, nanoInUtcDay ];
+
+const bigNanoInMicro = /*@__PURE__*/ BigInt(internal_nanoInMicro);
+
+const bigNanoInMilli = /*@__PURE__*/ BigInt(internal_nanoInMilli);
+
+const bigNanoInSec = /*@__PURE__*/ BigInt(internal_nanoInSec);
+
+const bigNanoInMinute = /*@__PURE__*/ BigInt(internal_nanoInMinute);
+
+const bigNanoInHour = /*@__PURE__*/ BigInt(internal_nanoInHour);
+
+const bigNanoInUtcDay = /*@__PURE__*/ BigInt(nanoInUtcDay);
+
+function divideBigNanoToExactNumber(bigNano, divisorNano) {
+  const days = Number(bigNano / bigNanoInUtcDay);
+  const timeNano = Number(bigNano % bigNanoInUtcDay);
+  return days * (nanoInUtcDay / divisorNano) + (Math.trunc(timeNano / divisorNano) + timeNano % divisorNano / divisorNano);
 }
 
-class IntlTimeZone {
-  constructor(e) {
-    this.ae = (e => {
-      function getOffsetSec(e) {
-        const i = clampNumber(e, o, r), [a, s] = computePeriod(i), c = n(a), u = n(s);
-        return c === u ? c : pinch(t(a, s), c, u, e);
+const timeFieldNamesAsc = /*@__PURE__*/ unitNamesAsc.slice(0, 6);
+
+const timeGetters = /*@__PURE__*/ internal_createPropGetters(timeFieldNamesAsc);
+
+const yearFieldNamesAsc = [ "year" ];
+
+const dayFieldNamesAsc = [ "day" ];
+
+const calendarDateFieldNamesAsc = [ "day", "month", "year" ];
+
+const offsetFieldNames = [ "offset" ];
+
+const timeZoneFieldNames = [ "timeZone" ];
+
+const eraYearFieldNames = [ "era", "eraYear" ];
+
+const allYearFieldNames = [ "era", "eraYear", "year" ];
+
+const monthFieldNames = [ "month", "monthCode" ];
+
+const monthDayFieldNames = [ "day", "month", "monthCode" ];
+
+const timeFieldNamesAlpha = /*@__PURE__*/ sortStrings(timeFieldNamesAsc);
+
+const yearFieldNamesWithEraAlpha = /*@__PURE__*/ sortStrings(eraYearFieldNames, yearFieldNamesAsc);
+
+const yearMonthFieldNamesAlpha = /*@__PURE__*/ sortStrings(monthFieldNames, yearFieldNamesAsc);
+
+const yearMonthFieldNamesWithEraAlpha = /*@__PURE__*/ sortStrings(eraYearFieldNames, yearMonthFieldNamesAlpha);
+
+const yearMonthCodeFieldNamesAlpha = /*@__PURE__*/ sortStrings([ "monthCode" ], yearFieldNamesAsc);
+
+const yearMonthCodeFieldNamesWithEraAlpha = /*@__PURE__*/ sortStrings(eraYearFieldNames, yearMonthCodeFieldNamesAlpha);
+
+const monthCodeDayFieldNamesAlpha = /*@__PURE__*/ sortStrings(dayFieldNamesAsc, [ "monthCode" ]);
+
+const dateFieldNamesAlpha = /*@__PURE__*/ sortStrings(dayFieldNamesAsc, yearMonthFieldNamesAlpha);
+
+const dateFieldNamesWithEraAlpha = /*@__PURE__*/ sortStrings(dayFieldNamesAsc, eraYearFieldNames, yearMonthFieldNamesAlpha);
+
+const dateTimeFieldNamesAlpha = /*@__PURE__*/ sortStrings(dateFieldNamesAlpha, timeFieldNamesAsc);
+
+const dateTimeFieldNamesWithEraAlpha = /*@__PURE__*/ sortStrings(dateFieldNamesWithEraAlpha, timeFieldNamesAsc);
+
+const dateTimeAndOffsetFieldNamesAlpha = /*@__PURE__*/ sortStrings(dateFieldNamesAlpha, timeFieldNamesAsc, offsetFieldNames);
+
+const dateTimeAndOffsetFieldNamesWithEraAlpha = /*@__PURE__*/ sortStrings(dateFieldNamesWithEraAlpha, timeFieldNamesAsc, offsetFieldNames);
+
+const dateTimeAndZoneFieldNamesAlpha = /*@__PURE__*/ sortStrings(dateFieldNamesAlpha, timeFieldNamesAsc, offsetFieldNames, timeZoneFieldNames);
+
+const dateTimeAndZoneFieldNamesWithEraAlpha = /*@__PURE__*/ sortStrings(dateFieldNamesWithEraAlpha, timeFieldNamesAsc, offsetFieldNames, timeZoneFieldNames);
+
+const yearMonthCodeDayFieldNamesAlpha = /*@__PURE__*/ sortStrings(dayFieldNamesAsc, yearMonthCodeFieldNamesAlpha);
+
+const yearMonthCodeDayFieldNamesWithEraAlpha = /*@__PURE__*/ sortStrings(dayFieldNamesAsc, eraYearFieldNames, yearMonthCodeFieldNamesAlpha);
+
+const timeFieldDefaults = /*@__PURE__*/ zipPropsConst(timeFieldNamesAsc, 0);
+
+function validateTimeFields(timeFields) {
+  return constrainTimeFields(timeFields, 1), timeFields;
+}
+
+const maxValues = {
+  hour: 23,
+  minute: 59,
+  second: 59
+};
+
+function constrainTimeFields(timeFields, overflow) {
+  const constrainedFields = {};
+  for (const fieldName of timeFieldNamesAsc) {
+    constrainedFields[fieldName] = clampEntity(fieldName, timeFields[fieldName], 0, maxValues[fieldName] || 999, overflow);
+  }
+  return constrainedFields;
+}
+
+function internal_timeFieldsToNano(timeFields) {
+  return timeFieldsToSec(timeFields) * internal_nanoInSec + timeFieldsToSubsecNano(timeFields);
+}
+
+function timeFieldsToMilli(timeFields) {
+  return 1e3 * timeFieldsToSec(timeFields) + timeFields.millisecond;
+}
+
+function timeFieldsToSec(timeFields) {
+  return 3600 * timeFields.hour + 60 * timeFields.minute + timeFields.second;
+}
+
+function timeFieldsToSubsecNano(timeFields) {
+  return timeFields.millisecond * internal_nanoInMilli + timeFields.microsecond * internal_nanoInMicro + timeFields.nanosecond;
+}
+
+function nanoToTimeAndDay(nano) {
+  const [dayDelta, timeNano] = divModFloor(nano, nanoInUtcDay);
+  return [ nanoToTimeFields(timeNano), dayDelta ];
+}
+
+function nanoToTimeFields(timeNano) {
+  const [timeMilli, nanoAfterMilli] = divModFloor(timeNano, internal_nanoInMilli);
+  const [microsecond, nanosecond] = divModFloor(nanoAfterMilli, internal_nanoInMicro);
+  return milliToTimeFields(timeMilli, microsecond, nanosecond);
+}
+
+function milliToTimeFields(timeMilli, microsecond = 0, nanosecond = 0) {
+  const [hour, milliAfterHour] = divModFloor(timeMilli, 36e5);
+  const [minute, milliAfterMinute] = divModFloor(milliAfterHour, 6e4);
+  const [second, millisecond] = divModFloor(milliAfterMinute, 1e3);
+  return {
+    hour: hour,
+    minute: minute,
+    second: second,
+    millisecond: millisecond,
+    microsecond: microsecond,
+    nanosecond: nanosecond
+  };
+}
+
+function epochNanoToSecMod(epochNano) {
+  const [epochSec, nano] = divModFloorBigInt(epochNano, bigNanoInSec);
+  return [ Number(epochSec), Number(nano) ];
+}
+
+function epochNanoToMilli(epochNano) {
+  return Number(divFloorBigInt(epochNano, bigNanoInMilli));
+}
+
+function internal_isoDateTimeToEpochNano(isoDateTime) {
+  return internal_isoDateToEpochNano(isoDateTime) + BigInt(internal_timeFieldsToNano(isoDateTime));
+}
+
+function isoDateTimeToEpochMilli(isoDateTime) {
+  return isoDateToEpochMilli(isoDateTime) + timeFieldsToMilli(isoDateTime);
+}
+
+function internal_isoDateToEpochNano(isoDate) {
+  return BigInt(isoDateToEpochDays(isoDate)) * bigNanoInUtcDay;
+}
+
+function isoDateToEpochMilli(isoDate) {
+  return 864e5 * isoDateToEpochDays(isoDate);
+}
+
+function isoDateToEpochDays(isoDate) {
+  return isoPartsToEpochDays(isoDate.year, isoDate.month, isoDate.day);
+}
+
+function isoPartsToEpochDays(isoYear, isoMonth = 1, isoDay = 1) {
+  const monthIndex = isoMonth - 1;
+  return isoYear += Math.floor(monthIndex / 12), isoMonth = modFloor(monthIndex, 12), 
+  Date.UTC(isoYear % 400 - 400, isoMonth, 0) / 864e5 + 146097 * (divTrunc(isoYear, 400) + 1) + isoDay;
+}
+
+function epochNanoToIsoDateTime(epochNano) {
+  const [epochDays, nanoAfterDay] = divModFloorBigInt(epochNano, bigNanoInUtcDay);
+  return {
+    ...epochDaysToIsoDate(Number(epochDays)),
+    ...nanoToTimeFields(Number(nanoAfterDay))
+  };
+}
+
+function epochMilliToIsoDateTime(epochMilli, microsecond = 0, nanosecond = 0) {
+  const [epochDays, milliAfterDay] = divModFloor(epochMilli, 864e5);
+  return {
+    ...epochDaysToIsoDate(epochDays),
+    ...milliToTimeFields(milliAfterDay, microsecond, nanosecond)
+  };
+}
+
+function epochDaysToIsoDate(epochDays) {
+  const legacyDate = new Date(864e5 * modFloor(epochDays, 146097));
+  return {
+    year: legacyDate.getUTCFullYear() + 400 * Math.floor(epochDays / 146097),
+    month: legacyDate.getUTCMonth() + 1,
+    day: legacyDate.getUTCDate()
+  };
+}
+
+function diffEpochMilliDays(epochMilli0, epochMilli1) {
+  return Math.trunc((epochMilli1 - epochMilli0) / 864e5);
+}
+
+const isoEpochOriginYear = 1970;
+
+const isoEpochFirstLeapYear = 1972;
+
+const isoMonthsInYear = 12;
+
+function computeIsoMonthCodeParts(month) {
+  return [ month, 0 ];
+}
+
+function computeIsoYearMonthFieldsForMonthDay(monthCodeNumber, isLeapMonth) {
+  if (!isLeapMonth) {
+    return {
+      year: 1972,
+      month: monthCodeNumber
+    };
+  }
+}
+
+function computeIsoFieldsFromParts(year, month, day) {
+  return {
+    year: year,
+    month: month,
+    day: day
+  };
+}
+
+function computeIsoDaysInMonth(year, month) {
+  switch (month) {
+   case 2:
+    return computeIsoInLeapYear(year) ? 29 : 28;
+
+   case 4:
+   case 6:
+   case 9:
+   case 11:
+    return 30;
+  }
+  return 31;
+}
+
+function computeIsoDaysInYear(year) {
+  return computeIsoInLeapYear(year) ? 366 : 365;
+}
+
+function computeIsoInLeapYear(year) {
+  return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+}
+
+function addIsoMonths(year, month, monthDelta) {
+  return year += divTrunc(monthDelta, 12), (month += modTrunc(monthDelta, 12)) < 1 ? (year--, 
+  month += 12) : month > 12 && (year++, month -= 12), {
+    year: year,
+    month: month
+  };
+}
+
+function diffIsoMonthSlots(year0, month0, year1, month1) {
+  return 12 * (year1 - year0) + month1 - month0;
+}
+
+function computeIsoDayOfWeek(isoDate) {
+  return modFloor(isoPartsToEpochDays(isoDate.year, isoDate.month, isoDate.day) + 4, 7) || 7;
+}
+
+function computeIsoDayOfYear(isoDate) {
+  return isoPartsToEpochDays(isoDate.year, isoDate.month, isoDate.day) - isoPartsToEpochDays(isoDate.year) + 1;
+}
+
+function computeIsoWeekFields(isoDate) {
+  let yearOfWeek = isoDate.year;
+  let weekOfYear = Math.floor((computeIsoDayOfYear(isoDate) - computeIsoDayOfWeek(isoDate) + 10) / 7);
+  let weeksInYear = computeIsoWeeksInYear(yearOfWeek);
+  return weekOfYear < 1 ? weekOfYear = weeksInYear = computeIsoWeeksInYear(--yearOfWeek) : weekOfYear > weeksInYear && (weekOfYear = 1, 
+  weeksInYear = computeIsoWeeksInYear(++yearOfWeek)), {
+    weekOfYear: weekOfYear,
+    yearOfWeek: yearOfWeek,
+    De: weeksInYear
+  };
+}
+
+function computeIsoWeeksInYear(year) {
+  const y0DayOfWeek = computeIsoDayOfWeek({
+    year: year,
+    month: 1,
+    day: 1
+  });
+  return 4 === y0DayOfWeek || 3 === y0DayOfWeek && computeIsoInLeapYear(year) ? 53 : 52;
+}
+
+function computeGregoryEraFields({year: year}) {
+  return year < 1 ? {
+    era: "bce",
+    eraYear: 1 - year
+  } : {
+    era: "ce",
+    eraYear: year
+  };
+}
+
+function validateIsoDateTimeFields(isoDateTime) {
+  return validateIsoDateFields(isoDateTime), validateTimeFields(isoDateTime);
+}
+
+function validateIsoDateFields(isoInternals) {
+  return constrainIsoDateFields(isoInternals, 1), isoInternals;
+}
+
+function isIsoDateFieldsValid(isoDate) {
+  return allPropsEqual(calendarDateFieldNamesAsc, isoDate, constrainIsoDateFields(isoDate));
+}
+
+function constrainIsoDateFields(isoDate, overflow) {
+  const {year: year} = isoDate;
+  const month = clampProp(isoDate, "month", 1, 12, overflow);
+  return {
+    year: year,
+    month: month,
+    day: clampProp(isoDate, "day", 1, computeIsoDaysInMonth(year, month), overflow)
+  };
+}
+
+function computeCalendarDateFields(calendar, isoDate) {
+  return calendar ? calendar.de(isoDate) : isoDate;
+}
+
+function computeCalendarMonthCodeParts(calendar, year, month) {
+  return calendar ? calendar.N(year, month) : computeIsoMonthCodeParts(month);
+}
+
+function computeCalendarEraFields(calendar, isoDate) {
+  return 0 === calendar ? computeGregoryEraFields(isoDate) : calendar && calendar.h?.(isoDate) || {};
+}
+
+function computeCalendarIsoFieldsFromParts(calendar, year, month, day) {
+  return calendar ? calendar.fe(year, month, day) : computeIsoFieldsFromParts(year, month, day);
+}
+
+function computeCalendarMonthsInYearForYear(calendar, year) {
+  return calendar ? calendar.j(year) : 12;
+}
+
+function computeCalendarDaysInMonthForYearMonth(calendar, year, month) {
+  return calendar ? calendar.o(year, month) : computeIsoDaysInMonth(year, month);
+}
+
+function computeCalendarMonthCode(calendar, isoDate) {
+  const {year: year, month: month} = computeCalendarDateFields(calendar, isoDate);
+  const [monthCodeNumber, isLeapMonth] = computeCalendarMonthCodeParts(calendar, year, month);
+  return formatMonthCode(monthCodeNumber, isLeapMonth);
+}
+
+function computeCalendarInLeapYear(calendar, isoDate) {
+  const {year: year} = computeCalendarDateFields(calendar, isoDate);
+  return calendar ? calendar.q(year) : computeIsoInLeapYear(year);
+}
+
+function computeCalendarMonthsInYear(calendar, isoDate) {
+  const {year: year} = computeCalendarDateFields(calendar, isoDate);
+  return computeCalendarMonthsInYearForYear(calendar, year);
+}
+
+function computeCalendarDaysInMonth(calendar, isoDate) {
+  const {year: year, month: month} = computeCalendarDateFields(calendar, isoDate);
+  return computeCalendarDaysInMonthForYearMonth(calendar, year, month);
+}
+
+function computeCalendarDaysInYear(calendar, isoDate) {
+  const {year: year} = computeCalendarDateFields(calendar, isoDate);
+  return calendar ? calendar.i(year) : computeIsoDaysInYear(year);
+}
+
+function computeCalendarDayOfYear(calendar, isoDate) {
+  if (!calendar) {
+    return computeIsoDayOfYear(isoDate);
+  }
+  const {year: year} = computeCalendarDateFields(calendar, isoDate);
+  const yearStartIsoDate = computeCalendarIsoFieldsFromParts(calendar, year, 1, 1);
+  return isoDateToEpochDays(isoDate) - isoDateToEpochDays(yearStartIsoDate) + 1;
+}
+
+function computeCalendarWeekOfYear(calendar, isoDate) {
+  return calendar === isoCalendarImpl ? computeIsoWeekFields(isoDate).weekOfYear : void 0;
+}
+
+function computeCalendarYearOfWeek(calendar, isoDate) {
+  return calendar === isoCalendarImpl ? computeIsoWeekFields(isoDate).yearOfWeek : void 0;
+}
+
+const durationFieldNamesAsc = /*@__PURE__*/ unitNamesAsc.map(unitName => unitName + "s");
+
+const durationGetters = /*@__PURE__*/ internal_createPropGetters(durationFieldNamesAsc);
+
+const durationFieldNamesAlpha = /*@__PURE__*/ sortStrings(durationFieldNamesAsc);
+
+const durationTimeFieldNamesAsc = /*@__PURE__*/ durationFieldNamesAsc.slice(0, 6);
+
+const durationDateFieldNamesAsc = /*@__PURE__*/ durationFieldNamesAsc.slice(6);
+
+const durationCalendarFieldNamesAsc = /*@__PURE__*/ durationDateFieldNamesAsc.slice(1);
+
+const durationFieldDefaults = /*@__PURE__*/ zipPropsConst(durationFieldNamesAsc, 0);
+
+const durationTimeFieldDefaults = /*@__PURE__*/ zipPropsConst(durationTimeFieldNamesAsc, 0);
+
+const clearDurationFields = /*@__PURE__*/ internal_bindArgs(zeroOutProps, durationFieldNamesAsc);
+
+function requirePropDefined(optionName, optionVal) {
+  return null == optionVal && throwRangeError(missingField(optionName)), optionVal;
+}
+
+const requireString = /*@__PURE__*/ internal_bindArgs(requireType, "string");
+
+function requireType(typeName, arg, entityName = typeName) {
+  return typeof arg !== typeName && throwTypeError(internal_invalidEntity(entityName, arg)), 
+  arg;
+}
+
+function requireNumberIsInteger(num, entityName = "number") {
+  return Number.isInteger(num) || throwRangeError(((entityName, num) => `Non-integer ${entityName}: ${num}`)(entityName, num)), 
+  num || 0;
+}
+
+function internal_toString(arg) {
+  return "symbol" == typeof arg && throwTypeError("Cannot convert Symbol to string"), 
+  String(arg);
+}
+
+function toPrimitiveWithStringHint(arg) {
+  if (!isObjectLike(arg)) {
+    return arg;
+  }
+  const exoticToPrimitive = arg[Symbol.toPrimitive];
+  if (null != exoticToPrimitive) {
+    "function" != typeof exoticToPrimitive && throwTypeError();
+    const primitive = Reflect.apply(exoticToPrimitive, arg, [ "string" ]);
+    return isObjectLike(primitive) && throwTypeError(), primitive;
+  }
+  return Date.prototype[Symbol.toPrimitive].call(arg, "string");
+}
+
+function toBigInt(bi) {
+  return "boolean" == typeof bi ? BigInt(bi ? 1 : 0) : "string" == typeof bi ? BigInt(bi) : ("bigint" != typeof bi && throwTypeError(`Invalid bigint: ${bi}`), 
+  bi);
+}
+
+function internal_toStrictInteger(arg, entityName) {
+  return requireNumberIsInteger(toFiniteNumber(arg, entityName), entityName);
+}
+
+function combineDateAndTime(isoDate, time) {
+  return pluckProps(calendarDateFieldNamesAsc, isoDate, pluckProps(timeFieldNamesAsc, time));
+}
+
+const maxMilli = 864e13;
+
+const epochNanoMax = /*@__PURE__*/ BigInt(1e8) * bigNanoInUtcDay;
+
+const epochNanoMin = /*@__PURE__*/ BigInt(-1e8) * bigNanoInUtcDay;
+
+const plainDateEpochNanoMin = epochNanoMin - bigNanoInUtcDay;
+
+const isoYearMonthIndexMin = -3261848;
+
+function checkIsoYearMonthInBounds(isoDate) {
+  const isoYearMonthIndex = 12 * isoDate.year + isoDate.month;
+  return (isoYearMonthIndex < isoYearMonthIndexMin || isoYearMonthIndex > 3309129) && throwRangeError(outOfBoundsDate), 
+  isoDate;
+}
+
+function checkIsoDateInBounds(isoDate, allowPlainDateLowerEdge = 1) {
+  const epochNano = internal_isoDateToEpochNano(isoDate);
+  return (epochNano < (allowPlainDateLowerEdge ? plainDateEpochNanoMin : epochNanoMin) || epochNano > epochNanoMax) && throwRangeError(outOfBoundsDate), 
+  isoDate;
+}
+
+function checkIsoDateTimeInBounds(isoDateTime) {
+  return checkIsoDateTimeEpochNanoInBounds(internal_isoDateTimeToEpochNano(isoDateTime)), isoDateTime;
+}
+
+function checkIsoDateTimeEpochNanoInBounds(epochNano) {
+  return (epochNano <= plainDateEpochNanoMin || epochNano >= epochNanoMax + bigNanoInUtcDay) && throwRangeError(outOfBoundsDate), 
+  epochNano;
+}
+
+function checkEpochNanoInBounds(epochNano) {
+  return (epochNano < epochNanoMin || epochNano > epochNanoMax) && throwRangeError(outOfBoundsDate), 
+  epochNano;
+}
+
+function isoDateTimeAndOffsetToEpochNano(isoDateTime, offsetNano) {
+  return checkEpochNanoInBounds(internal_isoDateToEpochNano(isoDateTime) + BigInt(internal_timeFieldsToNano(isoDateTime) - offsetNano));
+}
+
+function roundNumberToInc(num, roundingInc, roundingMode) {
+  return roundWithMode(num / roundingInc, roundingMode) * roundingInc;
+}
+
+function roundWithMode(num, roundingMode) {
+  return roundingModeFuncs[roundingMode](num);
+}
+
+function totalRelativeUnit(wholeValue, sign, endEpochNano, moveValueToEpochNano) {
+  const unitWindow = clampRelativeUnitValue(wholeValue, sign, moveValueToEpochNano, endEpochNano);
+  return interpolateRelativeUnitWindow(unitWindow, Number(endEpochNano - unitWindow.I) / Number(unitWindow.O - unitWindow.I));
+}
+
+function roundRelativeUnit(wholeValue, sign, endEpochNano, moveValueToEpochNano, roundingInc, roundingMode) {
+  return roundRelativeUnitWindow(clampRelativeUnitValue(divTrunc(wholeValue, roundingInc) * roundingInc, roundingInc * sign, moveValueToEpochNano, endEpochNano), endEpochNano, roundingInc, roundingMode);
+}
+
+function roundRelativeUnitWindow(unitWindow, endEpochNano, roundingInc, roundingMode) {
+  return roundNumberToInc(interpolateRelativeUnitWindow(unitWindow, computeEpochNanoFrac(endEpochNano, unitWindow.I, unitWindow.O)), roundingInc, roundingMode);
+}
+
+function clampRelativeUnitValue(startValue, valueDelta, moveValueToEpochNano, epochNanoProgress) {
+  let unitWindow = computeRelativeUnitWindow(startValue, valueDelta, moveValueToEpochNano);
+  return ((epochNanoProgress, epochNano0, epochNano1, sign) => sign > 0 ? epochNano0 <= epochNanoProgress && epochNanoProgress <= epochNano1 : epochNano1 <= epochNanoProgress && epochNanoProgress <= epochNano0)(epochNanoProgress, unitWindow.I, unitWindow.O, Math.sign(valueDelta)) || (unitWindow = computeRelativeUnitWindow(startValue + valueDelta, valueDelta, moveValueToEpochNano)), 
+  unitWindow;
+}
+
+function computeRelativeUnitWindow(startValue, valueDelta, moveValueToEpochNano) {
+  const endValue = startValue + valueDelta;
+  return {
+    ve: startValue,
+    qe: endValue,
+    I: moveValueToEpochNano(startValue),
+    O: moveValueToEpochNano(endValue)
+  };
+}
+
+function interpolateRelativeUnitWindow(unitWindow, fraction) {
+  return unitWindow.ve + fraction * (unitWindow.qe - unitWindow.ve);
+}
+
+function computeEpochNanoFrac(epochNanoProgress, epochNano0, epochNano1) {
+  const denomBig = epochNano1 - epochNano0;
+  const numeratorBig = epochNanoProgress - epochNano0;
+  if (!numeratorBig) {
+    return 0;
+  }
+  const absNumerator = numeratorBig < 0n ? -numeratorBig : numeratorBig;
+  const absDenom = denomBig < 0n ? -denomBig : denomBig;
+  const fracSign = compareBigInts(numeratorBig, 0n) === compareBigInts(denomBig, 0n) ? 1 : -1;
+  return compareBigInts(absNumerator, absDenom) <= 0 ? absNumerator === absDenom ? fracSign : fabricateNearHalfFraction(compareBigInts(2n * absNumerator, absDenom), fracSign) : Number(numeratorBig) / Number(denomBig);
+}
+
+function createEpochNanoSlots(epochNano) {
+  return {
+    epochNanoseconds: epochNano
+  };
+}
+
+function createZonedEpochNanoSlots(epochNano, timeZone, calendar) {
+  return {
+    calendar: calendar,
+    timeZone: timeZone,
+    epochNanoseconds: epochNano
+  };
+}
+
+function createDateTimeSlots(isoDateTime, calendar) {
+  return pluckProps(timeFieldNamesAsc, isoDateTime, createDateSlots(isoDateTime, calendar));
+}
+
+function createDateSlots(isoDate, calendar) {
+  return pluckProps(calendarDateFieldNamesAsc, isoDate, {
+    calendar: calendar
+  });
+}
+
+function createTimeSlots(time) {
+  return pluckProps(timeFieldNamesAsc, time);
+}
+
+function createDurationSlots(durationFields) {
+  return pluckProps(durationFieldNamesAsc, durationFields, {
+    sign: computeDurationSign(durationFields)
+  });
+}
+
+function roundZonedEpochSlotsToUnit(slots, smallestUnit, roundingInc, roundingMode) {
+  return createZonedEpochNanoSlots(6 === smallestUnit ? roundZonedEpochToDay(slots, roundingMode) : roundZonedEpochToTime(slots, smallestUnit, roundingInc, roundingMode), slots.timeZone, slots.calendar);
+}
+
+function computeZonedHoursInDay(slots) {
+  const [epochNano0, epochNano1] = computeZonedDayEpochInterval(slots);
+  return divideBigNanoToExactNumber(epochNano1 - epochNano0, internal_nanoInHour);
+}
+
+function computeZonedStartOfDay(slots) {
+  const {timeZone: timeZone, calendar: calendar} = slots;
+  return createZonedEpochNanoSlots(getStartOfDayInstantFor(timeZone, combineDateAndTime(zonedEpochSlotsToIso(slots), timeFieldDefaults)), timeZone, calendar);
+}
+
+function alignZonedEpoch(computeAlignment, slots) {
+  const {calendar: calendar, timeZone: timeZone} = slots;
+  return getStartOfDayInstantFor(timeZone, computeAlignment(calendar, zonedEpochSlotsToIso(slots)));
+}
+
+function roundZonedEpochToInterval(computeInterval, slots, roundingMode) {
+  const {calendar: calendar, timeZone: timeZone} = slots;
+  const isoSlots = zonedEpochSlotsToIso(slots);
+  const [isoDateTime0, isoDateTime1] = computeInterval(calendar, isoSlots);
+  return roundZonedEpochToBounds(slots.epochNanoseconds, getStartOfDayInstantFor(timeZone, isoDateTime0), getStartOfDayInstantFor(timeZone, isoDateTime1), roundingMode);
+}
+
+function roundRelativeDuration(durationFields, endEpochNano, largestUnit, smallestUnit, roundingInc, roundingMode, relativeOps, isZoned) {
+  if (0 === smallestUnit && 1 === roundingInc) {
+    return durationFields;
+  }
+  const sign = computeDurationSign(durationFields) || 1;
+  const nudgeFunc = isUniformUnit(smallestUnit, isZoned) ? isZoned && smallestUnit < 6 && largestUnit >= 6 ? nudgeZonedTimeDuration : nudgeDayTimeDuration : nudgeRelativeDuration;
+  let [roundedDurationFields, roundedEpochNano, grewBigUnit] = nudgeFunc(sign, durationFields, endEpochNano, largestUnit, smallestUnit, roundingInc, roundingMode, relativeOps);
+  return grewBigUnit && 7 !== smallestUnit && (roundedDurationFields = ((durationFields, endEpochNano, largestUnit, smallestUnit, sign, relativeOps) => {
+    for (let currentUnit = smallestUnit + 1; currentUnit <= largestUnit; currentUnit++) {
+      if (7 === currentUnit && 7 !== largestUnit) {
+        continue;
       }
-      function pinch(n, t, o, r) {
-        let i, a;
-        for (;(void 0 === r || void 0 === (i = r < n[0] ? t : r >= n[1] ? o : void 0)) && (a = n[1] - n[0]); ) {
-          const t = n[0] + Math.floor(a / 2);
-          e(t) === o ? n[1] = t : n[0] = t + 1;
+      const baseDurationFields = clearDurationFields(currentUnit, durationFields);
+      baseDurationFields[durationFieldNamesAsc[currentUnit]] += sign;
+      const thresholdCompare = compareBigInts(endEpochNano, moveRelativeMarkerToEpochNano(relativeOps, baseDurationFields));
+      if (thresholdCompare && thresholdCompare !== sign) {
+        break;
+      }
+      durationFields = baseDurationFields;
+    }
+    return durationFields;
+  })(roundedDurationFields, roundedEpochNano, largestUnit, Math.max(6, smallestUnit), sign, relativeOps)), 
+  roundedDurationFields;
+}
+
+function roundDayTimeDurationByInc(durationFields, nanoInc, roundingMode) {
+  const maxUnit = Math.min(getMaxDurationUnit(durationFields), 6);
+  return nanoToDurationDayTimeFields(roundBigNanoToInc(durationDayTimeToBigNano(durationFields), BigInt(nanoInc), roundingMode), maxUnit);
+}
+
+function roundZonedEpochToDay(slots, roundingMode) {
+  const [epochNano0, epochNano1] = computeZonedDayEpochInterval(slots);
+  return roundZonedEpochToBounds(slots.epochNanoseconds, epochNano0, epochNano1, roundingMode);
+}
+
+function roundZonedEpochToTime(slots, smallestUnit, roundingInc, roundingMode) {
+  if (0 === smallestUnit && 1 === roundingInc) {
+    return slots.epochNanoseconds;
+  }
+  const isoDateTime = zonedEpochSlotsToIso(slots);
+  return getMatchingInstantFor(slots.timeZone, roundDateTimeToInc(isoDateTime, computeNanoInc(smallestUnit, roundingInc), roundingMode), isoDateTime.offsetNanoseconds, 2, 0, 1);
+}
+
+function roundDateTimeToInc(isoDateTime, nanoInc, roundingMode) {
+  const [roundedTimeFields, dayDelta] = roundTimeToInc(isoDateTime, nanoInc, roundingMode);
+  const roundedIsoDateTime = combineDateAndTime(moveDateByDays(isoDateTime, dayDelta), roundedTimeFields);
+  return checkIsoDateTimeInBounds(roundedIsoDateTime), roundedIsoDateTime;
+}
+
+function roundTimeToInc(timeFields, nanoInc, roundingMode) {
+  return nanoToTimeAndDay(roundNumberToInc(internal_timeFieldsToNano(timeFields), nanoInc, roundingMode));
+}
+
+function nudgeRelativeDuration(sign, durationFields, endEpochNano, _largestUnit, smallestUnit, roundingInc, roundingMode, relativeOps) {
+  const smallestUnitFieldName = durationFieldNamesAsc[smallestUnit];
+  const baseDurationFields = clearDurationFields(smallestUnit, durationFields);
+  7 === smallestUnit && (durationFields = {
+    ...durationFields,
+    weeks: durationFields.weeks + Math.trunc(durationFields.days / 7)
+  });
+  const truncedVal = divTrunc(durationFields[smallestUnitFieldName], roundingInc) * roundingInc;
+  const nudgeWindow = clampRelativeUnitValue(truncedVal, roundingInc * sign, value => (baseDurationFields[smallestUnitFieldName] = value, 
+  moveRelativeMarkerToEpochNano(relativeOps, baseDurationFields)), endEpochNano);
+  const roundedVal = roundRelativeUnitWindow(nudgeWindow, endEpochNano, roundingInc, roundingMode);
+  return baseDurationFields[smallestUnitFieldName] = roundedVal, [ baseDurationFields, roundedVal === nudgeWindow.qe ? nudgeWindow.O : nudgeWindow.I, roundedVal !== truncedVal ];
+}
+
+function nudgeZonedTimeDuration(sign, durationFields, endEpochNano, _largestUnit, smallestUnit, roundingInc, roundingMode, relativeOps) {
+  const timeNano = Number(durationTimeToBigNano(durationFields));
+  const nanoInc = computeNanoInc(smallestUnit, roundingInc);
+  let roundedTimeNano = roundNumberToInc(timeNano, nanoInc, roundingMode);
+  const dateDurationFields = {
+    ...durationFields,
+    ...durationTimeFieldDefaults
+  };
+  const dayWindow = clampRelativeUnitValue(dateDurationFields.days, sign, days => (dateDurationFields.days = days, 
+  moveRelativeMarkerToEpochNano(relativeOps, dateDurationFields)), endEpochNano);
+  const dayEpochNano0 = dayWindow.I;
+  const dayEpochNano1 = dayWindow.O;
+  const beyondDayNano = roundedTimeNano - Number(dayEpochNano1 - dayEpochNano0);
+  let dayDelta = 0;
+  beyondDayNano && Math.sign(beyondDayNano) !== sign ? endEpochNano = dayEpochNano0 + BigInt(roundedTimeNano) : (dayDelta += sign, 
+  roundedTimeNano = roundNumberToInc(beyondDayNano, nanoInc, roundingMode), endEpochNano = dayEpochNano1 + BigInt(roundedTimeNano));
+  const durationTimeFields = nanoToDurationTimeFields(roundedTimeNano);
+  return [ {
+    ...durationFields,
+    ...durationTimeFields,
+    days: durationFields.days + dayDelta
+  }, endEpochNano, Boolean(dayDelta) ];
+}
+
+function nudgeDayTimeDuration(sign, durationFields, endEpochNano, largestUnit, smallestUnit, roundingInc, roundingMode) {
+  const bigNano = durationDayTimeToBigNano(durationFields);
+  const roundedBigNano = roundBigNanoToInc(bigNano, computeBigNanoInc(smallestUnit, roundingInc), roundingMode);
+  const nanoDiff = roundedBigNano - bigNano;
+  const expandedBigUnit = Math.sign(Number(roundedBigNano / bigNanoInUtcDay) - Number(bigNano / bigNanoInUtcDay)) === sign;
+  const roundedDayTimeFields = nanoToDurationDayTimeFields(roundedBigNano, Math.min(largestUnit, 6));
+  return [ {
+    ...durationFields,
+    ...roundedDayTimeFields
+  }, endEpochNano + nanoDiff, expandedBigUnit ];
+}
+
+function computeZonedDayEpochInterval(slots) {
+  const {timeZone: timeZone} = slots;
+  const isoDateTime0 = combineDateAndTime(zonedEpochSlotsToIso(slots), timeFieldDefaults);
+  const isoDateTime1 = combineDateAndTime(moveDateByDays(isoDateTime0, 1), timeFieldDefaults);
+  return [ getStartOfDayInstantFor(timeZone, isoDateTime0), getStartOfDayInstantFor(timeZone, isoDateTime1) ];
+}
+
+function roundZonedEpochToBounds(epochNano, epochNano0, epochNano1, roundingMode) {
+  return roundWithMode(computeEpochNanoFrac(epochNano < epochNano1 ? epochNano : epochNano1 - 1n, epochNano0, epochNano1), roundingMode) ? epochNano1 : epochNano0;
+}
+
+function roundToMinute(offsetNano) {
+  return roundNumberToInc(offsetNano, internal_nanoInMinute, 7);
+}
+
+function roundBigNanoToInc(bigNano, bigNanoInc, roundingMode) {
+  return roundBigNanoToIncWithTail(bigNano, bigNanoInc, roundingMode, bigNano / bigNanoInc % 2n);
+}
+
+function roundBigNanoToDayOriginInc(bigNano, bigNanoInc, roundingMode) {
+  const [day, timeNano] = divModFloorBigInt(bigNano, bigNanoInUtcDay);
+  const dayOriginNano = day * bigNanoInUtcDay;
+  return dayOriginNano + roundBigNanoToIncWithTail(timeNano, bigNanoInc, roundingMode, (dayOriginNano / bigNanoInc + timeNano / bigNanoInc) % 2n);
+}
+
+function roundBigNanoToIncWithTail(bigNano, bigNanoInc, roundingMode, quotientTail) {
+  const quotient = bigNano / bigNanoInc;
+  const remainder = bigNano % bigNanoInc;
+  let fraction = 0;
+  remainder && (fraction = fabricateNearHalfFraction(compareBigInts(2n * (remainder < 0n ? -remainder : remainder), bigNanoInc), Math.sign(Number(remainder))));
+  const roundedTail = roundWithMode(Number(quotientTail) + fraction, roundingMode);
+  return (quotient - quotientTail + BigInt(roundedTail)) * bigNanoInc;
+}
+
+function computeNanoInc(smallestUnit, roundingInc) {
+  return unitNanoMap[smallestUnit] * roundingInc;
+}
+
+function computeBigNanoInc(smallestUnit, roundingInc) {
+  return BigInt(unitNanoMap[smallestUnit]) * BigInt(roundingInc);
+}
+
+const zonedEpochSlotsToIso = /*@__PURE__*/ memoize(_zonedEpochSlotsToIso, WeakMap);
+
+function _zonedEpochSlotsToIso(slots) {
+  const {epochNanoseconds: epochNanoseconds, timeZone: timeZone} = slots;
+  const offsetNanoseconds = timeZone.B(epochNanoseconds);
+  return {
+    ...epochNanoToIsoDateTime(epochNanoseconds + BigInt(offsetNanoseconds)),
+    offsetNanoseconds: offsetNanoseconds
+  };
+}
+
+function getMatchingInstantFor(timeZone, isoDateTime, offsetNano, offsetDisambig = 0, epochDisambig = 0, epochFuzzy, hasZ) {
+  if (void 0 !== offsetNano && 1 === offsetDisambig && (1 === offsetDisambig || hasZ)) {
+    return isoDateTimeAndOffsetToEpochNano(isoDateTime, offsetNano);
+  }
+  2 !== offsetDisambig && 0 !== offsetDisambig || checkIsoDateInBounds(isoDateTime, 0);
+  const possibleEpochNanos = timeZone.R(isoDateTime);
+  if (void 0 !== offsetNano && 3 !== offsetDisambig) {
+    const matchingEpochNano = ((possibleEpochNanos, isoDateTime, offsetNano, fuzzy) => {
+      const zonedEpochNano = internal_isoDateTimeToEpochNano(isoDateTime);
+      fuzzy && (offsetNano = roundToMinute(offsetNano));
+      for (const possibleEpochNano of possibleEpochNanos) {
+        let possibleOffsetNano = Number(zonedEpochNano - possibleEpochNano);
+        if (fuzzy && (possibleOffsetNano = roundToMinute(possibleOffsetNano)), possibleOffsetNano === offsetNano) {
+          return possibleEpochNano;
         }
-        return i;
       }
-      const n = on(e), t = on(createSplitTuple);
-      let o = of, r = rf;
+    })(possibleEpochNanos, isoDateTime, offsetNano, epochFuzzy);
+    if (void 0 !== matchingEpochNano) {
+      return matchingEpochNano;
+    }
+    0 === offsetDisambig && throwRangeError("Invalid TimeZone offset");
+  }
+  return hasZ ? internal_isoDateTimeToEpochNano(isoDateTime) : getSingleInstantFor(timeZone, isoDateTime, epochDisambig, possibleEpochNanos);
+}
+
+function getSingleInstantFor(timeZone, isoDateTime, disambig = 0, possibleEpochNanos = timeZone.R(isoDateTime)) {
+  if (1 === possibleEpochNanos.length) {
+    return possibleEpochNanos[0];
+  }
+  if (1 === disambig && throwRangeError("Ambiguous offset"), possibleEpochNanos.length) {
+    return possibleEpochNanos[3 === disambig ? 1 : 0];
+  }
+  const zonedEpochNano = internal_isoDateTimeToEpochNano(isoDateTime);
+  const gapNano = ((timeZone, zonedEpochNano) => {
+    const startOffsetNano = timeZone.B(zonedEpochNano - bigNanoInUtcDay);
+    return (gapNano => (gapNano > nanoInUtcDay && throwRangeError("Out-of-bounds TimeZone gap"), 
+    gapNano))(timeZone.B(zonedEpochNano + bigNanoInUtcDay) - startOffsetNano);
+  })(timeZone, zonedEpochNano);
+  const shiftedIsoDateTime = epochNanoToIsoDateTime(zonedEpochNano + BigInt(gapNano * (2 === disambig ? -1 : 1)));
+  return (possibleEpochNanos = timeZone.R(shiftedIsoDateTime))[2 === disambig ? 0 : possibleEpochNanos.length - 1];
+}
+
+function getStartOfDayInstantFor(timeZone, isoDateTime) {
+  const possibleEpochNanos = timeZone.R(isoDateTime);
+  if (possibleEpochNanos.length) {
+    return possibleEpochNanos[0];
+  }
+  const zonedEpochNanoDayBefore = internal_isoDateTimeToEpochNano(isoDateTime) - bigNanoInUtcDay;
+  return timeZone.C(zonedEpochNanoDayBefore, 1);
+}
+
+function moveYearMonth(calendar, isoDate, durationSlots, overflow = 0) {
+  computeDurationSign(durationSlots) && getMaxDurationUnit(durationSlots) < 8 && throwRangeError("Cannot use small units");
+  const first = checkIsoDateInBounds(moveToStartOfMonth(calendar, isoDate));
+  return moveToStartOfMonth(calendar, moveDate(calendar, first, durationSlots, overflow));
+}
+
+function moveYearMonthByUnits(calendar, isoDate, years, months, overflow) {
+  const first = checkIsoDateInBounds(moveToStartOfMonth(calendar, isoDate));
+  return moveToStartOfMonth(calendar, years || months ? checkIsoDateInBounds(internal_moveDateByCalendarUnits(calendar, first, years, months, overflow)) : first);
+}
+
+function moveZonedEpochSlots(slots, durationFields, overflow = 0) {
+  const {calendar: calendar, epochNanoseconds: epochNano, timeZone: timeZone} = slots;
+  const timeOnlyNano = durationTimeToBigNano(durationFields);
+  let movedEpochNano = epochNano;
+  if (durationHasDateParts(durationFields)) {
+    const isoDateTime = zonedEpochSlotsToIso(slots);
+    movedEpochNano = getSingleInstantFor(timeZone, combineDateAndTime(moveDate(calendar, isoDateTime, {
+      ...durationFields,
+      ...durationTimeFieldDefaults
+    }, overflow), isoDateTime)) + timeOnlyNano;
+  } else {
+    movedEpochNano += timeOnlyNano;
+  }
+  return {
+    ...slots,
+    epochNanoseconds: checkEpochNanoInBounds(movedEpochNano)
+  };
+}
+
+function moveDateTime(calendar, isoDateTime, durationFields, overflow = 0) {
+  const [movedTimeFields, dayDelta] = moveTime(isoDateTime, durationFields);
+  return checkIsoDateTimeInBounds(combineDateAndTime(moveDate(calendar, isoDateTime, {
+    ...durationFields,
+    ...durationTimeFieldDefaults,
+    days: durationFields.days + dayDelta
+  }, overflow), movedTimeFields));
+}
+
+function moveDateTimeByNano(fields, delta) {
+  const [time, days] = moveTimeByNano(fields, delta);
+  return checkIsoDateTimeInBounds(combineDateAndTime(moveDateByDays(fields, days), time));
+}
+
+function moveTime(timeFields, durationFields) {
+  return moveTimeByNano(timeFields, durationTimeToBigNano(durationFields));
+}
+
+function moveEpochNano(epochNano, durationFields) {
+  return moveEpochNanoByNano(epochNano, (durationHasDateParts(fields = durationFields) && throwRangeError("Cannot use large units"), 
+  durationTimeToBigNano(fields)));
+  var fields;
+}
+
+function moveDate(calendar, isoDate, durationFields, overflow = 0) {
+  let {years: years, months: months, weeks: weeks, days: days} = durationFields;
+  let movedIsoDate;
+  if (days += Number(durationTimeToBigNano(durationFields) / bigNanoInUtcDay), years || months) {
+    movedIsoDate = internal_moveDateByCalendarUnits(calendar, isoDate, years, months, overflow);
+  } else {
+    if (!weeks && !days) {
+      return isoDate;
+    }
+    movedIsoDate = isoDate;
+  }
+  return (weeks || days) && (movedIsoDate = moveDateByDays(movedIsoDate, 7 * weeks + days)), 
+  checkIsoDateInBounds(movedIsoDate);
+}
+
+function moveToStartOfMonth(calendar, isoDate) {
+  return moveDateByDays(isoDate, 1 - computeCalendarDateFields(calendar, isoDate).day);
+}
+
+function internal_moveDateByCalendarUnits(calendar, isoDate, years, months, overflow) {
+  const dateParts = computeCalendarDateFields(calendar, isoDate);
+  let {year: year, month: month, day: day} = dateParts;
+  if (years) {
+    const [monthCodeNumber, isLeapMonth] = computeCalendarMonthCodeParts(calendar, year, month);
+    year += years, month = resolveMonthInMovedYear(calendar, monthCodeNumber, isLeapMonth, calendar ? calendar.p(year) : void 0, overflow), 
+    month = clampEntity("month", month, 1, computeCalendarMonthsInYearForYear(calendar, year), overflow);
+  }
+  if (months) {
+    const yearMonthParts = addCalendarMonths(calendar, year, month, months);
+    ({year: year, month: month} = yearMonthParts);
+  }
+  return day = clampEntity("day", day, 1, computeCalendarDaysInMonthForYearMonth(calendar, year, month), overflow), 
+  computeCalendarIsoFieldsFromParts(calendar, year, month, day);
+}
+
+function addCalendarMonths(calendar, year, month, monthDelta) {
+  return calendar ? calendar.ae(year, month, monthDelta) : addIsoMonths(year, month, monthDelta);
+}
+
+function resolveMonthInMovedYear(calendar, monthCodeNumber, isLeapMonth, targetLeapMonth, overflow) {
+  if (isLeapMonth) {
+    const leapMonthMeta = calendar ? calendar.l : void 0;
+    return void 0 !== targetLeapMonth && (leapMonthMeta < 0 || targetLeapMonth === monthCodeNumber + 1) ? targetLeapMonth : (1 === overflow && throwRangeError(invalidLeapMonth), 
+    leapMonthMeta < 0 ? -leapMonthMeta : monthCodeNumber);
+  }
+  return monthCodeNumberToMonth(monthCodeNumber, 0, targetLeapMonth);
+}
+
+function moveTimeByNano(timeFields, durationBigNano) {
+  const durDays = Number(durationBigNano / bigNanoInUtcDay);
+  const durTimeNano = Number(durationBigNano % bigNanoInUtcDay);
+  const [newTimeFields, overflowDays] = nanoToTimeAndDay(internal_timeFieldsToNano(timeFields) + durTimeNano);
+  return [ newTimeFields, durDays + overflowDays ];
+}
+
+function moveEpochNanoByNano(epochNano, deltaNano) {
+  return checkEpochNanoInBounds(epochNano + deltaNano);
+}
+
+function moveDateByDays(isoDate, days) {
+  return days ? epochDaysToIsoDate(isoDateToEpochDays(isoDate) + days) : isoDate;
+}
+
+function internal_getCommonCalendar(a, b) {
+  return getCalendarSlotId(a) !== getCalendarSlotId(b) && throwRangeError("Mismatching Calendars"), 
+  a;
+}
+
+function internal_getCommonTimeZone(a, b) {
+  return a.m !== b.m && throwRangeError("Mismatching TimeZones"), 
+  a;
+}
+
+function getZonedTimeZoneId(slots) {
+  return slots.timeZone.id;
+}
+
+function diffZonedDateTimesRounded(calendar, startZoned, endZoned, largestUnit, smallestUnit, roundingInc, roundingMode) {
+  return largestUnit < 6 ? diffEpochNanosRounded(startZoned.epochNanoseconds, endZoned.epochNanoseconds, largestUnit, smallestUnit, roundingInc, roundingMode) : ((calendar, startZoned, endZoned, largestUnit, smallestUnit, roundingInc, roundingMode) => {
+    const endEpochNano = endZoned.epochNanoseconds;
+    if (endEpochNano === startZoned.epochNanoseconds) {
+      return durationFieldDefaults;
+    }
+    let durationFields;
+    const timeZone = internal_getCommonTimeZone(startZoned.timeZone, endZoned.timeZone);
+    return durationFields = internal_diffZonedEpochsExact(timeZone, calendar, startZoned, endZoned, largestUnit), 
+    durationFields = roundRelativeDuration(durationFields, endEpochNano, largestUnit, smallestUnit, roundingInc, roundingMode, internal_createZonedRelativeOps(calendar, timeZone, startZoned), 1), 
+    durationFields;
+  })(calendar, startZoned, endZoned, largestUnit, smallestUnit, roundingInc, roundingMode);
+}
+
+function diffDateTimesRounded(calendar, startIsoDateTime, endIsoDateTime, largestUnit, smallestUnit, roundingInc, roundingMode) {
+  return largestUnit <= 6 ? diffEpochNanosRounded(internal_isoDateTimeToEpochNano(startIsoDateTime), internal_isoDateTimeToEpochNano(endIsoDateTime), largestUnit, smallestUnit, roundingInc, roundingMode) : ((calendar, startIsoDateTime, endIsoDateTime, largestUnit, smallestUnit, roundingInc, roundingMode) => {
+    const endEpochNano = internal_isoDateTimeToEpochNano(endIsoDateTime);
+    const sign = compareBigInts(endEpochNano, internal_isoDateTimeToEpochNano(startIsoDateTime));
+    if (!sign) {
+      return durationFieldDefaults;
+    }
+    let durationFields;
+    return durationFields = diffDateTimesBig(calendar, startIsoDateTime, endIsoDateTime, sign, largestUnit), 
+    durationFields = roundRelativeDuration(durationFields, endEpochNano, largestUnit, smallestUnit, roundingInc, roundingMode, ((calendar, origin) => ({
+      ne: internal_isoDateTimeToEpochNano(origin),
+      ke: duration => internal_isoDateTimeToEpochNano(combineDateAndTime(moveDate(calendar, origin, duration), origin))
+    }))(calendar, startIsoDateTime)), durationFields;
+  })(calendar, startIsoDateTime, endIsoDateTime, largestUnit, smallestUnit, roundingInc, roundingMode);
+}
+
+function diffYearMonthsRounded(calendar, startIsoDate, endIsoDate, largestUnit, smallestUnit, roundingInc, roundingMode) {
+  const firstOfMonth0 = moveToStartOfMonth(calendar, startIsoDate);
+  const firstOfMonth1 = moveToStartOfMonth(calendar, endIsoDate);
+  return compareIsoDates(firstOfMonth0, firstOfMonth1) ? diffDateCalendarUnitsRounded(calendar, checkIsoDateInBounds(firstOfMonth0), checkIsoDateInBounds(firstOfMonth1), largestUnit, smallestUnit, roundingInc, roundingMode, 8) : durationFieldDefaults;
+}
+
+function diffDatesRounded(calendar, startIsoDate, endIsoDate, largestUnit, smallestUnit, roundingInc, roundingMode, smallestPrecision = 6) {
+  return 6 === largestUnit ? diffEpochNanosRounded(internal_isoDateToEpochNano(startIsoDate), internal_isoDateToEpochNano(endIsoDate), largestUnit, smallestUnit, roundingInc, roundingMode) : diffDateCalendarUnitsRounded(calendar, startIsoDate, endIsoDate, largestUnit, smallestUnit, roundingInc, roundingMode, smallestPrecision);
+}
+
+function diffTimesRounded(plainTimeSlots0, plainTimeSlots1, largestUnit, smallestUnit, roundingInc, roundingMode) {
+  const timeDiffNano = roundNumberToInc(internal_timeFieldsToNano(plainTimeSlots1) - internal_timeFieldsToNano(plainTimeSlots0), computeNanoInc(smallestUnit, roundingInc), roundingMode);
+  return {
+    ...durationFieldDefaults,
+    ...nanoToDurationTimeFields(timeDiffNano, largestUnit)
+  };
+}
+
+function diffDateCalendarUnitsRounded(calendar, startIsoDate, endIsoDate, largestUnit, smallestUnit, roundingInc, roundingMode, smallestPrecision = 6) {
+  const endEpochNano = internal_isoDateToEpochNano(endIsoDate);
+  if (!compareIsoDates(startIsoDate, endIsoDate)) {
+    return durationFieldDefaults;
+  }
+  let durationFields;
+  return durationFields = internal_diffCalendarDates(calendar, startIsoDate, endIsoDate, largestUnit), 
+  smallestUnit === smallestPrecision && 1 === roundingInc || (durationFields = roundRelativeDuration(durationFields, endEpochNano, largestUnit, smallestUnit, roundingInc, roundingMode, internal_createDateRelativeOps(calendar, startIsoDate))), 
+  durationFields;
+}
+
+function diffEpochNanosRounded(startEpochNano, endEpochNano, largestUnit, smallestUnit, roundingInc, roundingMode) {
+  return {
+    ...durationFieldDefaults,
+    ...nanoToDurationDayTimeFields(roundBigNanoToInc(endEpochNano - startEpochNano, computeBigNanoInc(smallestUnit, roundingInc), roundingMode), largestUnit)
+  };
+}
+
+function internal_diffZonedEpochsExact(timeZone, calendar, startZoned, endZoned, largestUnit) {
+  return largestUnit < 6 ? {
+    ...durationFieldDefaults,
+    ...nanoToDurationDayTimeFields(endZoned.epochNanoseconds - startZoned.epochNanoseconds, largestUnit)
+  } : ((timeZone, startZoned, endZoned) => {
+    const sign = compareBigInts(endZoned.epochNanoseconds, startZoned.epochNanoseconds);
+    if (!sign) {
+      return durationFieldDefaults;
+    }
+    if (!compareIsoDates(zonedEpochSlotsToIso(startZoned), zonedEpochSlotsToIso(endZoned))) {
       return {
-        se(e) {
-          const n = getOffsetSec(e - 86400), t = getOffsetSec(e + 86400), o = e - n, r = e - t;
-          if (n === t) {
-            return [ o ];
-          }
-          const i = getOffsetSec(o);
-          return i === getOffsetSec(r) ? [ e - i ] : n > t ? [ o, r ] : [];
-        },
-        ue: getOffsetSec,
-        l(e, i) {
-          const a = clampNumber(e, o, r);
-          let [s, c] = computePeriod(a);
-          const u = tf * i, l = i < 0 ? () => c > o || (o = a, 0) : () => s < r || (r = a, 
-          0);
-          for (;l(); ) {
-            const o = n(s), r = n(c);
-            if (o !== r) {
-              const n = t(s, c);
-              pinch(n, o, r);
-              const a = n[0];
-              if ((compareNumbers(a, e) || 1) === i) {
-                return a;
-              }
-            }
-            s += u, c += u;
-          }
-        }
+        ...durationFieldDefaults,
+        ...nanoToDurationDayTimeFields(endZoned.epochNanoseconds - startZoned.epochNanoseconds, 5)
       };
-    })((e => n => {
-      const t = hashIntlFormatParts(e, n * ku);
-      return isoArgsToEpochSec(parseIntlPartsYear(t), parseInt(t.month), parseInt(t.day), parseInt(t.hour), parseInt(t.minute), parseInt(t.second)) - n;
-    })(e));
-  }
-  N(e) {
-    return this.ae.ue(epochNanoToSec(e)) * oo;
-  }
-  v(e) {
-    const [n, t] = [ isoArgsToEpochSec((o = e).isoYear, o.isoMonth, o.isoDay, o.isoHour, o.isoMinute, o.isoSecond), o.isoMillisecond * internal_Ke + o.isoMicrosecond * ro + o.isoNanosecond ];
-    var o;
-    return this.ae.se(n).map((e => io(Ta(internal_Ge(e, oo), t))));
-  }
-  l(e, n) {
-    const [t, o] = epochNanoToSecMod(e), r = this.ae.l(t + (n > 0 || o ? 1 : 0), n);
-    if (void 0 !== r) {
-      return internal_Ge(r, oo);
+    }
+    const [startIsoDateTime, endIsoDate, remainderNano] = prepareZonedEpochDiff(timeZone, startZoned, endZoned, sign);
+    return {
+      ...(start = startIsoDateTime, end = endIsoDate, internal_diffCalendarDates(calendar, start, end, largestUnit)),
+      ...nanoToDurationTimeFields(remainderNano)
+    };
+    var start, end;
+  })(timeZone, startZoned, endZoned);
+}
+
+function internal_diffDateTimesExact(calendar, startIsoDateTime, endIsoDateTime, largestUnit) {
+  const startEpochNano = internal_isoDateTimeToEpochNano(startIsoDateTime);
+  const endEpochNano = internal_isoDateTimeToEpochNano(endIsoDateTime);
+  const sign = compareBigInts(endEpochNano, startEpochNano);
+  return sign ? largestUnit <= 6 ? {
+    ...durationFieldDefaults,
+    ...nanoToDurationDayTimeFields(endEpochNano - startEpochNano, largestUnit)
+  } : diffDateTimesBig(calendar, startIsoDateTime, endIsoDateTime, sign, largestUnit) : durationFieldDefaults;
+}
+
+function diffDateTimesBig(calendar, startIsoDateTime, endIsoDateTime, sign, largestUnit) {
+  let diffEndDate = endIsoDateTime;
+  let timeNano = internal_timeFieldsToNano(endIsoDateTime) - internal_timeFieldsToNano(startIsoDateTime);
+  return Math.sign(timeNano) === -sign && (diffEndDate = moveDateByDays(endIsoDateTime, -sign), 
+  timeNano += nanoInUtcDay * sign), {
+    ...internal_diffCalendarDates(calendar, startIsoDateTime, diffEndDate, largestUnit),
+    ...nanoToDurationTimeFields(timeNano)
+  };
+}
+
+function prepareZonedEpochDiff(timeZone, startZoned, endZoned, sign) {
+  const startIsoDate = zonedEpochSlotsToIso(startZoned);
+  const endIsoDate = zonedEpochSlotsToIso(endZoned);
+  const endEpochNano = endZoned.epochNanoseconds;
+  let dayCorrection = 0;
+  const timeDiffNano = internal_timeFieldsToNano(endIsoDate) - internal_timeFieldsToNano(startIsoDate);
+  Math.sign(timeDiffNano) === -sign && dayCorrection++;
+  const maxDayCorrection = dayCorrection + (sign > 0 ? 1 : 0);
+  for (;;dayCorrection++) {
+    const midIsoDate = moveDateByDays(endIsoDate, dayCorrection * -sign);
+    const midEpochNano = getSingleInstantFor(timeZone, combineDateAndTime(midIsoDate, startIsoDate));
+    if (dayCorrection === maxDayCorrection || compareBigInts(endEpochNano, midEpochNano) !== -sign) {
+      return [ startIsoDate, midIsoDate, Number(endEpochNano - midEpochNano) ];
     }
   }
 }
 
-const cf = "([+-])", uf = "(?:[.,](\\d{1,9}))?", lf = `(?:(?:${cf}(\\d{6}))|(\\d{4}))-?(\\d{2})`, ff = "(\\d{2})(?::?(\\d{2})(?::?(\\d{2})" + uf + ")?)?", df = cf + ff, mf = lf + "-?(\\d{2})(?:[T ]" + ff + "(Z|" + df + ")?)?", pf = "\\[(!?)([^\\]]*)\\]", hf = `((?:${pf}){0,9})`, If = /*@__PURE__*/ createRegExp(lf + hf), Df = /*@__PURE__*/ createRegExp("(?:--)?(\\d{2})-?(\\d{2})" + hf), gf = /*@__PURE__*/ createRegExp(mf + hf), Tf = /*@__PURE__*/ createRegExp("T?" + ff + "(?:" + df + ")?" + hf), Mf = /*@__PURE__*/ createRegExp(df), yf = /*@__PURE__*/ new RegExp(pf, "g"), Nf = /*@__PURE__*/ createRegExp(`${cf}?P(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(?:T(?:(\\d+)${uf}H)?(?:(\\d+)${uf}M)?(?:(\\d+)${uf}S)?)?`), vf = /*@__PURE__*/ on((e => new en("en", {
-  calendar: l,
-  timeZone: e,
+function internal_diffCalendarDates(calendar, startIsoDate, endIsoDate, largestUnit) {
+  if (largestUnit <= 7) {
+    return ((asWeeks, start, end) => {
+      const days = countIsoDays(start, end);
+      return asWeeks ? {
+        ...durationFieldDefaults,
+        weeks: divTrunc(days, 7),
+        days: modTrunc(days, 7)
+      } : {
+        ...durationFieldDefaults,
+        days: days
+      };
+    })(7 === largestUnit, startIsoDate, endIsoDate);
+  }
+  const yearMonthDayStart = computeCalendarDateFields(calendar, startIsoDate);
+  const yearMonthDayEnd = computeCalendarDateFields(calendar, endIsoDate);
+  if (8 === largestUnit) {
+    const {year: year0, month: month0, day: day0} = yearMonthDayStart;
+    const {year: year1, month: month1, day: day1} = yearMonthDayEnd;
+    const sign = Math.sign(compareNumbers(year1, year0) || compareNumbers(month1, month0) || countIsoDays(startIsoDate, endIsoDate));
+    let months = 0;
+    let days = 0;
+    if (sign) {
+      months = calendar ? calendar.ee(year0, month0, year1, month1) : diffIsoMonthSlots(year0, month0, year1, month1);
+      let anchorIsoDate = internal_moveDateByCalendarUnits(calendar, startIsoDate, 0, months, 0);
+      sign * compareNumbers(day0, day1) > 0 && (months -= sign, anchorIsoDate = internal_moveDateByCalendarUnits(calendar, startIsoDate, 0, months, 0)), 
+      days = countIsoDays(anchorIsoDate, endIsoDate);
+    }
+    return {
+      ...durationFieldDefaults,
+      months: months,
+      days: days
+    };
+  }
+  const {year: year0, month: month0, day: day0} = yearMonthDayStart;
+  let {year: year1, month: month1, day: day1} = yearMonthDayEnd;
+  let yearDiff = year1 - year0;
+  let monthDiff = month1 - month0;
+  let dayDiff = day1 - day0;
+  if (yearDiff || monthDiff) {
+    const sign = Math.sign(yearDiff || monthDiff);
+    let daysInMonth1 = computeCalendarDaysInMonthForYearMonth(calendar, year1, month1);
+    let dayCorrect = 0;
+    if (Math.sign(day1 - day0) === -sign) {
+      const origDaysInMonth1 = daysInMonth1;
+      const yearMonthParts = addCalendarMonths(calendar, year1, month1, -sign);
+      ({year: year1, month: month1} = yearMonthParts), yearDiff = year1 - year0, monthDiff = month1 - month0, 
+      daysInMonth1 = computeCalendarDaysInMonthForYearMonth(calendar, year1, month1), 
+      dayCorrect = sign < 0 ? -origDaysInMonth1 : daysInMonth1;
+    }
+    if (dayDiff = day1 - Math.min(day0, daysInMonth1) + dayCorrect, yearDiff) {
+      const [monthCodeNumber0, isLeapMonth0] = computeCalendarMonthCodeParts(calendar, year0, month0);
+      const [monthCodeNumber1, isLeapMonth1] = computeCalendarMonthCodeParts(calendar, year1, month1);
+      const leapMonthMeta = calendar ? calendar.l : void 0;
+      if (monthDiff = void 0 !== leapMonthMeta && isLeapMonth0 && !isLeapMonth1 && (leapMonthMeta < 0 ? sign > 0 && monthCodeNumber1 === -leapMonthMeta : sign < 0 && monthCodeNumber1 === monthCodeNumber0) ? 0 : monthCodeNumber1 - monthCodeNumber0 || Number(isLeapMonth1) - Number(isLeapMonth0), 
+      Math.sign(monthDiff) === -sign) {
+        const monthCorrect = sign < 0 && -computeCalendarMonthsInYearForYear(calendar, year1);
+        year1 -= sign, yearDiff = year1 - year0, monthDiff = month1 - resolveMonthInMovedYear(calendar, monthCodeNumber0, isLeapMonth0, calendar ? calendar.p(year1) : void 0, 0) + (monthCorrect || computeCalendarMonthsInYearForYear(calendar, year1));
+      } else if (calendar) {
+        const month0Projected = resolveMonthInMovedYear(calendar, monthCodeNumber0, isLeapMonth0, calendar.p(year1), 0);
+        monthDiff = calendar.ee(year1, month0Projected, year1, month1);
+      }
+    }
+  }
+  return {
+    ...durationFieldDefaults,
+    years: yearDiff,
+    months: monthDiff,
+    days: dayDiff
+  };
+}
+
+function compareIsoDates(isoDate0, isoDate1) {
+  return compareNumbers(isoDate0.year, isoDate1.year) || compareNumbers(isoDate0.month, isoDate1.month) || compareNumbers(isoDate0.day, isoDate1.day);
+}
+
+function countIsoDays(startIsoDate, endIsoDate) {
+  return isoDateToEpochDays(endIsoDate) - isoDateToEpochDays(startIsoDate);
+}
+
+function spanRelativeDuration(relativeToSlots, durationFields, largestUnit) {
+  return isZonedEpochSlots(relativeToSlots) ? ((relativeToSlots, durationFields, largestUnit) => {
+    const {calendar: calendar, timeZone: timeZone} = relativeToSlots;
+    const endSlots = moveZonedEpochSlots(relativeToSlots, durationFields);
+    return [ internal_diffZonedEpochsExact(timeZone, calendar, relativeToSlots, endSlots, largestUnit), endSlots.epochNanoseconds, internal_createZonedRelativeOps(calendar, timeZone, relativeToSlots) ];
+  })(relativeToSlots, durationFields, largestUnit) : ((relativeToSlots, durationFields, largestUnit) => {
+    const {calendar: calendar} = relativeToSlots;
+    const origin = checkIsoDateTimeInBounds(combineDateAndTime(relativeToSlots, timeFieldDefaults));
+    const end = moveDateTime(calendar, origin, durationFields);
+    return [ internal_diffDateTimesExact(calendar, origin, end, largestUnit), internal_isoDateTimeToEpochNano(end), internal_createDateRelativeOps(calendar, relativeToSlots) ];
+  })(relativeToSlots, durationFields, largestUnit);
+}
+
+function moveRelativeEndpointToEpochNano(relativeToSlots, durationFields) {
+  return isZonedEpochSlots(relativeToSlots) ? moveZonedEpochSlots(relativeToSlots, durationFields).epochNanoseconds : internal_isoDateTimeToEpochNano(moveDateTime(relativeToSlots.calendar, combineDateAndTime(relativeToSlots, timeFieldDefaults), durationFields));
+}
+
+function moveRelativeMarkerToEpochNano(relativeOps, dateDuration) {
+  return durationHasDateParts(dateDuration) ? relativeOps.ke(dateDuration) : relativeOps.ne;
+}
+
+function internal_createZonedRelativeOps(calendar, timeZone, slots) {
+  const origin = zonedEpochSlotsToIso(slots);
+  return {
+    ne: slots.epochNanoseconds,
+    ke: duration => getSingleInstantFor(timeZone, combineDateAndTime(moveDate(calendar, origin, duration), origin))
+  };
+}
+
+function internal_createDateRelativeOps(calendar, origin) {
+  return {
+    ne: internal_isoDateToEpochNano(origin),
+    ke: duration => internal_isoDateToEpochNano(moveDate(calendar, origin, duration))
+  };
+}
+
+function isZonedEpochSlots(slots) {
+  return "timeZone" in slots;
+}
+
+function isUniformUnit(unit, isZoned) {
+  return unit <= 6 - (isZoned ? 1 : 0);
+}
+
+function nanoToGivenFields(nano, largestUnit, fieldNames) {
+  const fields = {};
+  for (let unit = largestUnit; unit >= 0; unit--) {
+    const divisor = unitNanoMap[unit];
+    fields[fieldNames[unit]] = divTrunc(nano, divisor), nano = modTrunc(nano, divisor);
+  }
+  return fields;
+}
+
+const maxDurationSeconds = 2 ** 53;
+
+function addDurationsWithoutRelativeTo(doSubtract, slots, otherSlots) {
+  const maxUnit = Math.max(getMaxDurationUnit(slots), getMaxDurationUnit(otherSlots));
+  return maxUnit > 6 && throwRangeError("Cannot use large units"), ((doSubtract, slots, otherSlots, maxUnit) => createDurationSlots(validateDurationFields(((a, b, largestUnit, doSubtract) => {
+    const combined = durationDayTimeToBigNano(a) + durationDayTimeToBigNano(b) * BigInt(doSubtract ? -1 : 1);
+    return Number.isFinite(Number(combined / bigNanoInUtcDay)) || throwRangeError(outOfBoundsDate), 
+    {
+      ...durationFieldDefaults,
+      ...nanoToDurationDayTimeFields(combined, largestUnit)
+    };
+  })(slots, otherSlots, maxUnit, doSubtract))))(doSubtract, slots, otherSlots, maxUnit);
+}
+
+function roundDuration(refineRelativeTo, slots, options) {
+  const durationLargestUnit = getMaxDurationUnit(slots);
+  const [largestUnit, smallestUnit, roundingInc, roundingMode, relativeToSlots] = refineDurationRoundOptions(options, durationLargestUnit, refineRelativeTo);
+  if (!relativeToSlots && Math.max(durationLargestUnit, largestUnit) <= 6) {
+    return createDurationSlots(validateDurationFields(((durationFields, largestUnit, smallestUnit, roundingInc, roundingMode) => {
+      const roundedBigNano = roundBigNanoToInc(durationDayTimeToBigNano(durationFields), computeBigNanoInc(smallestUnit, roundingInc), roundingMode);
+      return {
+        ...durationFieldDefaults,
+        ...nanoToDurationDayTimeFields(roundedBigNano, largestUnit)
+      };
+    })(slots, largestUnit, smallestUnit, roundingInc, roundingMode)));
+  }
+  relativeToSlots || throwRangeError("Missing relativeTo");
+  const isZoned = isZonedEpochSlots(relativeToSlots);
+  if (!slots.sign && (!isZoned || largestUnit < 6)) {
+    return slots;
+  }
+  const [balancedDuration, endEpochNano, relativeOps] = spanRelativeDuration(relativeToSlots, slots, largestUnit);
+  return createDurationSlots(roundRelativeDuration(balancedDuration, endEpochNano, largestUnit, smallestUnit, roundingInc, roundingMode, relativeOps, isZoned));
+}
+
+function absDuration(slots) {
+  return -1 === slots.sign ? negateDuration(slots) : slots;
+}
+
+function negateDuration(slots) {
+  return createDurationSlots(negateDurationFields(slots));
+}
+
+function negateDurationFields(fields) {
+  const res = {};
+  for (const fieldName of durationFieldNamesAsc) {
+    res[fieldName] = -1 * fields[fieldName] || 0;
+  }
+  return res;
+}
+
+function computeDurationSign(fields, fieldNames = durationFieldNamesAsc) {
+  let sign = 0;
+  for (const fieldName of fieldNames) {
+    const fieldSign = Math.sign(fields[fieldName]);
+    fieldSign && (sign && sign !== fieldSign && throwRangeError("Cannot mix duration signs"), 
+    sign = fieldSign);
+  }
+  return sign;
+}
+
+function validateDurationFields(fields) {
+  for (const calendarUnit of durationCalendarFieldNamesAsc) {
+    validateDurationCalendarUnit(calendarUnit, fields[calendarUnit]);
+  }
+  const bigNano = durationDayTimeToBigNano(fields);
+  return validateDurationTimeUnit(Number(bigNano / bigNanoInSec)), fields;
+}
+
+function validateDurationCalendarUnit(unit, value) {
+  return clampEntity(unit, value, -4294967295, 4294967295, 1);
+}
+
+function validateDurationTimeUnit(n) {
+  Number.isSafeInteger(n) || throwRangeError("Out-of-bounds duration");
+}
+
+function durationDayTimeToBigNano(fields) {
+  return BigInt(fields.days) * bigNanoInUtcDay + durationTimeToBigNano(fields);
+}
+
+function durationTimeToBigNano(fields) {
+  return BigInt(fields.hours) * bigNanoInHour + BigInt(fields.minutes) * bigNanoInMinute + durationSubMinuteToBigNano(fields);
+}
+
+function durationSubMinuteToBigNano(fields) {
+  return BigInt(fields.seconds) * bigNanoInSec + BigInt(fields.milliseconds) * bigNanoInMilli + BigInt(fields.microseconds) * bigNanoInMicro + BigInt(fields.nanoseconds);
+}
+
+function nanoToDurationDayTimeFields(bigNano, largestUnit = 6) {
+  const days = Number(bigNano / bigNanoInUtcDay);
+  const timeNano = Number(bigNano % bigNanoInUtcDay);
+  const unitNano = unitNanoMap[largestUnit];
+  const largestUnitVal = largestUnit <= 3 ? Number(bigNano / BigInt(unitNano)) : days * (nanoInUtcDay / unitNano) + divTrunc(timeNano, unitNano);
+  Number.isFinite(largestUnitVal) || throwRangeError(outOfBoundsDate), largestUnit <= 3 && Math.abs(largestUnitVal) / (internal_nanoInSec / unitNanoMap[largestUnit]) >= maxDurationSeconds && throwRangeError(outOfBoundsDate);
+  const dayTimeFields = nanoToGivenFields(timeNano, largestUnit, durationFieldNamesAsc);
+  return dayTimeFields[durationFieldNamesAsc[largestUnit]] = largestUnitVal, dayTimeFields;
+}
+
+function nanoToDurationTimeFields(nano, largestUnit = 5) {
+  return nanoToGivenFields(nano, largestUnit, durationFieldNamesAsc);
+}
+
+function durationHasDateParts(fields) {
+  return Boolean(computeDurationSign(fields, durationDateFieldNamesAsc));
+}
+
+function getMaxDurationUnit(fields) {
+  let unit = 9;
+  for (;unit > 0 && !fields[durationFieldNamesAsc[unit]]; unit--) {}
+  return unit;
+}
+
+function compareZonedEpochSlots(zonedEpochSlots0, zonedEpochSlots1) {
+  return compareBigInts(zonedEpochSlots0.epochNanoseconds, zonedEpochSlots1.epochNanoseconds);
+}
+
+function compareDurations(refineRelativeTo, durationSlots0, durationSlots1, options) {
+  const relativeToSlots = refineRelativeTo(normalizeOptions(options).relativeTo);
+  const maxUnit = Math.max(getMaxDurationUnit(durationSlots0), getMaxDurationUnit(durationSlots1));
+  return allPropsEqual(durationFieldNamesAsc, durationSlots0, durationSlots1) ? 0 : isUniformUnit(maxUnit, relativeToSlots && isZonedEpochSlots(relativeToSlots)) ? compareBigInts(durationDayTimeToBigNano(durationSlots0), durationDayTimeToBigNano(durationSlots1)) : (relativeToSlots || throwRangeError("Missing relativeTo"), 
+  compareBigInts(moveRelativeEndpointToEpochNano(relativeToSlots, durationSlots0), moveRelativeEndpointToEpochNano(relativeToSlots, durationSlots1)));
+}
+
+function compareIsoDateTimeFields(isoDateTime0, isoDateTime1) {
+  return compareIsoDateFields(isoDateTime0, isoDateTime1) || compareTimeFields(isoDateTime0, isoDateTime1);
+}
+
+function compareIsoDateFields(isoDate0, isoDate1) {
+  return compareNumbers(isoDateToEpochDays(isoDate0), isoDateToEpochDays(isoDate1));
+}
+
+function compareTimeFields(timeFields0, timeFields1) {
+  return compareNumbers(internal_timeFieldsToNano(timeFields0), internal_timeFieldsToNano(timeFields1));
+}
+
+function instantsEqual(instantSlots0, instantSlots1) {
+  return !compareZonedEpochSlots(instantSlots0, instantSlots1);
+}
+
+function zonedDateTimesEqual(zonedDateTimeSlots0, zonedDateTimeSlots1) {
+  return !compareZonedEpochSlots(zonedDateTimeSlots0, zonedDateTimeSlots1) && zonedDateTimeSlots0.timeZone.m === zonedDateTimeSlots1.timeZone.m && zonedDateTimeSlots0.calendar === zonedDateTimeSlots1.calendar;
+}
+
+function plainDateTimesEqual(plainDateTimeSlots0, plainDateTimeSlots1) {
+  return !compareIsoDateTimeFields(plainDateTimeSlots0, plainDateTimeSlots1) && plainDateTimeSlots0.calendar === plainDateTimeSlots1.calendar;
+}
+
+function plainDatesEqual(plainDateSlots0, plainDateSlots1) {
+  return !compareIsoDateFields(plainDateSlots0, plainDateSlots1) && plainDateSlots0.calendar === plainDateSlots1.calendar;
+}
+
+function plainYearMonthsEqual(plainYearMonthSlots0, plainYearMonthSlots1) {
+  return !compareIsoDateFields(plainYearMonthSlots0, plainYearMonthSlots1) && plainYearMonthSlots0.calendar === plainYearMonthSlots1.calendar;
+}
+
+function plainMonthDaysEqual(plainMonthDaySlots0, plainMonthDaySlots1) {
+  return !compareIsoDateFields(plainMonthDaySlots0, plainMonthDaySlots1) && plainMonthDaySlots0.calendar === plainMonthDaySlots1.calendar;
+}
+
+function plainTimesEqual(plainTimeSlots0, plainTimeSlots1) {
+  return !compareTimeFields(plainTimeSlots0, plainTimeSlots1);
+}
+
+function getCalendarEraOrigins(calendar) {
+  return 0 === calendar ? gregoryEraOrigins : calendar ? calendar.k : void 0;
+}
+
+function getCalendarFieldNames(calendar, fieldNames, fieldNamesWithEra = fieldNames) {
+  return getCalendarEraOrigins(calendar) ? fieldNamesWithEra : fieldNames;
+}
+
+function resolveCalendarYear(fields, calendar) {
+  const exoticCalendar = calendar || void 0;
+  const eraOrigins = getCalendarEraOrigins(calendar);
+  let {era: era, eraYear: eraYear, year: year} = fields;
+  if (void 0 !== year && (year = utils_toIntegerWithTrunc(year, "year")), void 0 !== eraYear && (eraYear = utils_toIntegerWithTrunc(eraYear, "eraYear")), 
+  void 0 !== era || void 0 !== eraYear) {
+    void 0 !== era && void 0 !== eraYear || throwTypeError("Mismatching era/eraYear"), 
+    eraOrigins || throwRangeError("Forbidden era/eraYear");
+    const normalizedEra = normalizeEraName(era);
+    const eraOrigin = eraOrigins[normalizedEra];
+    void 0 === eraOrigin && throwRangeError((era => `Invalid era: ${era}`)(era));
+    const yearByEra = exoticCalendar?._ ? exoticCalendar._(eraYear, normalizedEra, eraOrigin) : eraYearToYear(eraYear, eraOrigin);
+    void 0 !== year && year !== yearByEra && throwRangeError("Mismatching year/eraYear"), 
+    year = yearByEra;
+  } else {
+    void 0 === year && throwTypeError(missingYear(eraOrigins));
+  }
+  return year;
+}
+
+function resolveCalendarMonth(fields, calendar, year, monthCodeParts, overflow) {
+  let {month: month, monthCode: monthCode} = fields;
+  if (void 0 !== monthCode) {
+    const monthByCode = ((calendar, monthCode, year, overflow, monthCodeParts = parseMonthCode(monthCode)) => {
+      const leapMonth = calendar ? calendar.p(year) : void 0;
+      const [monthCodeNumber, wantsLeapMonth] = monthCodeParts;
+      let month = monthCodeNumberToMonth(monthCodeNumber, wantsLeapMonth, leapMonth);
+      if (wantsLeapMonth) {
+        const leapMonthMeta = calendar ? calendar.l : void 0;
+        void 0 === leapMonthMeta && throwRangeError(invalidLeapMonth), leapMonthMeta > 0 ? (month > leapMonthMeta && throwRangeError(invalidLeapMonth), 
+        leapMonth !== month && (1 === overflow && throwRangeError(invalidLeapMonth), month = monthCodeNumberToMonth(monthCodeNumber, 0, leapMonth))) : (month !== -leapMonthMeta && throwRangeError(invalidLeapMonth), 
+        void 0 === leapMonth && 1 === overflow && throwRangeError(invalidLeapMonth));
+      }
+      return month;
+    })(calendar, monthCode, year, overflow, monthCodeParts);
+    void 0 !== month && month !== monthByCode && throwRangeError("Mismatching month/monthCode"), 
+    month = monthByCode, overflow = 1;
+  } else {
+    void 0 === month && throwTypeError("Missing month/monthCode");
+  }
+  return clampEntity("month", month, 1, computeCalendarMonthsInYearForYear(calendar, year), overflow);
+}
+
+function resolveCalendarDay(fields, calendar, year, month, overflow) {
+  return clampProp(fields, "day", 1, computeCalendarDaysInMonthForYearMonth(calendar, year, month), overflow);
+}
+
+function eraYearToYear(eraYear, eraOrigin) {
+  return (eraOrigin + eraYear) * (Math.sign(eraOrigin) || 1) || 0;
+}
+
+function resolveTimeFields(fields, overflow) {
+  return constrainTimeFields(pluckProps(timeFieldNamesAsc, {
+    ...timeFieldDefaults,
+    ...fields
+  }), overflow);
+}
+
+const offsetRegExp = /*@__PURE__*/ createRegExp("([+-])(\\d{2})(?::?(\\d{2})(?::?(\\d{2})(?:[.,](\\d{1,9}))?)?)?");
+
+function parseOffsetNano(s) {
+  const offsetNano = parseOffsetNanoMaybe(s);
+  return void 0 === offsetNano && throwRangeError(failedParse(s)), offsetNano;
+}
+
+function parseOffsetNanoMaybe(s, onlyHourMinute) {
+  const parts = offsetRegExp.exec(s);
+  if (parts && (s => (s => {
+    "T" !== s[0] && "t" !== s[0] || (s = s.slice(1));
+    const fractionIndex = s.search(/[.,]/);
+    const main = fractionIndex < 0 ? s : s.slice(0, fractionIndex);
+    const parts = main.split(":");
+    return 1 === parts.length ? /^(?:\d{2}|\d{4}|\d{6})$/i.test(main) : (2 === parts.length || 3 === parts.length) && parts.every(part => 2 === part.length && /^\d{2}$/i.test(part));
+  })(s.slice(1)))(parts[0])) {
+    return ((parts, onlyHourMinute) => {
+      const firstSubMinutePart = parts[4] || parts[5];
+      onlyHourMinute && firstSubMinutePart && throwRangeError(invalidSubstring(firstSubMinutePart));
+      const offsetNanoPos = parseInt0(parts[2]) * internal_nanoInHour + parseInt0(parts[3]) * internal_nanoInMinute + parseInt0(parts[4]) * internal_nanoInSec + parseSubsecNano(parts[5] || "");
+      return offsetNano = offsetNanoPos * parseSign(parts[1]), Math.abs(offsetNano) >= nanoInUtcDay && throwRangeError("Out-of-bounds offset"), 
+      offsetNano;
+      var offsetNano;
+    })(parts, onlyHourMinute);
+  }
+}
+
+const dateFieldRefiners = {
+  era: internal_toString,
+  month: toPositiveIntegerWithTruncation,
+  monthCode(monthCode, fieldName) {
+    return requireString(toPrimitiveWithStringHint(monthCode), fieldName);
+  },
+  day: toPositiveIntegerWithTruncation
+};
+
+const timeFieldRefiners = /*@__PURE__*/ zipPropsConst(timeFieldNamesAsc, utils_toIntegerWithTrunc);
+
+const durationFieldRefiners = /*@__PURE__*/ zipPropsConst(durationFieldNamesAsc, internal_toStrictInteger);
+
+const dateTimeFieldRefiners = /*@__PURE__*/ Object.assign({}, dateFieldRefiners, timeFieldRefiners);
+
+const zonedDateTimeFieldRefiners = {
+  offset(offsetString) {
+    return parseOffsetNano(requireString(toPrimitiveWithStringHint(offsetString)));
+  },
+  ...dateTimeFieldRefiners
+};
+
+function readAndRefineBagFields(bag, validFieldNames, fieldRefiners, requiredFieldNames, disallowEmpty = !requiredFieldNames) {
+  const res = {};
+  let anyMatching = 0;
+  for (const fieldName of validFieldNames) {
+    let fieldVal = bag[fieldName];
+    if (void 0 !== fieldVal) {
+      anyMatching = 1;
+      const refiner = fieldRefiners[fieldName];
+      refiner && (fieldVal = refiner(fieldVal, fieldName)), res[fieldName] = fieldVal;
+    } else {
+      requiredFieldNames && requiredFieldNames.includes(fieldName) && throwTypeError(missingField(fieldName));
+    }
+  }
+  return disallowEmpty && !anyMatching && throwTypeError(noValidFields(validFieldNames)), 
+  res;
+}
+
+function refineCalendarDateFields(fields, calendar, allowMissingDay) {
+  const eraOrigins = getCalendarEraOrigins(calendar);
+  void 0 !== fields.year || void 0 !== fields.era && void 0 !== fields.eraYear || throwTypeError(missingYear(eraOrigins)), 
+  void 0 === fields.monthCode && void 0 === fields.month && throwTypeError("Missing month/monthCode"), 
+  allowMissingDay || void 0 !== fields.day || throwTypeError(missingField("day"));
+  const monthCodeParts = parseMonthCodeField(fields);
+  return [ resolveCalendarYear(fields, calendar), monthCodeParts ];
+}
+
+function refineMonthDayFields(fields, calendar) {
+  const isIso = calendar === isoCalendarImpl;
+  const eraOrigins = getCalendarEraOrigins(calendar);
+  void 0 === fields.day && throwTypeError(missingField("day")), isIso || void 0 === fields.month || void 0 !== fields.year || void 0 !== fields.era && void 0 !== fields.eraYear || throwTypeError(missingYear(eraOrigins));
+  const monthCodeParts = parseMonthCodeField(fields);
+  return [ void 0 !== fields.eraYear || void 0 !== fields.year ? resolveCalendarYear(fields, calendar) : void 0, monthCodeParts ];
+}
+
+function createDateTimeFromRefinedFields(isoDate, timeFields = timeFieldDefaults, calendar) {
+  const isoDateTime = combineDateAndTime(isoDate, timeFields);
+  return checkIsoDateTimeInBounds(isoDateTime), createDateTimeSlots(isoDateTime, calendar);
+}
+
+function createDateFromRefinedFields(fields, calendar, year, monthCodeParts, overflow) {
+  const month = resolveCalendarMonth(fields, calendar, year, monthCodeParts, overflow);
+  return createDateSlots(checkIsoDateInBounds(computeCalendarIsoFieldsFromParts(calendar, year, month, resolveCalendarDay(fields, calendar, year, month, overflow))), calendar);
+}
+
+function createYearMonthFromRefinedFields(fields, calendar, year, monthCodeParts, overflow) {
+  return createYearMonthFromCalendarParts(calendar, year, resolveCalendarMonth(fields, calendar, year, monthCodeParts, overflow));
+}
+
+function createMonthDayFromRefinedFields(fields, calendar, year, monthCodeParts, overflow) {
+  const isIso = calendar === isoCalendarImpl;
+  let yearMaybe = year;
+  let day;
+  let monthCodeNumber;
+  let isLeapMonth;
+  if (void 0 === yearMaybe && isIso && (yearMaybe = 1972), void 0 !== yearMaybe) {
+    isIso || checkIsoDateInBounds(computeCalendarIsoFieldsFromParts(calendar, yearMaybe, 1, 1));
+    const month = resolveCalendarMonth(fields, calendar, yearMaybe, monthCodeParts, overflow);
+    day = resolveCalendarDay(fields, calendar, yearMaybe, month, overflow), [monthCodeNumber, isLeapMonth] = computeCalendarMonthCodeParts(calendar, yearMaybe, month);
+  } else {
+    void 0 === fields.monthCode && throwTypeError("Missing month/monthCode"), [monthCodeNumber, isLeapMonth] = monthCodeParts;
+    const referenceYear = calendar ? calendar.re : 1972;
+    if (void 0 !== referenceYear) {
+      day = resolveCalendarDay(fields, calendar, referenceYear, resolveCalendarMonth(fields, calendar, referenceYear, monthCodeParts, overflow), overflow);
+    } else {
+      const constrainedDay = 0 === overflow && calendar ? calendar.ge?.(monthCodeNumber, isLeapMonth, fields.day) : void 0;
+      day = void 0 !== constrainedDay ? constrainedDay : fields.day;
+    }
+  }
+  return createMonthDayFromMonthCodeParts(calendar, monthCodeNumber, isLeapMonth, day, fields.day, overflow);
+}
+
+function createYearMonthFromCalendarParts(calendar, year, month) {
+  return createDateSlots(checkIsoYearMonthInBounds(computeCalendarIsoFieldsFromParts(calendar, year, month, 1)), calendar);
+}
+
+function createMonthDayFromCalendarParts(calendar, year, month, day) {
+  const [monthCodeNumber, isLeapMonth] = computeCalendarMonthCodeParts(calendar, year, month);
+  return createMonthDayFromMonthCodeParts(calendar, monthCodeNumber, isLeapMonth, day, day, 0);
+}
+
+function createMonthDayFromMonthCodeParts(calendar, monthCodeNumber, isLeapMonthArg, day, requestedDay, overflow) {
+  let isLeapMonth = isLeapMonthArg;
+  isLeapMonth && ((calendar && calendar.V?.[monthCodeNumber]) ?? 1 / 0) < requestedDay && (1 === overflow && throwRangeError(invalidLeapMonth), 
+  isLeapMonth = 0, day = internal_constrainToRange(requestedDay, 1, (calendar && calendar.U) ?? 1 / 0));
+  let res = calendar ? calendar.u(monthCodeNumber, Boolean(isLeapMonth), day) : computeIsoYearMonthFieldsForMonthDay(monthCodeNumber, Boolean(isLeapMonth));
+  for (;!res && 0 === overflow && day > 1; ) {
+    day--, res = calendar ? calendar.u(monthCodeNumber, Boolean(isLeapMonth), day) : computeIsoYearMonthFieldsForMonthDay(monthCodeNumber, Boolean(isLeapMonth));
+  }
+  res || throwRangeError("Cannot guess year");
+  const {year: finalYear, month: finalMonth} = res;
+  return createDateSlots(checkIsoDateInBounds(computeCalendarIsoFieldsFromParts(calendar, finalYear, finalMonth, day)), calendar);
+}
+
+function parseMonthCodeField(fields) {
+  if (void 0 !== fields.monthCode) {
+    return parseMonthCode(fields.monthCode);
+  }
+}
+
+const RawDateTimeFormat = Intl.DateTimeFormat;
+
+function formatEpochMilliToPartsRecord(intlFormat, epochMilli) {
+  epochMilli < -864e13 && throwRangeError(outOfBoundsDate);
+  const parts = intlFormat.formatToParts(epochMilli);
+  const hash = {};
+  for (const part of parts) {
+    hash[part.type] = part.value;
+  }
+  return hash;
+}
+
+const utcTimeZoneId = "UTC";
+
+const timeZonePeriodDaysByName = {
+  "El_Aaiun": 17,
+  "Tucuman": 12,
+  "Tirane": 11,
+  "Riga": 10,
+  "Simferopol": 9,
+  "Vienna": 9,
+  "Tunis": 8,
+  "Boa_Vista": 6,
+  "Fortaleza": 6,
+  "Maceio": 6,
+  "Noronha": 6,
+  "Recife": 6,
+  "Gaza": 6,
+  "Hebron": 6,
+  "DeNoronha": 6
+};
+
+const minPossibleTransitionSec = -388152e4;
+
+function formatInstantIso(refineTimeZoneString, instantSlots, options) {
+  const [timeZoneArg, roundingMode, nanoInc, subsecDigits] = refineInstantDisplayOptions(options);
+  const providedTimeZone = void 0 !== timeZoneArg;
+  return ((providedTimeZone, timeZone, epochNano, roundingMode, nanoInc, subsecDigits) => {
+    epochNano = roundBigNanoToDayOriginInc(epochNano, BigInt(nanoInc), roundingMode);
+    const offsetNano = timeZone.B(epochNano);
+    return formatIsoDateTimeFields(epochNanoToIsoDateTime(epochNano + BigInt(offsetNano)), subsecDigits) + (providedTimeZone ? formatOffsetNano(roundToMinute(offsetNano)) : "Z");
+  })(providedTimeZone, queryTimeZone(providedTimeZone ? refineTimeZoneString(timeZoneArg) : "UTC"), instantSlots.epochNanoseconds, roundingMode, nanoInc, subsecDigits);
+}
+
+function formatInstantIsoAuto(instantSlots) {
+  return formatIsoDateTimeFields(epochNanoToIsoDateTime(instantSlots.epochNanoseconds), void 0) + "Z";
+}
+
+function formatZonedDateTimeIso(zonedDateTimeSlots0, options) {
+  const displayOptions = refineZonedDateTimeDisplayOptions(options);
+  return ((calendar, timeZoneId, timeZone, epochNano, calendarDisplay, timeZoneDisplay, offsetDisplay, roundingMode, nanoInc, subsecDigits) => {
+    epochNano = roundBigNanoToDayOriginInc(epochNano, BigInt(nanoInc), roundingMode);
+    const offsetNano = timeZone.B(epochNano);
+    return formatIsoDateTimeFields(epochNanoToIsoDateTime(epochNano + BigInt(offsetNano)), subsecDigits) + formatOffsetNano(roundToMinute(offsetNano), offsetDisplay) + formatTimeZone(timeZoneId, timeZoneDisplay) + formatCalendar(calendar, calendarDisplay);
+  })(zonedDateTimeSlots0.calendar, zonedDateTimeSlots0.timeZone.id, zonedDateTimeSlots0.timeZone, zonedDateTimeSlots0.epochNanoseconds, ...displayOptions);
+}
+
+function formatZonedDateTimeIsoAuto(zonedDateTimeSlots) {
+  const calendar = zonedDateTimeSlots.calendar;
+  const timeZone = zonedDateTimeSlots.timeZone;
+  const offsetNano = timeZone.B(zonedDateTimeSlots.epochNanoseconds);
+  return formatIsoDateTimeFields(epochNanoToIsoDateTime(zonedDateTimeSlots.epochNanoseconds + BigInt(offsetNano)), void 0) + formatOffsetNano(roundToMinute(offsetNano)) + formatTimeZone(timeZone.id, 0) + (calendar === isoCalendarImpl ? "" : formatCalendarId(getCalendarSlotId(calendar), 0));
+}
+
+function formatPlainDateTimeIso(plainDateTimeSlots0, options) {
+  const displayOptions = refineDateTimeDisplayOptions(options);
+  return ((calendar, isoDateTime, calendarDisplay, roundingMode, nanoInc, subsecDigits) => formatIsoDateTimeFields(roundDateTimeToInc(isoDateTime, nanoInc, roundingMode), subsecDigits) + formatCalendar(calendar, calendarDisplay))(plainDateTimeSlots0.calendar, plainDateTimeSlots0, ...displayOptions);
+}
+
+function formatDateTimeIsoAuto(isoDateTimeSlots) {
+  const calendar = isoDateTimeSlots.calendar;
+  return formatIsoDateTimeFields(isoDateTimeSlots, void 0) + (calendar === isoCalendarImpl ? "" : formatCalendarId(getCalendarSlotId(calendar), 0));
+}
+
+function formatPlainDateIso(plainDateSlots, options) {
+  return calendar = plainDateSlots.calendar, isoDate = plainDateSlots, calendarDisplay = refineDateDisplayOptions(options), 
+  formatIsoDateFields(isoDate) + formatCalendar(calendar, calendarDisplay);
+  var calendar, isoDate, calendarDisplay;
+}
+
+function formatDateIsoAuto(plainDateSlots) {
+  return formatIsoDateFields(plainDateSlots) + (plainDateSlots.calendar === isoCalendarImpl ? "" : formatCalendarId(getCalendarSlotId(plainDateSlots.calendar), 0));
+}
+
+function formatPlainYearMonthIso(plainYearMonthSlots, options) {
+  return formatDateLikeIso(plainYearMonthSlots.calendar, formatIsoYearMonthFields, plainYearMonthSlots, refineDateDisplayOptions(options));
+}
+
+function formatYearMonthIsoAuto(plainYearMonthSlots) {
+  const calendar = plainYearMonthSlots.calendar;
+  return calendar !== isoCalendarImpl ? formatIsoDateFields(plainYearMonthSlots) + formatCalendarId(getCalendarSlotId(calendar), 0) : formatIsoYearMonthFields(plainYearMonthSlots);
+}
+
+function formatPlainMonthDayIso(plainMonthDaySlots, options) {
+  return formatDateLikeIso(plainMonthDaySlots.calendar, formatIsoMonthDayFields, plainMonthDaySlots, refineDateDisplayOptions(options));
+}
+
+function formatMonthDayIsoAuto(plainMonthDaySlots) {
+  const calendar = plainMonthDaySlots.calendar;
+  return calendar !== isoCalendarImpl ? formatIsoDateFields(plainMonthDaySlots) + formatCalendarId(getCalendarSlotId(calendar), 0) : formatIsoMonthDayFields(plainMonthDaySlots);
+}
+
+function formatDateLikeIso(calendar, formatSimple, isoDate, calendarDisplay) {
+  const showCalendar = calendarDisplay > 1 || 0 === calendarDisplay && calendar !== isoCalendarImpl;
+  return 1 === calendarDisplay ? calendar === isoCalendarImpl ? formatSimple(isoDate) : formatIsoDateFields(isoDate) : showCalendar ? formatIsoDateFields(isoDate) + formatCalendarId(getCalendarSlotId(calendar), 2 === calendarDisplay) : formatSimple(isoDate);
+}
+
+function formatPlainTimeIso(slots, options) {
+  return ((fields, roundingMode, nanoInc, subsecDigits) => formatTimeFields(roundTimeToInc(fields, nanoInc, roundingMode)[0], subsecDigits))(slots, ...refineTimeDisplayOptions(options));
+}
+
+function formatTimeIsoAuto(slots) {
+  return formatTimeFields(slots, void 0);
+}
+
+function formatDurationIso(slots, options) {
+  const [roundingMode, nanoInc, subsecDigits] = refineTimeDisplayOptions(options, 3);
+  return nanoInc > 1 && validateDurationFields(slots = {
+    ...slots,
+    ...roundDayTimeDurationByInc(slots, nanoInc, roundingMode)
+  }), formatDurationSlots(slots, subsecDigits);
+}
+
+function formatDurationIsoAuto(slots) {
+  return formatDurationSlots(slots, void 0);
+}
+
+function formatDurationSlots(durationSlots, subsecDigits) {
+  const {sign: sign} = durationSlots;
+  const abs = -1 === sign ? negateDurationFields(durationSlots) : durationSlots;
+  const {hours: hours, minutes: minutes} = abs;
+  const bigNano = durationSubMinuteToBigNano(abs);
+  const wholeSec = Number(bigNano / bigNanoInSec);
+  const subsecNano = Number(bigNano % bigNanoInSec);
+  validateDurationTimeUnit(wholeSec);
+  const subsecNanoString = formatSubsecNano(subsecNano, subsecDigits);
+  const forceSec = subsecDigits >= 0 || !sign || subsecNanoString;
+  return (sign < 0 ? "-" : "") + "P" + formatDurationFragments({
+    "Y": formatDurationNumber(abs.years),
+    "M": formatDurationNumber(abs.months),
+    "W": formatDurationNumber(abs.weeks),
+    "D": formatDurationNumber(abs.days)
+  }) + (hours || minutes || wholeSec || forceSec ? "T" + formatDurationFragments({
+    "H": formatDurationNumber(hours),
+    "M": formatDurationNumber(minutes),
+    "S": formatDurationNumber(wholeSec, forceSec) + subsecNanoString
+  }) : "");
+}
+
+function formatDurationFragments(fragObj) {
+  const parts = [];
+  for (const fragName in fragObj) {
+    const fragVal = fragObj[fragName];
+    fragVal && parts.push(fragVal, fragName);
+  }
+  return parts.join("");
+}
+
+function formatDurationNumber(n, force) {
+  if (!n && !force) {
+    return "";
+  }
+  const options = Object.create(null);
+  return options.useGrouping = 0, n.toLocaleString("fullwide", options);
+}
+
+function formatIsoDateTimeFields(isoDateTime, subsecDigits) {
+  return formatIsoDateFields(isoDateTime) + "T" + formatTimeFields(isoDateTime, subsecDigits);
+}
+
+function formatIsoDateFields(isoDate) {
+  return formatIsoYearMonthFields(isoDate) + "-" + padNumber2(isoDate.day);
+}
+
+function formatIsoYearMonthFields(isoDate) {
+  const {year: year} = isoDate;
+  return (year < 0 || year > 9999 ? getSignStr(year) + padNumber(6, Math.abs(year)) : padNumber(4, year)) + "-" + padNumber2(isoDate.month);
+}
+
+function formatIsoMonthDayFields(isoDate) {
+  return padNumber2(isoDate.month) + "-" + padNumber2(isoDate.day);
+}
+
+function formatTimeFields(timeFields, subsecDigits) {
+  const parts = [ padNumber2(timeFields.hour), padNumber2(timeFields.minute) ];
+  return -1 !== subsecDigits && parts.push(padNumber2(timeFields.second) + ((millisecond, microsecond, nanosecond, subsecDigits) => formatSubsecNano(millisecond * internal_nanoInMilli + microsecond * internal_nanoInMicro + nanosecond, subsecDigits))(timeFields.millisecond, timeFields.microsecond, timeFields.nanosecond, subsecDigits)), 
+  parts.join(":");
+}
+
+function formatOffsetNano(offsetNano, offsetDisplay = 0) {
+  if (1 === offsetDisplay) {
+    return "";
+  }
+  const [hour, nanoRemainder0] = divModFloor(Math.abs(offsetNano), internal_nanoInHour);
+  const [minute, nanoRemainder1] = divModFloor(nanoRemainder0, internal_nanoInMinute);
+  const [second, nanoRemainder2] = divModFloor(nanoRemainder1, internal_nanoInSec);
+  return getSignStr(offsetNano) + padNumber2(hour) + ":" + padNumber2(minute) + (second || nanoRemainder2 ? ":" + padNumber2(second) + formatSubsecNano(nanoRemainder2) : "");
+}
+
+function formatTimeZone(timeZoneId, timeZoneDisplay) {
+  return 1 !== timeZoneDisplay ? "[" + (2 === timeZoneDisplay ? "!" : "") + timeZoneId + "]" : "";
+}
+
+function formatCalendar(calendar, calendarDisplay) {
+  return calendarDisplay > 1 || 0 === calendarDisplay && calendar !== isoCalendarImpl ? formatCalendarId(getCalendarSlotId(calendar), 2 === calendarDisplay) : "";
+}
+
+function formatCalendarId(calendarId, isCritical) {
+  return "[" + (isCritical ? "!" : "") + "u-ca=" + calendarId + "]";
+}
+
+const trailingZerosRE = /0+$/;
+
+function formatSubsecNano(totalNano, subsecDigits) {
+  let s = padNumber(9, totalNano);
+  return s = void 0 === subsecDigits ? s.replace(trailingZerosRE, "") : s.slice(0, subsecDigits), 
+  s ? "." + s : "";
+}
+
+function getSignStr(num) {
+  return num < 0 ? "-" : "+";
+}
+
+const icuRegExp = /^(AC|AE|AG|AR|AS|BE|BS|CA|CN|CS|CT|EA|EC|IE|IS|JS|MI|NE|NS|PL|PN|PR|PS|SS|VS)T$/;
+
+const badCharactersRegExp = /[^\w\/:+-]+/;
+
+function refineTimeZoneId(rawId) {
+  return resolveTimeZoneId(requireString(rawId));
+}
+
+function resolveTimeZoneId(rawId) {
+  return resolveTimeZoneRecord(rawId).id;
+}
+
+function resolveTimeZoneRecord(rawId) {
+  const upperRawId = rawId.toUpperCase();
+  const offsetRecord = (upperRawId => {
+    const offsetNano = parseOffsetNanoMaybe(upperRawId, 1);
+    if (void 0 !== offsetNano) {
+      return {
+        id: formatOffsetNano(offsetNano),
+        Z: offsetNano,
+        m: offsetNano
+      };
+    }
+  })(upperRawId);
+  if (offsetRecord) {
+    return {
+      kind: "fixed",
+      ...offsetRecord
+    };
+  }
+  const normId = "UTC" === upperRawId ? "UTC" : (rawId => (badCharactersRegExp.test(rawId) && throwRangeError(invalidTimeZone(rawId)), 
+  icuRegExp.test(rawId) && throwRangeError("Forbidden ICU TimeZone"), rawId.toLowerCase().split("/").map((part, partI) => (part.length <= 3 || /\d/.test(part)) && !/etc|yap/.test(part) ? part.toUpperCase() : part.replace(/baja|dumont|[a-z]+/g, (a, i) => a.length <= 2 && !partI || "in" === a || "chat" === a ? a.toUpperCase() : a.length > 2 || !i ? capitalize(a).replace(/island|noronha|murdo|rivadavia|urville/, capitalize) : a)).join("/")))(rawId);
+  return queryNamedTimeZoneRecord(normId);
+}
+
+const queryNamedTimeZoneRecord = /*@__PURE__*/ memoize(normId => {
+  if ("UTC" === normId) {
+    return {
+      kind: "utc",
+      id: normId,
+      m: normId
+    };
+  }
+  const upperNormId = normId.toUpperCase();
+  const format = queryTimeZoneIntlFormat(upperNormId);
+  return {
+    kind: "named",
+    id: normId,
+    format: format,
+    m: format.resolvedOptions().timeZone
+  };
+});
+
+const queryTimeZoneIntlFormat = /*@__PURE__*/ memoize(upperNormId => new RawDateTimeFormat("en-u-hc-h23", {
+  calendar: "iso8601",
+  timeZone: upperNormId,
   era: "short",
   year: "numeric",
   month: "numeric",
   day: "numeric",
   hour: "numeric",
   minute: "numeric",
-  second: "numeric",
-  hour12: 0
-}))), Pf = /^(AC|AE|AG|AR|AS|BE|BS|CA|CN|CS|CT|EA|EC|IE|IS|JS|MI|NE|NS|PL|PN|PR|PS|SS|VS)T$/, Ff = /[^\w\/:+-]+/, Ef = /^M(\d{2})(L?)$/, Of = /*@__PURE__*/ on(createIntlCalendar), bf = /*@__PURE__*/ on((e => new en("en", {
-  calendar: e,
-  timeZone: nf,
-  era: "short",
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour12: 0
-}))), Sf = {
-  ne: nativeYearMonthFromFields,
-  fields: nativeFieldsMethod
-}, wf = {
-  ee: nativeDateFromFields,
-  fields: nativeFieldsMethod
-}, Bf = {
-  te: nativeMonthDayFromFields,
-  fields: nativeFieldsMethod
-}, Yf = {
-  P: nativeDateAdd
-}, Cf = {
-  P: nativeDateAdd,
-  h: nativeDateUntil
-}, kf = {
-  P: nativeDateAdd,
-  h: nativeDateUntil,
-  ee: nativeDateFromFields,
-  ne: nativeYearMonthFromFields,
-  te: nativeMonthDayFromFields,
-  fields: nativeFieldsMethod,
-  oe: nativeMergeFields,
-  inLeapYear: computeNativeInLeapYear,
-  monthsInYear: computeNativeMonthsInYear,
-  daysInMonth: computeNativeDaysInMonth,
-  daysInYear: computeNativeDaysInYear,
-  dayOfYear: computeNativeDayOfYear,
-  era(e) {
-    return this.$(e)[0];
-  },
-  eraYear(e) {
-    return this.$(e)[1];
-  },
-  monthCode(e) {
-    const [n, t] = this.u(e), [o, r] = this.m(n, t);
-    return sa(o, r);
-  },
-  dayOfWeek: Ha,
-  daysInWeek: fo
-}, Zf = {
-  F: noop,
-  O: computeIsoMonthsInYear,
-  U: computeIsoFieldsFromParts
-}, Rf = /*@__PURE__*/ Object.assign({}, Zf, {
-  B: computeIsoDaysInMonth
-}), zf = /*@__PURE__*/ Object.assign({}, Rf, {
-  R: computeIsoYearMonthForMonthDay
-}), Af = /*@__PURE__*/ Object.assign({}, Sf, Zf), Uf = /*@__PURE__*/ Object.assign({}, wf, zf), jf = /*@__PURE__*/ Object.assign({}, Bf, zf), qf = /*@__PURE__*/ Object.assign({}, Af, {
-  oe: nativeMergeFields
-}), Lf = /*@__PURE__*/ Object.assign({}, Uf, {
-  oe: nativeMergeFields
-}), Wf = /*@__PURE__*/ Object.assign({}, jf, {
-  oe: nativeMergeFields
-}), xf = {
-  u: computeIsoDateParts,
-  M: isoArgsToEpochMilli,
-  p: isoMonthAdd
-}, $f = /*@__PURE__*/ Object.assign({}, xf, {
-  m: computeIsoMonthCodeParts,
-  O: computeIsoMonthsInYear,
-  B: computeIsoDaysInMonth,
-  F: noop
-}), Hf = /*@__PURE__*/ Object.assign({}, Yf, $f), Gf = /*@__PURE__*/ Object.assign({}, Cf, $f, {
-  q: computeIsoMonthsInYearSpan
-}), Vf = {
-  day: computeIsoDay
-}, _f = /*@__PURE__*/ Object.assign({}, Hf, Vf), Jf = /*@__PURE__*/ Object.assign({}, Gf, Vf), Kf = {
-  u: computeIsoDateParts,
-  $: computeIsoEraParts,
-  m: computeIsoMonthCodeParts
-}, Qf = {
-  inLeapYear: computeNativeInLeapYear,
-  u: computeIsoDateParts,
-  L: computeIsoInLeapYear
-}, Xf = {
-  monthsInYear: computeNativeMonthsInYear,
-  u: computeIsoDateParts,
-  O: computeIsoMonthsInYear
-}, em = {
-  daysInMonth: computeNativeDaysInMonth,
-  u: computeIsoDateParts,
-  B: computeIsoDaysInMonth
-}, nm = {
-  daysInYear: computeNativeDaysInYear,
-  u: computeIsoDateParts,
-  G: computeIsoDaysInYear
-}, tm = {
-  dayOfYear: computeNativeDayOfYear,
-  u: computeIsoDateParts,
-  M: isoArgsToEpochMilli
-}, om = /*@__PURE__*/ Object.assign({}, tm, {
-  weekOfYear: computeNativeWeekOfYear,
-  yearOfWeek: computeNativeYearOfWeek,
-  I(e) {
-    function computeWeekShift(e) {
-      return (7 - e < n ? 7 : 0) - e;
-    }
-    function computeWeeksInYear(e) {
-      const n = computeIsoDaysInYear(l + e), t = e || 1, o = computeWeekShift(modFloor(a + n * t, 7));
-      return c = (n + (o - s) * t) / 7;
-    }
-    const n = this.id ? 1 : 4, t = Ha(e), o = this.dayOfYear(e), r = modFloor(t - 1, 7), i = o - 1, a = modFloor(r - i, 7), s = computeWeekShift(a);
-    let c, u = Math.floor((i - s) / 7) + 1, l = e.isoYear;
-    return u ? u > computeWeeksInYear(0) && (u = 1, l++) : (u = computeWeeksInYear(-1), 
-    l--), [ u, l, c ];
-  }
-}), rm = {
-  u: computeIsoDateParts,
-  m: computeIsoMonthCodeParts,
-  R: computeIsoYearMonthForMonthDay,
-  U: computeIsoFieldsFromParts
-}, im = /*@__PURE__*/ Object.assign({}, kf, om, {
-  u: computeIsoDateParts,
-  $: computeIsoEraParts,
-  m: computeIsoMonthCodeParts,
-  R: computeIsoYearMonthForMonthDay,
-  L: computeIsoInLeapYear,
-  F: noop,
-  O: computeIsoMonthsInYear,
-  q: computeIsoMonthsInYearSpan,
-  B: computeIsoDaysInMonth,
-  G: computeIsoDaysInYear,
-  U: computeIsoFieldsFromParts,
-  M: isoArgsToEpochMilli,
-  p: isoMonthAdd,
-  year(e) {
-    return e.isoYear;
-  },
-  month(e) {
-    return e.isoMonth;
-  },
-  day: computeIsoDay
-}), am = {
-  F: computeIntlLeapMonth,
-  O: computeIntlMonthsInYear,
-  U: computeIsoFieldsFromIntlParts
-}, sm = /*@__PURE__*/ Object.assign({}, am, {
-  B: computeIntlDaysInMonth
-}), cm = /*@__PURE__*/ Object.assign({}, sm, {
-  R: computeIntlYearMonthForMonthDay
-}), um = /*@__PURE__*/ Object.assign({}, Sf, am), lm = /*@__PURE__*/ Object.assign({}, wf, sm), fm = /*@__PURE__*/ Object.assign({}, Bf, cm), dm = /*@__PURE__*/ Object.assign({}, um, {
-  oe: nativeMergeFields
-}), mm = /*@__PURE__*/ Object.assign({}, lm, {
-  oe: nativeMergeFields
-}), internal_pm = /*@__PURE__*/ Object.assign({}, fm, {
-  oe: nativeMergeFields
-}), hm = {
-  u: computeIntlDateParts,
-  M: computeIntlEpochMilli,
-  p: intlMonthAdd
-}, Im = /*@__PURE__*/ Object.assign({}, hm, {
-  m: computeIntlMonthCodeParts,
-  O: computeIntlMonthsInYear,
-  B: computeIntlDaysInMonth,
-  F: computeIntlLeapMonth
-}), Dm = /*@__PURE__*/ Object.assign({}, Yf, Im), gm = /*@__PURE__*/ Object.assign({}, Cf, Im, {
-  q: computeIntlMonthsInYearSpan
-}), Tm = {
-  day: computeIntlDay
-}, Mm = /*@__PURE__*/ Object.assign({}, Dm, Tm), ym = /*@__PURE__*/ Object.assign({}, gm, Tm), Nm = {
-  u: computeIntlDateParts,
-  $: computeIntlEraParts,
-  m: computeIntlMonthCodeParts
-}, vm = {
-  inLeapYear: computeNativeInLeapYear,
-  u: computeIntlDateParts,
-  L: computeIntlInLeapYear
-}, Pm = {
-  monthsInYear: computeNativeMonthsInYear,
-  u: computeIntlDateParts,
-  O: computeIntlMonthsInYear
-}, Fm = {
-  daysInMonth: computeNativeDaysInMonth,
-  u: computeIntlDateParts,
-  B: computeIntlDaysInMonth
-}, Em = {
-  daysInYear: computeNativeDaysInYear,
-  u: computeIntlDateParts,
-  G: computeIntlDaysInYear
-}, Om = {
-  dayOfYear: computeNativeDayOfYear,
-  u: computeIntlDateParts,
-  M: computeIntlEpochMilli
-}, bm = {
-  I() {
-    return [];
-  }
-}, Sm = /*@__PURE__*/ Object.assign({}, Om, bm, {
-  weekOfYear: computeNativeWeekOfYear,
-  yearOfWeek: computeNativeYearOfWeek
-}), wm = {
-  u: computeIntlDateParts,
-  m: computeIntlMonthCodeParts,
-  R: computeIntlYearMonthForMonthDay,
-  U: computeIsoFieldsFromIntlParts
-}, Bm = /*@__PURE__*/ Object.assign({}, kf, Sm, {
-  u: computeIntlDateParts,
-  $: computeIntlEraParts,
-  m: computeIntlMonthCodeParts,
-  R: computeIntlYearMonthForMonthDay,
-  L: computeIntlInLeapYear,
-  F: computeIntlLeapMonth,
-  O: computeIntlMonthsInYear,
-  q: computeIntlMonthsInYearSpan,
-  B: computeIntlDaysInMonth,
-  G: computeIntlDaysInYear,
-  U: computeIsoFieldsFromIntlParts,
-  M: computeIntlEpochMilli,
-  p: intlMonthAdd,
-  year(e) {
-    return this._(e).year;
-  },
-  month(e) {
-    const {year: n, V: t} = this._(e), {X: o} = this.J(n);
-    return o[t] + 1;
-  },
-  day: computeIntlDay
-}), Va = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Af, um))), Aa = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Uf, lm))), _a = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(jf, fm))), Fo = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(qf, dm))), mo = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Lf, mm))), Wo = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Wf, internal_pm))), xa = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(xf, hm))), Wa = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Hf, Dm))), Ia = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Gf, gm))), za = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Vf, Tm))), Yo = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(_f, Mm))), Lo = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Jf, ym))), ra = /*@__PURE__*/ createNativeOpsCreator(Kf, Nm), ia = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Qf, vm))), ca = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(Xf, Pm))), da = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(em, Fm))), ua = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(nm, Em))), la = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(tm, Om))), $a = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(om, Sm))), ko = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeOpsCreator(rm, wm))), v = /*@__PURE__*/ createNativeOpsCreator(im, Bm), Ym = {
-  era: toStringViaPrimitive,
-  eraYear: Za,
-  year: Za,
-  month: toPositiveInteger,
-  monthCode(e) {
-    const n = toStringViaPrimitive(e);
-    return parseMonthCode(n), n;
-  },
-  day: toPositiveInteger
-}, Cm = /*@__PURE__*/ Su(p, Za), km = /*@__PURE__*/ Su(O, Ba), Zm = {
-  offset(e) {
-    const n = toStringViaPrimitive(e);
-    return parseOffsetNano(n), n;
-  }
-}, Rm = /*@__PURE__*/ Object.assign({}, Ym, Cm, km, Zm), zm = /*@__PURE__*/ gt(remapProps, p, w), Ga = /*@__PURE__*/ gt(remapProps, w, p), Am = "numeric", Um = [ "timeZoneName" ], jm = {
-  month: Am,
-  day: Am
-}, qm = {
-  year: Am,
-  month: Am
-}, Lm = /*@__PURE__*/ Object.assign({}, qm, {
-  day: Am
-}), Wm = {
-  hour: Am,
-  minute: Am,
-  second: Am
-}, xm = /*@__PURE__*/ Object.assign({}, Lm, Wm), $m = /*@__PURE__*/ Object.assign({}, xm, {
-  timeZoneName: "short"
-}), Hm = /*@__PURE__*/ Object.keys(qm), Gm = /*@__PURE__*/ Object.keys(jm), Vm = /*@__PURE__*/ Object.keys(Lm), _m = /*@__PURE__*/ Object.keys(Wm), Jm = [ "dateStyle" ], Km = /*@__PURE__*/ Hm.concat(Jm), Qm = /*@__PURE__*/ Gm.concat(Jm), Xm = /*@__PURE__*/ Vm.concat(Jm, [ "weekday" ]), ep = /*@__PURE__*/ _m.concat([ "dayPeriod", "timeStyle", "fractionalSecondDigits" ]), np = /*@__PURE__*/ Xm.concat(ep), tp = /*@__PURE__*/ Um.concat(ep), op = /*@__PURE__*/ Um.concat(Xm), rp = /*@__PURE__*/ Um.concat([ "day", "weekday" ], ep), ip = /*@__PURE__*/ Um.concat([ "year", "weekday" ], ep), ap = /*@__PURE__*/ createOptionsTransformer(np, xm), sp = /*@__PURE__*/ createOptionsTransformer(np, $m), cp = /*@__PURE__*/ createOptionsTransformer(np, xm, Um), up = /*@__PURE__*/ createOptionsTransformer(Xm, Lm, tp), lp = /*@__PURE__*/ createOptionsTransformer(ep, Wm, op), fp = /*@__PURE__*/ createOptionsTransformer(Km, qm, rp), dp = /*@__PURE__*/ createOptionsTransformer(Qm, jm, ip), mp = {}, pp = /*@__PURE__*/ computeNonBuggyIsoResolve(), Q = [ ap, I ], ot = [ sp, I, 0, (e, n) => {
-  const t = e.timeZone;
-  if (n && n.timeZone !== t) {
-    throw new RangeError(pu);
-  }
-  return t;
-} ], U = [ cp, isoToEpochMilli ], X = [ up, isoToEpochMilli ], tt = [ lp, e => isoTimeFieldsToNano(e) / internal_Ke ], et = [ fp, isoToEpochMilli, pp ], nt = [ dp, isoToEpochMilli, pp ];
-
-
-
-;// CONCATENATED MODULE: ./node_modules/temporal-polyfill/chunks/classApi.js
-function createSlotClass(i, l, s, c, u, f) {
-  function Class(...t) {
-    if (!(this instanceof Class)) {
-      throw new TypeError(a);
-    }
-    {
-      const e = l(...t);
-      un(this, e), dbg(this, e, f);
-    }
-  }
-  function bindMethod(t, e) {
-    return Object.defineProperties((function(...e) {
-      return t.call(this, getSpecificSlots(this), ...e);
-    }), r(e));
-  }
-  function getSpecificSlots(t) {
-    const e = cn(t);
-    if (!e || e.branding !== i) {
-      throw new TypeError(a);
-    }
-    return e;
-  }
-  return Object.defineProperties(Class.prototype, {
-    ...t(e(bindMethod, s)),
-    ...n(e(bindMethod, c)),
-    ...o("Temporal." + i)
-  }), Object.defineProperties(Class, {
-    ...n(u),
-    ...r(i)
-  }), [ Class, t => {
-    const e = Object.create(Class.prototype);
-    return un(e, t), dbg(e, t, f), e;
-  }, getSpecificSlots ];
-}
-
-function rejectInvalidBag(t) {
-  if (cn(t) || void 0 !== t.calendar || void 0 !== t.timeZone) {
-    throw new TypeError(i);
-  }
-  return t;
-}
-
-function dbg(t, e, n) {
-  "dbg" === dbg.name && Object.defineProperty(t, "o", {
-    value: n(e),
-    writable: 0,
-    enumerable: 0,
-    configurable: 0
-  });
-}
-
-function getCalendarIdFromBag(t) {
-  return extractCalendarIdFromBag(t) || l;
-}
-
-function extractCalendarIdFromBag(t) {
-  const {calendar: e} = t;
-  if (void 0 !== e) {
-    return refineCalendarArg(e);
-  }
-}
-
-function refineCalendarArg(t) {
-  if (s(t)) {
-    const {calendar: e} = cn(t) || {};
-    if (!e) {
-      throw new TypeError(c(t));
-    }
-    return e;
-  }
-  return (t => u(f(d(t))))(t);
-}
-
-function createCalendarGetters(t) {
-  const e = {};
-  for (const n in t) {
-    e[n] = t => {
-      const {calendar: e} = t;
-      return v(e)[n](t);
-    };
-  }
-  return e;
-}
-
-function neverValueOf() {
-  throw new TypeError(C);
-}
-
-function refineTimeZoneArg(t) {
-  if (s(t)) {
-    const {timeZone: e} = cn(t) || {};
-    if (!e) {
-      throw new TypeError(F(t));
-    }
-    return e;
-  }
-  return (t => Z(M(d(t))))(t);
-}
-
-function toDurationSlots(t) {
-  if (s(t)) {
-    const e = cn(t);
-    return e && e.branding === A ? e : q(t);
-  }
-  return R(t);
-}
-
-function refinePublicRelativeTo(t) {
-  if (void 0 !== t) {
-    if (s(t)) {
-      const e = cn(t) || {};
-      switch (e.branding) {
-       case _:
-       case G:
-        return e;
-
-       case x:
-        return W(e);
-      }
-      const n = getCalendarIdFromBag(t);
-      return {
-        ...z(refineTimeZoneArg, L, v(n), t),
-        calendar: n
-      };
-    }
-    return $(t);
-  }
-}
-
-function toPlainTimeSlots(t, e) {
-  if (s(t)) {
-    const n = cn(t) || {};
-    switch (n.branding) {
-     case ft:
-      return dt(e), n;
-
-     case x:
-      return dt(e), St(n);
-
-     case _:
-      return dt(e), mt(L, n);
-    }
-    return Tt(t, e);
-  }
-  const n = ht(t);
-  return dt(e), n;
-}
-
-function optionalToPlainTimeFields(t) {
-  return void 0 === t ? void 0 : toPlainTimeSlots(t);
-}
-
-function toPlainDateTimeSlots(t, e) {
-  if (s(t)) {
-    const n = cn(t) || {};
-    switch (n.branding) {
-     case x:
-      return dt(e), n;
-
-     case G:
-      return dt(e), jt({
-        ...n,
-        ...At
-      });
-
-     case _:
-      return dt(e), yt(L, n);
-    }
-    return Nt(v(getCalendarIdFromBag(t)), t, e);
-  }
-  const n = Bt(t);
-  return dt(e), n;
-}
-
-function toPlainMonthDaySlots(t, e) {
-  if (s(t)) {
-    const n = cn(t);
-    if (n && n.branding === qt) {
-      return dt(e), n;
-    }
-    const o = extractCalendarIdFromBag(t);
-    return Rt(v(o || l), !o, t, e);
-  }
-  const n = xt(v, t);
-  return dt(e), n;
-}
-
-function toPlainYearMonthSlots(t, e) {
-  if (s(t)) {
-    const n = cn(t);
-    return n && n.branding === Qt ? (dt(e), n) : Ut(v(getCalendarIdFromBag(t)), t, e);
-  }
-  const n = Xt(v, t);
-  return dt(e), n;
-}
-
-function toPlainDateSlots(t, e) {
-  if (s(t)) {
-    const n = cn(t) || {};
-    switch (n.branding) {
-     case G:
-      return dt(e), n;
-
-     case x:
-      return dt(e), W(n);
-
-     case _:
-      return dt(e), fe(L, n);
-    }
-    return de(v(getCalendarIdFromBag(t)), t, e);
-  }
-  const n = me(t);
-  return dt(e), n;
-}
-
-function toZonedDateTimeSlots(t, e) {
-  if (s(t)) {
-    const n = cn(t);
-    if (n && n.branding === _) {
-      return je(e), n;
-    }
-    const o = getCalendarIdFromBag(t);
-    return Ae(refineTimeZoneArg, L, v(o), o, t, e);
-  }
-  return Ne(t, e);
-}
-
-function adaptDateMethods(t) {
-  return e((t => e => t(slotsToIso(e))), t);
-}
-
-function slotsToIso(t) {
-  return he(t, L);
-}
-
-function toInstantSlots(t) {
-  if (s(t)) {
-    const e = cn(t);
-    if (e) {
-      switch (e.branding) {
-       case Re:
-        return e;
-
-       case _:
-        return internal_xe(e.epochNanoseconds);
-      }
-    }
-  }
-  return We(t);
-}
-
-function toTemporalInstant() {
-  const t = Date.prototype.valueOf.call(this);
-  return Hn(xe(Ge(_e(t), Ke)));
-}
-
-function createDateTimeFormatClass() {
-  function DateTimeFormatFunc(t, e) {
-    return new DateTimeFormatNew(t, e);
-  }
-  function DateTimeFormatNew(t, e = Object.create(null)) {
-    to.set(this, ((t, e) => {
-      const n = new en(t, e), o = n.resolvedOptions(), r = o.locale, a = nn(Object.keys(e), o), i = on(createFormatPrepperForBranding), prepFormat = (t, ...e) => {
-        if (t) {
-          if (2 !== e.length) {
-            throw new TypeError(ln);
-          }
-          for (const t of e) {
-            if (void 0 === t) {
-              throw new TypeError(ln);
-            }
-          }
-        }
-        t || void 0 !== e[0] || (e = []);
-        const o = e.map((t => cn(t) || Number(t)));
-        let l, s = 0;
-        for (const t of o) {
-          const e = "object" == typeof t ? t.branding : void 0;
-          if (s++ && e !== l) {
-            throw new TypeError(ln);
-          }
-          l = e;
-        }
-        return l ? i(l)(r, a, ...o) : [ n, ...o ];
-      };
-      return prepFormat.i = n, prepFormat;
-    })(t, e));
-  }
-  const t = en.prototype, e = Object.getOwnPropertyDescriptors(t), n = Object.getOwnPropertyDescriptors(en);
-  for (const t in e) {
-    const n = e[t], o = t.startsWith("format") && createFormatMethod(t);
-    "function" == typeof n.value ? n.value = "constructor" === t ? DateTimeFormatFunc : o || createProxiedMethod(t) : o && (n.get = function() {
-      if (!to.has(this)) {
-        throw new TypeError(a);
-      }
-      return (...t) => o.apply(this, t);
-    }, Object.defineProperties(n.get, r(`get ${t}`)));
-  }
-  return n.prototype.value = DateTimeFormatNew.prototype = Object.create({}, e), Object.defineProperties(DateTimeFormatFunc, n), 
-  DateTimeFormatFunc;
-}
-
-function createFormatMethod(t) {
-  return Object.defineProperties((function(...e) {
-    const n = to.get(this), [o, ...r] = n(t.includes("Range"), ...e);
-    return o[t](...r);
-  }), r(t));
-}
-
-function createProxiedMethod(t) {
-  return Object.defineProperties((function(...e) {
-    return to.get(this).i[t](...e);
-  }), r(t));
-}
-
-function createFormatPrepperForBranding(t) {
-  const e = vn[t];
-  if (!e) {
-    throw new TypeError(rn(t));
-  }
-  return K(e, on(an), 1);
-}
-
-
-
-const sn = /*@__PURE__*/ new WeakMap, cn = /*@__PURE__*/ sn.get.bind(sn), un = /*@__PURE__*/ sn.set.bind(sn), fn = {
-  era: m,
-  eraYear: S,
-  year: T,
-  month: h,
-  daysInMonth: h,
-  daysInYear: h,
-  inLeapYear: D,
-  monthsInYear: h
-}, dn = {
-  monthCode: d
-}, mn = {
-  day: h
-}, Sn = {
-  dayOfWeek: h,
-  dayOfYear: h,
-  weekOfYear: g,
-  yearOfWeek: S,
-  daysInWeek: h
-}, Tn = /*@__PURE__*/ createCalendarGetters(/*@__PURE__*/ Object.assign({}, fn, dn, mn, Sn)), hn = /*@__PURE__*/ createCalendarGetters({
-  ...fn,
-  ...dn
-}), Dn = /*@__PURE__*/ createCalendarGetters({
-  ...dn,
-  ...mn
-}), gn = {
-  calendarId: t => t.calendar
-}, Pn = /*@__PURE__*/ P((t => e => e[t]), O.concat("sign")), On = /*@__PURE__*/ P(((t, e) => t => t[w[e]]), p), pn = {
-  epochMilliseconds: I,
-  epochNanoseconds: b
-}, [wn, In, bn] = createSlotClass(A, j, {
-  ...Pn,
-  blank: y
-}, {
-  with: (t, e) => In(N(t, e)),
-  negated: t => In(B(t)),
-  abs: t => In(Y(t)),
-  add: (t, e, n) => In(E(refinePublicRelativeTo, v, L, 0, t, toDurationSlots(e), n)),
-  subtract: (t, e, n) => In(E(refinePublicRelativeTo, v, L, 1, t, toDurationSlots(e), n)),
-  round: (t, e) => In(V(refinePublicRelativeTo, v, L, t, e)),
-  total: (t, e) => J(refinePublicRelativeTo, v, L, t, e),
-  toLocaleString(t, e, n) {
-    return Intl.DurationFormat ? new Intl.DurationFormat(e, n).format(this) : k(t);
-  },
-  toString: k,
-  toJSON: t => k(t),
-  valueOf: neverValueOf
-}, {
-  from: t => In(toDurationSlots(t)),
-  compare: (t, e, n) => H(refinePublicRelativeTo, v, L, toDurationSlots(t), toDurationSlots(e), n)
-}, k), vn = {
-  Instant: Q,
-  PlainDateTime: U,
-  PlainDate: X,
-  PlainTime: tt,
-  PlainYearMonth: et,
-  PlainMonthDay: nt
-}, Cn = /*@__PURE__*/ K(Q), Fn = /*@__PURE__*/ K(ot), Zn = /*@__PURE__*/ K(U), Mn = /*@__PURE__*/ K(X), yn = /*@__PURE__*/ K(tt), jn = /*@__PURE__*/ K(et), An = /*@__PURE__*/ K(nt), [Nn, Bn] = createSlotClass(ft, ut, On, {
-  with(t, e, n) {
-    return Bn(rt(this, rejectInvalidBag(e), n));
-  },
-  add: (t, e) => Bn(at(0, t, toDurationSlots(e))),
-  subtract: (t, e) => Bn(at(1, t, toDurationSlots(e))),
-  until: (t, e, n) => In(it(0, t, toPlainTimeSlots(e), n)),
-  since: (t, e, n) => In(it(1, t, toPlainTimeSlots(e), n)),
-  round: (t, e) => Bn(lt(t, e)),
-  equals: (t, e) => st(t, toPlainTimeSlots(e)),
-  toLocaleString(t, e, n) {
-    const [o, r] = yn(e, n, t);
-    return o.format(r);
-  },
-  toString: ct,
-  toJSON: t => ct(t),
-  valueOf: neverValueOf
-}, {
-  from: (t, e) => Bn(toPlainTimeSlots(t, e)),
-  compare: (t, e) => Dt(toPlainTimeSlots(t), toPlainTimeSlots(e))
-}, ct), [Yn, En] = createSlotClass(x, gt(Mt, Zt), {
-  ...gn,
-  ...Tn,
-  ...On
-}, {
-  with: (t, e, n) => En(Pt(v, t, rejectInvalidBag(e), n)),
-  withCalendar: (t, e) => En(Ot(t, refineCalendarArg(e))),
-  withPlainTime: (t, e) => En(pt(t, optionalToPlainTimeFields(e))),
-  add: (t, e, n) => En(wt(v, 0, t, toDurationSlots(e), n)),
-  subtract: (t, e, n) => En(wt(v, 1, t, toDurationSlots(e), n)),
-  until: (t, e, n) => In(It(v, 0, t, toPlainDateTimeSlots(e), n)),
-  since: (t, e, n) => In(It(v, 1, t, toPlainDateTimeSlots(e), n)),
-  round: (t, e) => En(bt(t, e)),
-  equals: (t, e) => vt(t, toPlainDateTimeSlots(e)),
-  toZonedDateTime: (t, e, n) => zn(Ct(L, t, refineTimeZoneArg(e), n)),
-  toPlainDate: t => Wn(W(t)),
-  toPlainTime: t => Bn(St(t)),
-  toLocaleString(t, e, n) {
-    const [o, r] = Zn(e, n, t);
-    return o.format(r);
-  },
-  toString: Ft,
-  toJSON: t => Ft(t),
-  valueOf: neverValueOf
-}, {
-  from: (t, e) => En(toPlainDateTimeSlots(t, e)),
-  compare: (t, e) => Yt(toPlainDateTimeSlots(t), toPlainDateTimeSlots(e))
-}, Ft), [Ln, Vn, Jn] = createSlotClass(qt, gt(kt, Zt), {
-  ...gn,
-  ...Dn
-}, {
-  with: (t, e, n) => Vn(Et(v, t, rejectInvalidBag(e), n)),
-  equals: (t, e) => Lt(t, toPlainMonthDaySlots(e)),
-  toPlainDate(t, e) {
-    return Wn(Vt(v, t, this, e));
-  },
-  toLocaleString(t, e, n) {
-    const [o, r] = An(e, n, t);
-    return o.format(r);
-  },
-  toString: Jt,
-  toJSON: t => Jt(t),
-  valueOf: neverValueOf
-}, {
-  from: (t, e) => Vn(toPlainMonthDaySlots(t, e))
-}, Jt), [kn, qn, Rn] = createSlotClass(Qt, gt(Kt, Zt), {
-  ...gn,
-  ...hn
-}, {
-  with: (t, e, n) => qn(Wt(v, t, rejectInvalidBag(e), n)),
-  add: (t, e, n) => qn(Gt(v, 0, t, toDurationSlots(e), n)),
-  subtract: (t, e, n) => qn(Gt(v, 1, t, toDurationSlots(e), n)),
-  until: (t, e, n) => In(_t(v, 0, t, toPlainYearMonthSlots(e), n)),
-  since: (t, e, n) => In(_t(v, 1, t, toPlainYearMonthSlots(e), n)),
-  equals: (t, e) => zt(t, toPlainYearMonthSlots(e)),
-  toPlainDate(t, e) {
-    return Wn($t(v, t, this, e));
-  },
-  toLocaleString(t, e, n) {
-    const [o, r] = jn(e, n, t);
-    return o.format(r);
-  },
-  toString: Ht,
-  toJSON: t => Ht(t),
-  valueOf: neverValueOf
-}, {
-  from: (t, e) => qn(toPlainYearMonthSlots(t, e)),
-  compare: (t, e) => te(toPlainYearMonthSlots(t), toPlainYearMonthSlots(e))
-}, Ht), [xn, Wn, Gn] = createSlotClass(G, gt(ue, Zt), {
-  ...gn,
-  ...Tn
-}, {
-  with: (t, e, n) => Wn(ee(v, t, rejectInvalidBag(e), n)),
-  withCalendar: (t, e) => Wn(Ot(t, refineCalendarArg(e))),
-  add: (t, e, n) => Wn(ne(v, 0, t, toDurationSlots(e), n)),
-  subtract: (t, e, n) => Wn(ne(v, 1, t, toDurationSlots(e), n)),
-  until: (t, e, n) => In(oe(v, 0, t, toPlainDateSlots(e), n)),
-  since: (t, e, n) => In(oe(v, 1, t, toPlainDateSlots(e), n)),
-  equals: (t, e) => re(t, toPlainDateSlots(e)),
-  toZonedDateTime(t, e) {
-    const n = s(e) ? e : {
-      timeZone: e
-    };
-    return zn(ae(refineTimeZoneArg, toPlainTimeSlots, L, t, n));
-  },
-  toPlainDateTime: (t, e) => En(ie(t, optionalToPlainTimeFields(e))),
-  toPlainYearMonth(t) {
-    return qn(le(v, t, this));
-  },
-  toPlainMonthDay(t) {
-    return Vn(se(v, t, this));
-  },
-  toLocaleString(t, e, n) {
-    const [o, r] = Mn(e, n, t);
-    return o.format(r);
-  },
-  toString: ce,
-  toJSON: t => ce(t),
-  valueOf: neverValueOf
-}, {
-  from: (t, e) => Wn(toPlainDateSlots(t, e)),
-  compare: (t, e) => te(toPlainDateSlots(t), toPlainDateSlots(e))
-}, ce), [_n, zn] = createSlotClass(_, gt(ye, Zt, Me), {
-  ...pn,
-  ...gn,
-  ...adaptDateMethods(Tn),
-  ...adaptDateMethods(On),
-  offset: t => Se(slotsToIso(t).offsetNanoseconds),
-  offsetNanoseconds: t => slotsToIso(t).offsetNanoseconds,
-  timeZoneId: t => t.timeZone,
-  hoursInDay: t => Te(L, t)
-}, {
-  with: (t, e, n) => zn(De(v, L, t, rejectInvalidBag(e), n)),
-  withCalendar: (t, e) => zn(Ot(t, refineCalendarArg(e))),
-  withTimeZone: (t, e) => zn(ge(t, refineTimeZoneArg(e))),
-  withPlainTime: (t, e) => zn(Pe(L, t, optionalToPlainTimeFields(e))),
-  add: (t, e, n) => zn(Oe(v, L, 0, t, toDurationSlots(e), n)),
-  subtract: (t, e, n) => zn(Oe(v, L, 1, t, toDurationSlots(e), n)),
-  until: (t, e, n) => In(pe(we(v, L, 0, t, toZonedDateTimeSlots(e), n))),
-  since: (t, e, n) => In(pe(we(v, L, 1, t, toZonedDateTimeSlots(e), n))),
-  round: (t, e) => zn(Ie(L, t, e)),
-  startOfDay: t => zn(be(L, t)),
-  equals: (t, e) => ve(t, toZonedDateTimeSlots(e)),
-  toInstant: t => Hn(Ce(t)),
-  toPlainDateTime: t => En(yt(L, t)),
-  toPlainDate: t => Wn(fe(L, t)),
-  toPlainTime: t => Bn(mt(L, t)),
-  toLocaleString(t, e, n = {}) {
-    const [o, r] = Fn(e, n, t);
-    return o.format(r);
-  },
-  toString: (t, e) => Fe(L, t, e),
-  toJSON: t => Fe(L, t),
-  valueOf: neverValueOf,
-  getTimeZoneTransition(t, e) {
-    const {timeZone: n, epochNanoseconds: o} = t, r = Ze(e), a = L(n).l(o, r);
-    return a ? zn({
-      ...t,
-      epochNanoseconds: a
-    }) : null;
-  }
-}, {
-  from: (t, e) => zn(toZonedDateTimeSlots(t, e)),
-  compare: (t, e) => Be(toZonedDateTimeSlots(t), toZonedDateTimeSlots(e))
-}, (t => Fe(L, t))), [$n, Hn, Kn] = createSlotClass(Re, qe, pn, {
-  add: (t, e) => Hn(Ye(0, t, toDurationSlots(e))),
-  subtract: (t, e) => Hn(Ye(1, t, toDurationSlots(e))),
-  until: (t, e, n) => In(Ee(0, t, toInstantSlots(e), n)),
-  since: (t, e, n) => In(Ee(1, t, toInstantSlots(e), n)),
-  round: (t, e) => Hn(Le(t, e)),
-  equals: (t, e) => Ve(t, toInstantSlots(e)),
-  toZonedDateTimeISO: (t, e) => zn(Je(t, refineTimeZoneArg(e))),
-  toLocaleString(t, e, n) {
-    const [o, r] = Cn(e, n, t);
-    return o.format(r);
-  },
-  toString: (t, e) => ke(refineTimeZoneArg, L, t, e),
-  toJSON: t => ke(refineTimeZoneArg, L, t),
-  valueOf: neverValueOf
-}, {
-  from: t => Hn(toInstantSlots(t)),
-  fromEpochMilliseconds: t => Hn(ze(t)),
-  fromEpochNanoseconds: t => Hn($e(t)),
-  compare: (t, e) => He(toInstantSlots(t), toInstantSlots(e))
-}, (t => ke(refineTimeZoneArg, L, t))), Qn = /*@__PURE__*/ Object.defineProperties({}, {
-  ...o("Temporal.Now"),
-  ...n({
-    timeZoneId: () => Qe(),
-    instant: () => Hn(internal_xe(Ue())),
-    zonedDateTimeISO: (t = Qe()) => zn(Xe(Ue(), refineTimeZoneArg(t), l)),
-    plainDateTimeISO: (t = Qe()) => En(jt(tn(L(refineTimeZoneArg(t))), l)),
-    plainDateISO: (t = Qe()) => Wn(W(tn(L(refineTimeZoneArg(t))), l)),
-    plainTimeISO: (t = Qe()) => Bn(St(tn(L(refineTimeZoneArg(t)))))
-  })
-}), Un = /*@__PURE__*/ Object.defineProperties({}, {
-  ...o("Temporal"),
-  ...n({
-    PlainYearMonth: kn,
-    PlainMonthDay: Ln,
-    PlainDate: xn,
-    PlainTime: Nn,
-    PlainDateTime: Yn,
-    ZonedDateTime: _n,
-    Instant: $n,
-    Duration: wn,
-    Now: Qn
-  })
-}), Xn = /*@__PURE__*/ createDateTimeFormatClass(), to = /*@__PURE__*/ new WeakMap, eo = /*@__PURE__*/ Object.defineProperties(Object.create(Intl), n({
-  DateTimeFormat: Xn
+  second: "numeric"
 }));
 
+function queryTimeZone(rawTimeZoneId) {
+  const record = resolveTimeZoneRecord(rawTimeZoneId);
+  return queryTimeZoneRecord(record.id, record);
+}
+
+const queryTimeZoneRecord = /*@__PURE__*/ memoize((normTimeZoneId, record) => "named" === record.kind ? new IntlTimeZone(normTimeZoneId, record.m, record.format) : new FixedTimeZone(normTimeZoneId, record.m, "fixed" === record.kind ? record.Z : 0));
+
+class FixedTimeZone {
+  constructor(id, compareKey, offsetNano) {
+    this.id = id, this.m = compareKey, this.Z = offsetNano;
+  }
+  B() {
+    return this.Z;
+  }
+  R(isoDateTime) {
+    return [ isoDateTimeAndOffsetToEpochNano(isoDateTime, this.Z) ];
+  }
+  C() {}
+}
+
+class IntlTimeZone {
+  constructor(id, compareKey, format) {
+    this.id = id, this.m = compareKey, this.oe = ((computeOffsetSec, periodDays) => {
+      const getSample = memoize(computeOffsetSec);
+      const getSplit = memoize(createSplitTuple);
+      const periodSec = 86400 * periodDays;
+      function getOffsetSec(epochSec) {
+        const [startEpochSec, endEpochSec] = computePeriod(epochSec, periodSec);
+        const clampedStartEpochSec = clampIntlSampleEpochSec(startEpochSec);
+        const clampedEndEpochSec = clampIntlSampleEpochSec(endEpochSec);
+        const startOffsetSec = getSample(clampedStartEpochSec);
+        const endOffsetSec = getSample(clampedEndEpochSec);
+        return startOffsetSec === endOffsetSec ? startOffsetSec : pinch(getSplit(clampedStartEpochSec, clampedEndEpochSec), startOffsetSec, endOffsetSec, epochSec);
+      }
+      function pinch(split, startOffsetSec, endOffsetSec, forEpochSec) {
+        let offsetSec;
+        let splitDurSec;
+        for (;(void 0 === forEpochSec || void 0 === (offsetSec = forEpochSec < split[0] ? startOffsetSec : forEpochSec >= split[1] ? endOffsetSec : void 0)) && (splitDurSec = split[1] - split[0]); ) {
+          const middleEpochSec = split[0] + Math.floor(splitDurSec / 2);
+          computeOffsetSec(middleEpochSec) === endOffsetSec ? split[1] = middleEpochSec : split[0] = middleEpochSec + 1;
+        }
+        return offsetSec;
+      }
+      return {
+        Ae(zonedEpochSec) {
+          const wideOffsetSec0 = getOffsetSec(zonedEpochSec - 86400);
+          const wideOffsetSec1 = getOffsetSec(zonedEpochSec + 86400);
+          const wideUtcEpochSec0 = zonedEpochSec - wideOffsetSec0;
+          const wideUtcEpochSec1 = zonedEpochSec - wideOffsetSec1;
+          if (wideOffsetSec0 === wideOffsetSec1) {
+            return [ wideUtcEpochSec0 ];
+          }
+          const narrowOffsetSec0 = getOffsetSec(wideUtcEpochSec0);
+          return narrowOffsetSec0 === getOffsetSec(wideUtcEpochSec1) ? [ zonedEpochSec - narrowOffsetSec0 ] : wideOffsetSec0 > wideOffsetSec1 ? [ wideUtcEpochSec0, wideUtcEpochSec1 ] : [];
+        },
+        ze: getOffsetSec,
+        C: function getTransition(epochSec, direction) {
+          if (direction > 0 && epochSec >= 864e10) {
+            return;
+          }
+          if (direction < 0) {
+            if (epochSec <= minPossibleTransitionSec) {
+              return;
+            }
+            const lookaheadEpochSec = getCurrentEpochSec() + 94867200;
+            if (epochSec > lookaheadEpochSec) {
+              return getTransition(lookaheadEpochSec, -1);
+            }
+          }
+          const searchEpochSec = direction > 0 ? Math.max(epochSec, minPossibleTransitionSec) : epochSec;
+          let [startEpochSec, endEpochSec] = computePeriod(searchEpochSec, periodSec);
+          const inc = periodSec * direction;
+          const searchLimit = direction > 0 ? Math.max(epochSec, getCurrentEpochSec()) + 94867200 : minPossibleTransitionSec;
+          const inBounds = () => direction < 0 ? endEpochSec > searchLimit : startEpochSec < searchLimit;
+          for (;inBounds(); ) {
+            const clampedStartEpochSec = clampIntlSampleEpochSec(startEpochSec);
+            const clampedEndEpochSec = clampIntlSampleEpochSec(endEpochSec);
+            const startOffsetSec = getSample(clampedStartEpochSec);
+            const endOffsetSec = getSample(clampedEndEpochSec);
+            if (startOffsetSec !== endOffsetSec) {
+              const split = getSplit(clampedStartEpochSec, clampedEndEpochSec);
+              pinch(split, startOffsetSec, endOffsetSec);
+              const transitionEpochSec = split[0];
+              if ((compareNumbers(transitionEpochSec, epochSec) || 1) === direction) {
+                return transitionEpochSec;
+              }
+            }
+            startEpochSec += inc, endEpochSec += inc;
+          }
+        }
+      };
+    })((format => epochSec => {
+      const intlParts = formatEpochMilliToPartsRecord(format, 1e3 * epochSec);
+      return 86400 * isoPartsToEpochDays((intlParts => {
+        const relatedYear = intlParts.relatedYear;
+        if (void 0 !== relatedYear) {
+          return parseInt(relatedYear);
+        }
+        const year = parseInt(intlParts.year);
+        return void 0 !== intlParts.era && "bce" === normalizeEraName(intlParts.era) ? 1 - year : year;
+      })(intlParts), parseInt(intlParts.month), parseInt(intlParts.day)) + 3600 * parseInt(intlParts.hour) + 60 * parseInt(intlParts.minute) + parseInt(intlParts.second) - epochSec;
+    })(format), (timeZoneId => {
+      const timeZoneName = timeZoneId.split("/").pop();
+      return timeZonePeriodDaysByName[timeZoneName] || 60;
+    })(id));
+  }
+  B(epochNano) {
+    return this.oe.ze((epochNano => epochNanoToSecMod(epochNano)[0])(epochNano)) * internal_nanoInSec;
+  }
+  R(isoDateTime) {
+    const zonedEpochSec = 86400 * isoDateToEpochDays(isoDateTime) + timeFieldsToSec(isoDateTime);
+    const subsecNano = timeFieldsToSubsecNano(isoDateTime);
+    return this.oe.Ae(zonedEpochSec).map(epochSec => checkEpochNanoInBounds(BigInt(epochSec) * bigNanoInSec + BigInt(subsecNano)));
+  }
+  C(epochNano, direction) {
+    const [epochSec, subsecNano] = epochNanoToSecMod(epochNano);
+    const resEpochSec = this.oe.C(epochSec + (direction > 0 || subsecNano ? 1 : 0), direction);
+    if (void 0 !== resEpochSec) {
+      return BigInt(resEpochSec) * bigNanoInSec;
+    }
+  }
+}
+
+function getCurrentEpochSec() {
+  return Math.floor(Date.now() / 1e3);
+}
+
+function createSplitTuple(startEpochSec, endEpochSec) {
+  return [ startEpochSec, endEpochSec ];
+}
+
+function computePeriod(epochSec, periodSec) {
+  const startEpochSec = Math.floor(epochSec / periodSec) * periodSec;
+  return [ startEpochSec, startEpochSec + periodSec ];
+}
+
+function clampIntlSampleEpochSec(epochSec) {
+  return internal_constrainToRange(epochSec, -1e10, 864e10);
+}
+
+function refineMaybeZonedDateTimeObjectLike(refineTimeZoneString, calendar, bag) {
+  const fields = readAndRefineBagFields(bag, getCalendarFieldNames(calendar, dateTimeAndZoneFieldNamesAlpha, dateTimeAndZoneFieldNamesWithEraAlpha), zonedDateTimeFieldRefiners, [], 0);
+  const isZoned = void 0 !== fields.timeZone;
+  const [year, monthCodeParts] = refineCalendarDateFields(fields, calendar);
+  const isoDate = createDateFromRefinedFields(fields, calendar, year, monthCodeParts, 0);
+  if (isZoned) {
+    const timeFields = resolveTimeFields(fields);
+    const timeZone = queryTimeZone(refineTimeZoneString(fields.timeZone));
+    return {
+      epochNanoseconds: getMatchingInstantFor(timeZone, combineDateAndTime(isoDate, timeFields), fields.offset),
+      timeZone: timeZone,
+      calendar: calendar
+    };
+  }
+  return isoDate;
+}
+
+function refineZonedDateTimeObjectLike(refineTimeZoneString, calendar, bag, options) {
+  const fields = readAndRefineBagFields(bag, getCalendarFieldNames(calendar, dateTimeAndZoneFieldNamesAlpha, dateTimeAndZoneFieldNamesWithEraAlpha), zonedDateTimeFieldRefiners, timeZoneFieldNames, 0);
+  const timeZoneId = refineTimeZoneString(fields.timeZone);
+  const [year, monthCodeParts] = refineCalendarDateFields(fields, calendar);
+  const [overflow, offsetDisambig, epochDisambig] = refineZonedFieldOptions(options);
+  const isoDate = createDateFromRefinedFields(fields, calendar, year, monthCodeParts, overflow);
+  const timeFields = resolveTimeFields(fields, overflow);
+  const timeZone = queryTimeZone(timeZoneId);
+  return createZonedEpochNanoSlots(getMatchingInstantFor(timeZone, combineDateAndTime(isoDate, timeFields), fields.offset, offsetDisambig, epochDisambig), timeZone, calendar);
+}
+
+function refinePlainDateTimeObjectLike(calendar, bag, options) {
+  const fields = readAndRefineBagFields(bag, getCalendarFieldNames(calendar, dateTimeFieldNamesAlpha, dateTimeFieldNamesWithEraAlpha), dateTimeFieldRefiners, [], 0);
+  const [year, monthCodeParts] = refineCalendarDateFields(fields, calendar);
+  const overflow = options_refineOverflowOptions(options);
+  return createDateTimeFromRefinedFields(createDateFromRefinedFields(fields, calendar, year, monthCodeParts, overflow), resolveTimeFields(fields, overflow), calendar);
+}
+
+function refinePlainDateObjectLike(calendar, bag, options, requireFields = []) {
+  const fields = readAndRefineBagFields(bag, getCalendarFieldNames(calendar, dateFieldNamesAlpha, dateFieldNamesWithEraAlpha), dateFieldRefiners, requireFields);
+  const [year, monthCodeParts] = refineCalendarDateFields(fields, calendar);
+  return createDateFromRefinedFields(fields, calendar, year, monthCodeParts, options_refineOverflowOptions(options));
+}
+
+function refinePlainYearMonthObjectLike(calendar, bag, options, requireFields) {
+  const fields = readAndRefineBagFields(bag, getCalendarFieldNames(calendar, yearMonthFieldNamesAlpha, yearMonthFieldNamesWithEraAlpha), dateFieldRefiners, requireFields);
+  const [year, monthCodeParts] = refineCalendarDateFields(fields, calendar, 1);
+  return createYearMonthFromRefinedFields(fields, calendar, year, monthCodeParts, options_refineOverflowOptions(options));
+}
+
+function refinePlainMonthDayObjectLike(calendar, calendarAbsent, bag, options) {
+  const fields = readAndRefineBagFields(bag, getCalendarFieldNames(calendar, dateFieldNamesAlpha, dateFieldNamesWithEraAlpha), dateFieldRefiners, dayFieldNamesAsc, 0);
+  calendarAbsent && void 0 !== fields.month && void 0 === fields.monthCode && void 0 === fields.year && (fields.year = 1972);
+  const [year, monthCodeParts] = refineMonthDayFields(fields, calendar);
+  return createMonthDayFromRefinedFields(fields, calendar, year, monthCodeParts, options_refineOverflowOptions(options));
+}
+
+function refinePlainTimeObjectLike(bag, options) {
+  return resolveTimeFields(readAndRefineBagFields(bag, timeFieldNamesAlpha, timeFieldRefiners, [], 1), options_refineOverflowOptions(options));
+}
+
+function refineDurationObjectLike(bag) {
+  const durationFields = readAndRefineBagFields(bag, durationFieldNamesAlpha, durationFieldRefiners);
+  return createDurationSlots(validateDurationFields({
+    ...durationFieldDefaults,
+    ...durationFields
+  }));
+}
+
+function throwFailedParse(s) {
+  throwRangeError(failedParse(s));
+}
+
+function parseInstant(s) {
+  const organized = parseDateTimeLike(s = requireString(toPrimitiveWithStringHint(s)));
+  let offsetNano;
+  return organized || throwFailedParse(s), organized.F ? offsetNano = 0 : organized.offset ? offsetNano = parseOffsetNano(organized.offset) : throwFailedParse(s), 
+  organized.timeZoneId && parseOffsetNanoMaybe(organized.timeZoneId, 1), validateIsoDateTimeFields(organized), 
+  createEpochNanoSlots(isoDateTimeAndOffsetToEpochNano(organized, offsetNano));
+}
+
+function parseRelativeToSlots(s, resolveCalendar) {
+  const organized = parseDateTimeLike(requireString(s));
+  return organized || throwFailedParse(s), organized.timeZoneId ? finalizeZonedDateTime(organized, resolveCalendar, void 0) : (organized.F && throwFailedParse(s), 
+  finalizeDate(organized, resolveCalendar));
+}
+
+function parseZonedDateTime(s, resolveCalendar, options) {
+  const organized = parseDateTimeLike(requireString(s));
+  return organized && organized.timeZoneId || throwFailedParse(s), finalizeZonedDateTime(organized, resolveCalendar, options);
+}
+
+function parsePlainDateTime(s, resolveCalendar) {
+  const organized = parseDateTimeLike(requireString(s));
+  return organized && !organized.F || throwFailedParse(s), finalizeDateTime(organized, resolveCalendar);
+}
+
+function parsePlainDate(s, resolveCalendar) {
+  const slots = finalizeDateLike(parsePlainDateLike(requireString(s)), void 0, resolveCalendar);
+  return createDateSlots(slots, slots.calendar);
+}
+
+function parsePlainYearMonth(s, resolveCalendar) {
+  const organized = parseYearMonthOnly(requireString(s));
+  if (organized) {
+    return requireIsoCalendar(organized), createDateSlots(checkIsoYearMonthInBounds(validateIsoDateFields(organized)), resolveCalendar(organized.calendarId));
+  }
+  const dateSlots = finalizeDateLike(parsePlainDateLike(s), projectIsoYearMonthDate, resolveCalendar);
+  const {calendar: calendar} = dateSlots;
+  return createDateSlots(moveToStartOfMonth(calendar, dateSlots), calendar);
+}
+
+function requireIsoCalendar(organized) {
+  "iso8601" !== organized.calendarId && throwRangeError(invalidSubstring(organized.calendarId));
+}
+
+function parsePlainMonthDay(s, resolveCalendar) {
+  const organized = parseMonthDayOnly(requireString(s));
+  if (organized) {
+    return requireIsoCalendar(organized), createDateSlots(validateIsoDateFields(organized), resolveCalendar(organized.calendarId));
+  }
+  const dateSlots = finalizeDateLike(parsePlainDateLike(s), projectIsoMonthDayDate, resolveCalendar);
+  const {calendar: calendar} = dateSlots;
+  const {year: origYear, month: origMonth, day: day} = computeCalendarDateFields(calendar, dateSlots);
+  const [monthCodeNumber, isLeapMonth] = computeCalendarMonthCodeParts(calendar, origYear, origMonth);
+  const {year: year, month: month} = ((calendar, monthCodeNumber, isLeapMonth, day) => {
+    const yearMonthFields = calendar ? calendar.u(monthCodeNumber, isLeapMonth, day) : computeIsoYearMonthFieldsForMonthDay(monthCodeNumber, isLeapMonth);
+    return yearMonthFields || throwRangeError("Cannot guess year"), yearMonthFields;
+  })(calendar, monthCodeNumber, isLeapMonth, day);
+  return createDateSlots(checkIsoDateInBounds(computeCalendarIsoFieldsFromParts(calendar, year, month, day)), calendar);
+}
+
+function parsePlainTime(s) {
+  let organized = (s => {
+    const parts = parseTimeOnlyParts(s);
+    return parts ? (organizeAnnotationParts(parts[13]), organizeTimeParts(parts, 1)) : void 0;
+  })(s = requireString(s));
+  if (!organized) {
+    const dateTime = parseDateTimeLike(s);
+    dateTime && dateTime.te || throwFailedParse(s), dateTime.F && throwRangeError(invalidSubstring("Z")), 
+    requireIsoCalendar(dateTime), organized = dateTime;
+  }
+  let altParsed;
+  return (altParsed = parseYearMonthOnly(s)) && isIsoDateFieldsValid(altParsed) && throwFailedParse(s), 
+  (altParsed = parseMonthDayOnly(s)) && isIsoDateFieldsValid(altParsed) && throwFailedParse(s), 
+  createTimeSlots(validateTimeFields(organized));
+}
+
+function parseDuration(s) {
+  const parts = durationRegExp.exec(requireString(s));
+  return parts || throwFailedParse(s), createDurationSlots(validateDurationFields((parts => {
+    let hasAny = 0;
+    let hasAnyFrac = 0;
+    let leftoverNano = 0;
+    let durationFields = {
+      years: parseUnit(parts[2]),
+      months: parseUnit(parts[3]),
+      weeks: parseUnit(parts[4]),
+      days: parseUnit(parts[5]),
+      hours: parseUnit(parts[6], parts[7], 5),
+      minutes: parseUnit(parts[8], parts[9], 4),
+      seconds: parseUnit(parts[10], parts[11], 3),
+      ...nanoToGivenFields(leftoverNano, 2, durationFieldNamesAsc)
+    };
+    return hasAny || throwRangeError(noValidFields(durationFieldNamesAsc)), parseSign(parts[1]) < 0 && (durationFields = negateDurationFields(durationFields)), 
+    durationFields;
+    function parseUnit(wholeStr, fracStr, timeUnit) {
+      let leftoverUnits = 0;
+      let wholeUnits = 0;
+      return timeUnit && ([leftoverUnits, leftoverNano] = divModFloor(leftoverNano, unitNanoMap[timeUnit])), 
+      void 0 !== wholeStr && (hasAnyFrac && throwRangeError(invalidSubstring(wholeStr)), 
+      wholeUnits = (s => {
+        const n = parseInt(s);
+        return Number.isFinite(n) || throwRangeError(invalidSubstring(s)), n;
+      })(wholeStr), hasAny = 1, fracStr && (leftoverNano = parseSubsecNano(fracStr) * (unitNanoMap[timeUnit] / internal_nanoInSec), 
+      hasAnyFrac = 1)), leftoverUnits + wholeUnits;
+    }
+  })(parts)));
+}
+
+function parseCalendarId(s) {
+  const res = parseDateTimeLike(s) || parseYearMonthOnly(s) || parseMonthDayOnly(s);
+  if (res) {
+    return res.calendarId;
+  }
+  const timeParts = parseTimeOnlyParts(s);
+  return timeParts ? organizeAnnotationParts(timeParts[13]).calendarId : s;
+}
+
+function parseTimeZoneId(s) {
+  const parsed = parseDateTimeLike(s);
+  return parsed && (parsed.timeZoneId || parsed.F && "UTC" || parsed.offset) || s;
+}
+
+function parsePlainDateLike(s) {
+  const organized = parseDateTimeLike(s);
+  return organized && !organized.F || throwFailedParse(s), organized;
+}
+
+function finalizeDateLike(organized, isoDateProjector, resolveCalendar) {
+  return isoDateProjector && "iso8601" === organized.calendarId ? (validateIsoDateFields(organized), 
+  organized.te && validateTimeFields(organized), finalizeDate(isoDateProjector(organized), resolveCalendar)) : organized.te ? finalizeDateTime(organized, resolveCalendar) : finalizeDate(organized, resolveCalendar);
+}
+
+function projectIsoYearMonthDate(organized) {
+  const day = 12 * organized.year + organized.month === isoYearMonthIndexMin ? 20 : 1;
+  return {
+    ...organized,
+    day: day
+  };
+}
+
+function projectIsoMonthDayDate(organized) {
+  return {
+    ...organized,
+    year: 1972
+  };
+}
+
+function finalizeZonedDateTime(organized, resolveCalendar, options) {
+  const timeZone = queryTimeZone(resolveTimeZoneId(organized.timeZoneId));
+  let epochNano;
+  if (validateIsoDateTimeFields(organized), organized.te) {
+    const offsetNano = organized.offset ? parseOffsetNano(organized.offset) : void 0;
+    const [, offsetDisambig, epochDisambig] = refineZonedFieldOptions(options);
+    epochNano = getMatchingInstantFor(timeZone, organized, offsetNano, offsetDisambig, epochDisambig, !(timeZone.Z || void 0 === organized.offset || (offset = organized.offset, 
+    offset.replace(/\D/g, "").length > 4)), organized.F);
+  } else {
+    refineZonedFieldOptions(options), epochNano = getStartOfDayInstantFor(timeZone, organized);
+  }
+  var offset;
+  return checkEpochNanoInBounds(epochNano), createZonedEpochNanoSlots(epochNano, timeZone, resolveCalendar(organized.calendarId));
+}
+
+function finalizeDateTime(organized, resolveCalendar) {
+  return validateIsoDateTimeFields(organized), checkIsoDateTimeInBounds(organized), 
+  {
+    ...combineDateAndTime(organized, organized),
+    calendar: resolveCalendar(organized.calendarId)
+  };
+}
+
+function finalizeDate(organized, resolveCalendar) {
+  return validateIsoDateFields(organized), checkIsoDateInBounds(organized), {
+    calendar: resolveCalendar(organized.calendarId),
+    year: organized.year,
+    month: organized.month,
+    day: organized.day
+  };
+}
+
+function timeRegExpStr(separatorIndex) {
+  return `(\\d{2})(?:(:?)(\\d{2})(?:\\${separatorIndex}(\\d{2})(?:[.,](\\d{1,9}))?)?)?`;
+}
+
+const dateTimeRegExpStr = "(?:(?:([+-])(\\d{6}))|(\\d{4}))(-?)(\\d{2})\\4(\\d{2})(?:[T ]" + timeRegExpStr(8) + "(Z|([+-])" + timeRegExpStr(15) + ")?)?";
+
+const yearMonthRegExp = /*@__PURE__*/ createRegExp("(?:(?:([+-])(\\d{6}))|(\\d{4}))-?(\\d{2})((?:\\[(!?)([^\\]]*)\\]){0,9})");
+
+const monthDayRegExp = /*@__PURE__*/ createRegExp("(?:--)?(\\d{2})-?(\\d{2})((?:\\[(!?)([^\\]]*)\\]){0,9})");
+
+const dateTimeRegExp = /*@__PURE__*/ createRegExp(dateTimeRegExpStr + "((?:\\[(!?)([^\\]]*)\\]){0,9})");
+
+const timeRegExp = /*@__PURE__*/ createRegExp("T?" + timeRegExpStr(2) + `(([+-])${timeRegExpStr(9)})?((?:\\[(!?)([^\\]]*)\\]){0,9})`);
+
+const annotationRegExp = /*@__PURE__*/ new RegExp("\\[(!?)([^\\]]*)\\]", "g");
+
+const durationRegExp = /*@__PURE__*/ createRegExp("([+-])?P(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(?:T(?!$)(?:(\\d+)(?:[.,](\\d{1,9}))?H)?(?:(\\d+)(?:[.,](\\d{1,9}))?M)?(?:(\\d+)(?:[.,](\\d{1,9}))?S)?)?");
+
+function parseDateTimeLike(s) {
+  const parts = dateTimeRegExp.exec(s);
+  return parts ? (parts => {
+    const zOrOffset = parts[12];
+    const hasZ = "Z" === (zOrOffset || "").toUpperCase();
+    return {
+      year: organizeIsoYearParts(parts),
+      month: parseInt(parts[5]),
+      day: parseInt(parts[6]),
+      ...organizeTimeParts(parts, 7),
+      ...organizeAnnotationParts(parts[19]),
+      te: Boolean(parts[7]),
+      F: hasZ,
+      offset: hasZ ? void 0 : zOrOffset
+    };
+  })(parts) : void 0;
+}
+
+function parseYearMonthOnly(s) {
+  const parts = yearMonthRegExp.exec(s);
+  if (parts) {
+    return (parts => ({
+      year: organizeIsoYearParts(parts),
+      month: parseInt(parts[4]),
+      day: 1,
+      ...organizeAnnotationParts(parts[5])
+    }))(parts);
+  }
+}
+
+function parseMonthDayOnly(s) {
+  const parts = monthDayRegExp.exec(s);
+  return parts ? (parts => ({
+    year: 1972,
+    month: parseInt(parts[1]),
+    day: parseInt(parts[2]),
+    ...organizeAnnotationParts(parts[3])
+  }))(parts) : void 0;
+}
+
+function parseTimeOnlyParts(s) {
+  const parts = timeRegExp.exec(s);
+  if (parts) {
+    return parts[6] && parseOffsetNano(parts[6]), parts;
+  }
+}
+
+function organizeTimeParts(parts, hourIndex) {
+  const second = parseInt0(parts[hourIndex + 3]);
+  return {
+    ...nanoToTimeAndDay(parseSubsecNano(parts[hourIndex + 4] || ""))[0],
+    hour: parseInt0(parts[hourIndex]),
+    minute: parseInt0(parts[hourIndex + 2]),
+    second: 60 === second ? 59 : second
+  };
+}
+
+function organizeIsoYearParts(parts) {
+  const yearSign = parseSign(parts[1]);
+  const year = parseInt(parts[2] || parts[3]);
+  return yearSign < 0 && !year && throwRangeError(invalidSubstring(-0)), yearSign * year;
+}
+
+function organizeAnnotationParts(s) {
+  let calendarIsCritical;
+  let timeZoneId;
+  const calendarIds = [];
+  return s.replace(annotationRegExp, (whole, criticalStr, mainStr) => {
+    const isCritical = Boolean(criticalStr);
+    const [val, name] = mainStr.split("=").reverse();
+    return name ? "u-ca" === name ? (calendarIds.push(val.toLowerCase()), calendarIsCritical || (calendarIsCritical = isCritical)) : (isCritical || /[A-Z]/.test(name)) && throwRangeError(invalidSubstring(whole)) : (timeZoneId && throwRangeError(invalidSubstring(whole)), 
+    timeZoneId = val), "";
+  }), calendarIds.length > 1 && calendarIsCritical && throwRangeError(invalidSubstring(s)), 
+  {
+    timeZoneId: timeZoneId,
+    calendarId: calendarIds[0] || "iso8601"
+  };
+}
+
+function mergeCalendarFields(calendar, baseFields, additionalFields) {
+  const merged = Object.assign(Object.create(null), baseFields);
+  return spliceFields(merged, additionalFields, monthFieldNames), getCalendarEraOrigins(calendar) && (spliceFields(merged, additionalFields, allYearFieldNames), 
+  calendar && calendar.je && spliceFields(merged, additionalFields, monthDayFieldNames, eraYearFieldNames)), 
+  merged;
+}
+
+function spliceFields(dest, additional, allPropNames, deletablePropNames) {
+  let anyMatching = 0;
+  const nonMatchingPropNames = [];
+  for (const propName of allPropNames) {
+    void 0 !== additional[propName] ? anyMatching = 1 : nonMatchingPropNames.push(propName);
+  }
+  if (Object.assign(dest, additional), anyMatching) {
+    for (const deletablePropName of deletablePropNames || nonMatchingPropNames) {
+      delete dest[deletablePropName];
+    }
+  }
+}
+
+function mergeZonedDateTimeFields(calendar, zonedDateTimeSlots, modFields) {
+  const validFieldNames = getCalendarFieldNames(calendar, dateTimeAndOffsetFieldNamesAlpha, dateTimeAndOffsetFieldNamesWithEraAlpha);
+  const zonedSlots = zonedEpochSlotsToIso(zonedDateTimeSlots);
+  const {year: year, month: month, day: day} = computeCalendarDateFields(calendar, zonedSlots);
+  const origFields = {
+    year: year,
+    monthCode: computeMonthCode(calendar, year, month),
+    day: day,
+    hour: zonedSlots.hour,
+    minute: zonedSlots.minute,
+    second: zonedSlots.second,
+    millisecond: zonedSlots.millisecond,
+    microsecond: zonedSlots.microsecond,
+    nanosecond: zonedSlots.nanosecond,
+    offset: zonedSlots.offsetNanoseconds
+  };
+  const partialFields = readAndRefineBagFields(modFields, validFieldNames, zonedDateTimeFieldRefiners);
+  const mergedCalendarFields = mergeCalendarFields(calendar, origFields, partialFields);
+  return [ {
+    ...origFields,
+    ...partialFields
+  }, mergedCalendarFields ];
+}
+
+function mergeDateTimeFields(calendar, plainDateTimeSlots, modFields) {
+  const validFieldNames = getCalendarFieldNames(calendar, dateTimeFieldNamesAlpha, dateTimeFieldNamesWithEraAlpha);
+  const {year: year, month: month, day: day} = computeCalendarDateFields(calendar, plainDateTimeSlots);
+  const origFields = {
+    year: year,
+    monthCode: computeMonthCode(calendar, year, month),
+    day: day,
+    hour: plainDateTimeSlots.hour,
+    minute: plainDateTimeSlots.minute,
+    second: plainDateTimeSlots.second,
+    millisecond: plainDateTimeSlots.millisecond,
+    microsecond: plainDateTimeSlots.microsecond,
+    nanosecond: plainDateTimeSlots.nanosecond
+  };
+  const partialFields = readAndRefineBagFields(modFields, validFieldNames, dateTimeFieldRefiners);
+  const mergedCalendarFields = mergeCalendarFields(calendar, origFields, partialFields);
+  return [ {
+    ...origFields,
+    ...partialFields
+  }, mergedCalendarFields ];
+}
+
+function mergeDateFields(calendar, plainDateSlots, modFields) {
+  const validFieldNames = getCalendarFieldNames(calendar, dateFieldNamesAlpha, dateFieldNamesWithEraAlpha);
+  const {year: year, month: month, day: day} = computeCalendarDateFields(calendar, plainDateSlots);
+  return mergeCalendarFields(calendar, {
+    year: year,
+    monthCode: computeMonthCode(calendar, year, month),
+    day: day
+  }, readAndRefineBagFields(modFields, validFieldNames, dateFieldRefiners));
+}
+
+function mergeYearMonthFields(calendar, plainYearMonthSlots, modFields) {
+  const validFieldNames = getCalendarFieldNames(calendar, yearMonthFieldNamesAlpha, yearMonthFieldNamesWithEraAlpha);
+  const {year: year, month: month} = computeCalendarDateFields(calendar, plainYearMonthSlots);
+  return mergeCalendarFields(calendar, {
+    year: year,
+    monthCode: computeMonthCode(calendar, year, month)
+  }, readAndRefineBagFields(modFields, validFieldNames, dateFieldRefiners));
+}
+
+function mergeMonthDayFields(calendar, plainMonthDaySlots, modFields) {
+  const validFieldNames = getCalendarFieldNames(calendar, dateFieldNamesAlpha, dateFieldNamesWithEraAlpha);
+  const {year: year, month: month, day: day} = computeCalendarDateFields(calendar, plainMonthDaySlots);
+  return mergeCalendarFields(calendar, {
+    monthCode: computeMonthCode(calendar, year, month),
+    day: day
+  }, readAndRefineBagFields(modFields, validFieldNames, dateFieldRefiners));
+}
+
+function createZonedDateTimeFromMergedFields(zonedDateTimeSlots, mergedAllFields, calendarFields, year, monthCodeParts, overflow, offsetDisambig, epochDisambig) {
+  const {calendar: calendar, timeZone: timeZone} = zonedDateTimeSlots;
+  return createZonedEpochNanoSlots(getMatchingInstantFor(timeZone, combineDateAndTime(createDateFromRefinedFields(calendarFields, calendar, year, monthCodeParts, overflow), constrainTimeFields(mergedAllFields, overflow)), mergedAllFields.offset, offsetDisambig, epochDisambig), timeZone, calendar);
+}
+
+function createDateTimeFromMergedFields(mergedAllFields, calendarFields, calendar, year, monthCodeParts, overflow) {
+  return createDateTimeFromRefinedFields(createDateFromRefinedFields(calendarFields, calendar, year, monthCodeParts, overflow), constrainTimeFields(mergedAllFields, overflow), calendar);
+}
+
+function mergeTimeFields(initialFields, modFields) {
+  return {
+    ...pluckProps(timeFieldNamesAlpha, initialFields),
+    ...readAndRefineBagFields(modFields, timeFieldNamesAlpha, timeFieldRefiners)
+  };
+}
+
+function mergeDurationFields(slots, fields) {
+  return createDurationSlots((initialFields = slots, modFields = fields, validateDurationFields({
+    ...initialFields,
+    ...readAndRefineBagFields(modFields, durationFieldNamesAlpha, durationFieldRefiners)
+  })));
+  var initialFields, modFields;
+}
+
+function computeMonthCode(calendar, year, month) {
+  const [monthCodeNumber, isLeapMonth] = computeCalendarMonthCodeParts(calendar, year, month);
+  return formatMonthCode(monthCodeNumber, isLeapMonth);
+}
+
+function totalDuration(refineRelativeTo, slots, options) {
+  const [totalUnit, relativeToSlots] = refineTotalOptions(options, refineRelativeTo);
+  const maxDurationUnit = getMaxDurationUnit(slots);
+  const maxUnit = Math.max(totalUnit, maxDurationUnit);
+  const isZoned = relativeToSlots && isZonedEpochSlots(relativeToSlots);
+  if (!relativeToSlots && isUniformUnit(maxUnit, isZoned)) {
+    return totalDayTimeDuration(slots, totalUnit);
+  }
+  if (relativeToSlots || throwRangeError("Missing relativeTo"), !slots.sign && (!isZoned || totalUnit < 6)) {
+    return 0;
+  }
+  const [balancedDuration, endEpochNano, relativeOps] = spanRelativeDuration(relativeToSlots, slots, totalUnit);
+  return isUniformUnit(totalUnit, isZoned) ? totalDayTimeDuration(balancedDuration, totalUnit) : ((durationFields, endEpochNano, totalUnit, relativeOps) => {
+    const fieldName = durationFieldNamesAsc[totalUnit];
+    const baseDurationFields = clearDurationFields(totalUnit, durationFields);
+    return totalRelativeUnit(durationFields[fieldName], computeDurationSign(durationFields) || 1, endEpochNano, value => (baseDurationFields[fieldName] = value, 
+    moveRelativeMarkerToEpochNano(relativeOps, baseDurationFields)));
+  })(balancedDuration, endEpochNano, totalUnit, relativeOps);
+}
+
+function totalDayTimeDuration(durationFields, totalUnit) {
+  return divideBigNanoToExactNumber(durationDayTimeToBigNano(durationFields), unitNanoMap[totalUnit]);
+}
+
+function instantToZonedDateTime(instantSlots, timeZone, calendar) {
+  return createZonedEpochNanoSlots(instantSlots.epochNanoseconds, timeZone, calendar);
+}
+
+function zonedDateTimeToInstant(zonedDateTimeSlots0) {
+  return createEpochNanoSlots(zonedDateTimeSlots0.epochNanoseconds);
+}
+
+function zonedDateTimeToDateTime(zonedDateTimeSlots0) {
+  return createDateTimeSlots(zonedEpochSlotsToIso(zonedDateTimeSlots0), zonedDateTimeSlots0.calendar);
+}
+
+function zonedDateTimeToDate(zonedDateTimeSlots0) {
+  return createDateSlots(zonedEpochSlotsToIso(zonedDateTimeSlots0), zonedDateTimeSlots0.calendar);
+}
+
+function zonedDateTimeToTime(zonedDateTimeSlots0) {
+  return createTimeSlots(zonedEpochSlotsToIso(zonedDateTimeSlots0));
+}
+
+function dateTimeToZonedDateTime(plainDateTimeSlots, timeZone, epochDisambig) {
+  return createZonedEpochNanoSlots(checkEpochNanoInBounds(getSingleInstantFor(timeZone, plainDateTimeSlots, epochDisambig)), timeZone, plainDateTimeSlots.calendar);
+}
+
+function dateToZonedDateTime(plainDateSlots, timeZone, timeFields) {
+  let epochNano;
+  return epochNano = timeFields ? getSingleInstantFor(timeZone, combineDateAndTime(plainDateSlots, timeFields)) : getStartOfDayInstantFor(timeZone, combineDateAndTime(plainDateSlots, timeFieldDefaults)), 
+  createZonedEpochNanoSlots(epochNano, timeZone, plainDateSlots.calendar);
+}
+
+function yearMonthToDate(calendar, input, bag) {
+  return mergeFieldsIntoDate(calendar, pluckProps(getCalendarFieldNames(calendar, yearMonthCodeFieldNamesAlpha, yearMonthCodeFieldNamesWithEraAlpha), input), readAndRefineBagFields(requireObjectLike(bag), dayFieldNamesAsc, dateFieldRefiners, []));
+}
+
+function monthDayToDate(calendar, input, bag) {
+  const extraFieldNames = getCalendarFieldNames(calendar, yearFieldNamesAsc, yearFieldNamesWithEraAlpha);
+  return mergeFieldsIntoDate(calendar, pluckProps(monthCodeDayFieldNamesAlpha, input), readAndRefineBagFields(requireObjectLike(bag), extraFieldNames, dateFieldRefiners, []));
+}
+
+function fieldsToMonthDay(calendar, input) {
+  const refinedFields = readAndRefineBagFields(input, monthCodeDayFieldNamesAlpha, dateFieldRefiners);
+  const [year, monthCodeParts] = refineMonthDayFields(refinedFields, calendar);
+  return createMonthDayFromRefinedFields(refinedFields, calendar, year, monthCodeParts, 0);
+}
+
+function fieldsToYearMonth(calendar, input) {
+  const refinedFields = readAndRefineBagFields(input, getCalendarFieldNames(calendar, yearMonthCodeFieldNamesAlpha, yearMonthCodeFieldNamesWithEraAlpha), dateFieldRefiners);
+  const [year, monthCodeParts] = refineCalendarDateFields(refinedFields, calendar, 1);
+  return createYearMonthFromRefinedFields(refinedFields, calendar, year, monthCodeParts, 0);
+}
+
+function mergeFieldsIntoDate(calendar, inputFields, extraFields) {
+  const mergedFieldNames = getCalendarFieldNames(calendar, yearMonthCodeDayFieldNamesAlpha, yearMonthCodeDayFieldNamesWithEraAlpha);
+  let mergedFields = mergeCalendarFields(calendar, inputFields, extraFields);
+  mergedFields = readAndRefineBagFields(mergedFields, mergedFieldNames, dateFieldRefiners, []);
+  const [year, monthCodeParts] = refineCalendarDateFields(mergedFields, calendar);
+  return createDateFromRefinedFields(mergedFields, calendar, year, monthCodeParts, 0);
+}
+
+function epochMilliToInstant(epochMilli) {
+  return createEpochNanoSlots(checkEpochNanoInBounds(BigInt(internal_toStrictInteger(epochMilli)) * bigNanoInMilli));
+}
+
+function epochNanoToInstant(epochNano) {
+  return createEpochNanoSlots(checkEpochNanoInBounds(toBigInt(epochNano)));
+}
+
+function applyPlainFormatTimeZone(options) {
+  return options.timeZone = "UTC", [ "full", "long" ].includes(options.timeStyle) && (options.timeStyle = "medium"), 
+  options;
+}
+
+function applyZonedFormatTimeZone(options, timeZoneId) {
+  return void 0 !== options.timeZone && throwTypeError("Cannot specify TimeZone"), 
+  options.timeZone = timeZoneId, options;
+}
+
+function checkResolvedCalendarCompatible(format, slots, strictCalendarCheck) {
+  const resolvedCalendarId = format.resolvedOptions().calendar;
+  !strictCalendarCheck && slots.calendar === isoCalendarImpl || getCalendarSlotId(slots.calendar) === resolvedCalendarId || throwRangeError("Mismatching Calendars");
+}
+
+function createOptionsTransformer(shapeFieldNames, invalidShapeFieldNames, ignoredFieldNames, defaultShapeFields, dateStyleReplacementFields) {
+  const shapeFieldNameSet = new Set(shapeFieldNames);
+  const invalidShapeFieldNameSet = new Set(invalidShapeFieldNames);
+  const ignoredFieldNameSet = new Set(ignoredFieldNames);
+  return (options, allowPartialOverlap) => {
+    let dateStyle;
+    let timeStyle;
+    const granularShapeFields = {};
+    const modifierFields = {};
+    const otherFields = {};
+    let hasInvalidGranularShapeFields = 0;
+    let hasInvalidStyleFields = 0;
+    for (const name of Object.keys(options)) {
+      const value = options[name];
+      void 0 === value || ignoredFieldNameSet.has(name) || (shapeFieldNameSet.has(name) ? "dateStyle" === name ? dateStyle = value : "timeStyle" === name ? timeStyle = value : granularShapeFields[name] = value : "era" === name ? modifierFields[name] = value : invalidShapeFieldNameSet.has(name) ? "dateStyle" === name || "timeStyle" === name ? hasInvalidStyleFields = 1 : hasInvalidGranularShapeFields = 1 : otherFields[name] = value);
+    }
+    const hasDateStyle = void 0 !== dateStyle;
+    const hasTimeStyle = void 0 !== timeStyle;
+    const hasAnyStyle = hasDateStyle || hasTimeStyle;
+    const hasGranularShapeFields = Object.keys(granularShapeFields).length > 0;
+    const hasInvalids = hasInvalidGranularShapeFields || hasInvalidStyleFields;
+    const hasShapeFields = hasGranularShapeFields || hasDateStyle || hasTimeStyle;
+    const hasModifierFields = Object.keys(modifierFields).length > 0;
+    (!allowPartialOverlap && hasInvalids || allowPartialOverlap && hasInvalids && !hasShapeFields || hasAnyStyle && (hasGranularShapeFields || hasModifierFields || hasInvalidGranularShapeFields)) && throwTypeError("Invalid formatting options");
+    const transformedOptions = {};
+    return hasAnyStyle || hasShapeFields || Object.assign(transformedOptions, defaultShapeFields), 
+    Object.assign(transformedOptions, granularShapeFields, modifierFields, otherFields), 
+    hasDateStyle && (dateStyleReplacementFields ? Object.assign(transformedOptions, dateStyleReplacementFields[dateStyle]) : transformedOptions.dateStyle = dateStyle), 
+    hasTimeStyle && (transformedOptions.timeStyle = timeStyle), transformedOptions;
+  };
+}
+
+const dateDefaultShapeFields = {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric"
+};
+
+const timeDefaultShapeFields = {
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric"
+};
+
+const dateTimeDefaultShapeFields = /*@__PURE__*/ Object.assign({}, dateDefaultShapeFields, timeDefaultShapeFields);
+
+const dateShapeFieldNames = [ "weekday", "year", "month", "day", "dateStyle" ];
+
+const timeShapeFieldNames = [ "dayPeriod", "hour", "minute", "second", "fractionalSecondDigits", "timeStyle" ];
+
+const dateTimeShapeFieldNames = /*@__PURE__*/ dateShapeFieldNames.concat(timeShapeFieldNames);
+
+const yearMonthIgnoredFieldNames = /*@__PURE__*/ [ "weekday", "day" ].concat(timeShapeFieldNames);
+
+const monthDayIgnoredFieldNames = /*@__PURE__*/ [ "weekday", "year" ].concat(timeShapeFieldNames);
+
+const transformInstantOptions = /*@__PURE__*/ createOptionsTransformer(dateTimeShapeFieldNames, [], [], dateTimeDefaultShapeFields);
+
+const transformZonedOptions = /*@__PURE__*/ createOptionsTransformer(dateTimeShapeFieldNames, [], [], {
+  ...dateTimeDefaultShapeFields,
+  timeZoneName: "short"
+});
+
+const transformDateTimeOptions = /*@__PURE__*/ createOptionsTransformer(dateTimeShapeFieldNames, [], [ "timeZoneName" ], dateTimeDefaultShapeFields);
+
+const transformDateOptions = /*@__PURE__*/ createOptionsTransformer(dateShapeFieldNames, timeShapeFieldNames, [ "timeZoneName" ], dateDefaultShapeFields);
+
+const transformTimeOptions = /*@__PURE__*/ createOptionsTransformer(timeShapeFieldNames, dateShapeFieldNames, [ "timeZoneName", "era" ], timeDefaultShapeFields);
+
+const transformYearMonthOptions = /*@__PURE__*/ createOptionsTransformer([ "year", "month", "dateStyle" ], yearMonthIgnoredFieldNames, [ "timeZoneName" ], {
+  year: "numeric",
+  month: "numeric"
+}, {
+  full: {
+    year: "numeric",
+    month: "long"
+  },
+  long: {
+    year: "numeric",
+    month: "long"
+  },
+  medium: {
+    year: "numeric",
+    month: "short"
+  },
+  short: {
+    year: "2-digit",
+    month: "numeric"
+  }
+});
+
+const transformMonthDayOptions = /*@__PURE__*/ createOptionsTransformer([ "month", "day", "dateStyle" ], monthDayIgnoredFieldNames, [ "timeZoneName", "era" ], {
+  month: "numeric",
+  day: "numeric"
+}, {
+  full: {
+    month: "long",
+    day: "numeric"
+  },
+  long: {
+    month: "long",
+    day: "numeric"
+  },
+  medium: {
+    month: "short",
+    day: "numeric"
+  },
+  short: {
+    month: "numeric",
+    day: "numeric"
+  }
+});
+
+function zonedDateTimeWithPlainTime(zonedDateTimeSlots, plainTimeFields) {
+  const {timeZone: timeZone} = zonedDateTimeSlots;
+  const isoDateTime = zonedEpochSlotsToIso(zonedDateTimeSlots);
+  const {offsetNanoseconds: offsetNanoseconds} = isoDateTime;
+  const time = plainTimeFields || timeFieldDefaults;
+  let epochNano;
+  return epochNano = plainTimeFields ? getMatchingInstantFor(timeZone, combineDateAndTime(isoDateTime, time), offsetNanoseconds, 2) : getStartOfDayInstantFor(timeZone, combineDateAndTime(isoDateTime, time)), 
+  createZonedEpochNanoSlots(epochNano, timeZone, zonedDateTimeSlots.calendar);
+}
+
+function getCurrentIsoDateTime(timeZone) {
+  const epochNano = getCurrentEpochNano();
+  const offsetNano = timeZone.B(epochNano);
+  return epochNanoToIsoDateTime(epochNano + BigInt(offsetNano));
+}
+
+function getCurrentEpochNano() {
+  return BigInt(Date.now()) * bigNanoInMilli;
+}
+
+function getCurrentTimeZoneId() {
+  return (new RawDateTimeFormat).resolvedOptions().timeZone;
+}
+
+function createDateTimeFormatShell(createArgsProvider, transformOptions = identity) {
+  const internalsMap = new WeakMap;
+  function getInternals(format) {
+    const internals = internalsMap.get(format);
+    return internals || throwTypeError("Invalid calling context"), internals;
+  }
+  class ShimDateTimeFormat {
+    constructor(locales, options = Object.create(null)) {
+      const transformedOptions = transformOptions(options);
+      const observedOptionNames = [];
+      const trackedOptions = new Proxy(Object.create(null), {
+        get(_target, name) {
+          const value = transformedOptions[name];
+          return void 0 !== value && observedOptionNames.push(name), value;
+        }
+      });
+      const baseFormat = new RawDateTimeFormat(locales, trackedOptions);
+      const resolvedOptions = baseFormat.resolvedOptions();
+      const copiedOptions = pluckProps(observedOptionNames, resolvedOptions);
+      internalsMap.set(this, {
+        $: createArgsProvider({
+          t: baseFormat,
+          Ce: resolvedOptions.locale,
+          G: copiedOptions,
+          Ee: transformedOptions
+        }),
+        t: baseFormat
+      });
+    }
+    get format() {
+      const internals = getInternals(this);
+      return internals.we || (internals.we = record => {
+        const [format, ...rest] = internals.$.A(record);
+        return format.format(...rest);
+      });
+    }
+    formatToParts(record) {
+      const {$: argsProvider} = getInternals(this);
+      const [format, ...rest] = argsProvider.A(record);
+      return format.formatToParts(...rest);
+    }
+    resolvedOptions() {
+      return getInternals(this).t.resolvedOptions();
+    }
+  }
+  const {prototype: prototype} = ShimDateTimeFormat;
+  function DateTimeFormat(locales, options) {
+    return new ShimDateTimeFormat(locales, options);
+  }
+  RawDateTimeFormat.prototype.formatRange && Object.defineProperties(prototype, createPropDescriptors({
+    formatRange(record0, record1) {
+      const {$: argsProvider} = getInternals(this);
+      const [format, epochMilli0, epochMilli1] = argsProvider.v(record0, record1);
+      return format.formatRange(epochMilli0, epochMilli1);
+    },
+    formatRangeToParts(record0, record1) {
+      const {$: argsProvider} = getInternals(this);
+      const [format, epochMilli0, epochMilli1] = argsProvider.v(record0, record1);
+      return format.formatRangeToParts(epochMilli0, epochMilli1);
+    }
+  }));
+  const rawStaticDescriptors = Object.getOwnPropertyDescriptors(RawDateTimeFormat);
+  return rawStaticDescriptors.prototype.value = prototype, Object.defineProperties(DateTimeFormat, rawStaticDescriptors), 
+  prototype.constructor = DateTimeFormat, Object.defineProperties(prototype, createStringTagDescriptors("Intl.DateTimeFormat")), 
+  DateTimeFormat;
+}
+
+function internal_countEpochNanoUnit(start, end, unit, [roundingInc, roundingMode]) {
+  let diffNano = end - start;
+  return void 0 !== roundingMode && (diffNano = roundBigNanoToInc(diffNano, computeBigNanoInc(unit, roundingInc), roundingMode)), 
+  divideBigNanoToExactNumber(diffNano, unitNanoMap[unit]);
+}
+
+function internal_countDateTimeUnit(start, end, unit, rounding) {
+  return internal_countEpochNanoUnit(internal_isoDateTimeToEpochNano(start), internal_isoDateTimeToEpochNano(end), unit, rounding);
+}
+
+function internal_countTimeUnit(start, end, unit, [roundingInc, roundingMode]) {
+  let diffNano = internal_timeFieldsToNano(end) - internal_timeFieldsToNano(start);
+  return void 0 !== roundingMode && (diffNano = roundNumberToInc(diffNano, computeNanoInc(unit, roundingInc), roundingMode)), 
+  divideBigNanoToExactNumber(BigInt(diffNano), unitNanoMap[unit]);
+}
+
+function internal_countEpochNanoDays(startEpochNano, endEpochNano, originTimeNano, [roundingInc, roundingMode]) {
+  let diffNano = endEpochNano - startEpochNano;
+  if (void 0 !== roundingMode) {
+    diffNano = roundBigNanoToInc(diffNano, computeBigNanoInc(6, roundingInc), roundingMode);
+  } else if (diffNano) {
+    const originTimeBigNano = BigInt(originTimeNano);
+    checkIsoDateTimeEpochNanoInBounds(startEpochNano - originTimeBigNano), checkIsoDateTimeEpochNanoInBounds(endEpochNano - originTimeBigNano);
+  }
+  return divideBigNanoToExactNumber(diffNano, unitNanoMap[6]);
+}
+
+function internal_countYearMonthUnit(calendar, isoDate0, isoDate1, unit, rounding) {
+  const start = moveToStartOfMonth(calendar, isoDate0);
+  const end = moveToStartOfMonth(calendar, isoDate1);
+  return compareIsoDates(start, end) ? (checkIsoDateInBounds(start), checkIsoDateInBounds(end), 
+  internal_countRelativeUnit(unit, {
+    he: () => internal_diffCalendarDates(calendar, start, end, unit),
+    me: internal_createDateRelativeOps(calendar, start),
+    ie: internal_isoDateToEpochNano(end)
+  }, rounding, 0, 8 === unit)) : 0;
+}
+
+function internal_countRelativeUnit(unit, relativeUnitDiff, [roundingInc, roundingMode], isZoned, isPrecisionUnit) {
+  const {he: diffExact, me: relativeOps} = relativeUnitDiff;
+  const durationFields = diffExact();
+  let {ie: endEpochNano} = relativeUnitDiff;
+  return computeDurationSign(durationFields) ? void 0 !== roundingMode ? isPrecisionUnit && 1 === roundingInc ? durationFields[durationFieldNamesAsc[unit]] : resolveDurationUnit(unit, durationFields, endEpochNano, relativeOps, roundingInc, roundingMode) : (isZoned ? endEpochNano = checkEpochNanoInBounds(moveRelativeMarkerToEpochNano(relativeOps, {
+    ...durationFields,
+    ...durationTimeFieldDefaults
+  }) + durationTimeToBigNano(durationFields)) : (checkIsoDateTimeEpochNanoInBounds(relativeOps.ne), 
+  checkIsoDateTimeEpochNanoInBounds(endEpochNano)), resolveDurationUnit(unit, durationFields, endEpochNano, relativeOps, 1, void 0)) : 0;
+}
+
+function internal_countDateWeeks(originIsoDate, endEpochNano, [roundingInc, roundingMode]) {
+  const originEpochNano = internal_isoDateToEpochNano(originIsoDate);
+  const diffNano = endEpochNano - originEpochNano;
+  if (!diffNano) {
+    return 0;
+  }
+  void 0 === roundingMode && (checkIsoDateTimeEpochNanoInBounds(originEpochNano), 
+  checkIsoDateTimeEpochNanoInBounds(endEpochNano));
+  const wholeWeeks = Number(diffNano / (7n * bigNanoInUtcDay));
+  const sign = diffNano < 0n ? -1 : 1;
+  const moveWeeksToEpochNano = weeks => {
+    return weeks ? (((epochNano = originEpochNano + BigInt(weeks) * bigNanoInUtcDay * 7n) < plainDateEpochNanoMin || epochNano > epochNanoMax) && throwRangeError(outOfBoundsDate), 
+    epochNano) : originEpochNano;
+    var epochNano;
+  };
+  return void 0 === roundingMode ? totalRelativeUnit(wholeWeeks, sign, endEpochNano, moveWeeksToEpochNano) : roundRelativeUnit(wholeWeeks, sign, endEpochNano, moveWeeksToEpochNano, roundingInc, roundingMode);
+}
+
+function internal_countZonedDayWeekUnit(unit, timeZone, startZoned, endZoned, [roundingInc, roundingMode]) {
+  const daysInUnit = 7 === unit ? 7 : 1;
+  const startEpochNano = startZoned.epochNanoseconds;
+  const sign = endZoned.epochNanoseconds > startEpochNano ? 1 : -1;
+  const originIsoDateTime = zonedEpochSlotsToIso(startZoned);
+  let deltaDays = 0;
+  let remainderNano;
+  if (compareIsoDates(originIsoDateTime, zonedEpochSlotsToIso(endZoned))) {
+    const [startIsoDateTime, endIsoDate, timeNano] = prepareZonedEpochDiff(timeZone, startZoned, endZoned, sign);
+    deltaDays = isoDateToEpochDays(endIsoDate) - isoDateToEpochDays(startIsoDateTime), 
+    remainderNano = timeNano;
+  } else {
+    remainderNano = Number(endZoned.epochNanoseconds - startEpochNano);
+  }
+  const moveByDays = days => days ? getSingleInstantFor(timeZone, combineDateAndTime(checkIsoDateInBounds(moveDateByDays(originIsoDateTime, days)), originIsoDateTime)) : startEpochNano;
+  const endEpochNano = void 0 === roundingMode ? checkEpochNanoInBounds(moveByDays(deltaDays) + BigInt(remainderNano)) : endZoned.epochNanoseconds;
+  const wholeValue = Math.trunc(deltaDays / daysInUnit);
+  const moveValueToEpochNano = value => moveByDays(value * daysInUnit);
+  return void 0 === roundingMode ? totalRelativeUnit(wholeValue, sign, endEpochNano, moveValueToEpochNano) : roundRelativeUnit(wholeValue, sign, endEpochNano, moveValueToEpochNano, roundingInc, roundingMode);
+}
+
+function resolveDurationUnit(unit, durationFields, endEpochNano, relativeOps, unitWindowInc, roundingMode) {
+  const sign = computeDurationSign(durationFields);
+  const fieldName = durationFieldNamesAsc[unit];
+  const moveValueToEpochNano = value => moveRelativeMarkerToEpochNano(relativeOps, {
+    ...durationFieldDefaults,
+    [fieldName]: value
+  });
+  return void 0 === roundingMode ? totalRelativeUnit(durationFields[fieldName], sign, endEpochNano, moveValueToEpochNano) : roundRelativeUnit(durationFields[fieldName], sign, endEpochNano, moveValueToEpochNano, unitWindowInc, roundingMode);
+}
+
+function internal_moveToRefinedDayOfYear(calendar, isoDate, dayOfYear, overflow) {
+  return moveDateByDays(isoDate, clampEntity("dayOfMonth", dayOfYear, 1, computeCalendarDaysInYear(calendar, isoDate), overflow) - computeCalendarDayOfYear(calendar, isoDate));
+}
+
+function internal_moveToRefinedDayOfMonth(calendar, isoDate, day, overflow) {
+  return moveDateByDays(isoDate, clampEntity("day", day, 1, computeCalendarDaysInMonth(calendar, isoDate), overflow) - computeCalendarDateFields(calendar, isoDate).day);
+}
+
+function internal_moveToRefinedDayOfWeek(isoDate, dayOfWeek, overflow) {
+  return moveDateByDays(isoDate, clampEntity("dayOfWeek", dayOfWeek, 1, 7, overflow) - computeIsoDayOfWeek(isoDate));
+}
+
+function internal_moveToRefinedWeekOfYear(calendar, isoDate, weekOfYear, overflow) {
+  calendar !== isoCalendarImpl && throwRangeError(internal_unsupportedWeekNumbers);
+  const {weekOfYear: currentWeekOfYear, De: weeksInYear} = computeIsoWeekFields(isoDate);
+  return moveDateByDays(isoDate, 7 * (clampEntity("weekOfYear", weekOfYear, 1, weeksInYear, overflow) - currentWeekOfYear));
+}
+
+function computeDayFloor(slots) {
+  return combineDateAndTime(slots, timeFieldDefaults);
+}
+
+function computeYearFloor(calendar, slots) {
+  const {year: year0} = computeCalendarDateFields(calendar, slots);
+  return computeCalendarDateTimeFromParts(calendar, year0);
+}
+
+function computeMonthFloor(calendar, slots) {
+  const {year: year0, month: month0} = computeCalendarDateFields(calendar, slots);
+  return computeCalendarDateTimeFromParts(calendar, year0, month0);
+}
+
+function computeIsoWeekFloor(_calendar, slots) {
+  return combineDateAndTime(moveDateByDays(slots, 1 - computeIsoDayOfWeek(slots)), timeFieldDefaults);
+}
+
+function computeYearCeil(calendar, slots) {
+  return computeYearInterval(calendar, slots)[1];
+}
+
+function computeMonthCeil(calendar, slots) {
+  return computeMonthInterval(calendar, slots)[1];
+}
+
+function computeIsoWeekCeil(calendar, slots) {
+  return combineDateAndTime(moveDateByDays(computeIsoWeekFloor(0, slots), 7), timeFieldDefaults);
+}
+
+function computeDayCeil(_calendar, slots) {
+  return combineDateAndTime(moveDateByDays(slots, 1), timeFieldDefaults);
+}
+
+function computeYearInterval(calendar, slots) {
+  return [ computeYearFloor(calendar, slots), computeCalendarDateTimeFromParts(calendar, computeCalendarDateFields(calendar, slots).year + 1) ];
+}
+
+function computeMonthInterval(calendar, slots) {
+  const isoDateTime0 = computeMonthFloor(calendar, slots);
+  const {year: year, month: month} = computeCalendarDateFields(calendar, slots);
+  const {year: year1, month: month1} = addCalendarMonths(calendar, year, month, 1);
+  return [ isoDateTime0, computeCalendarDateTimeFromParts(calendar, year1, month1) ];
+}
+
+function computeIsoWeekInterval(calendar, slots) {
+  const isoDateTime0 = computeIsoWeekFloor(0, slots);
+  return [ isoDateTime0, combineDateAndTime(moveDateByDays(isoDateTime0, 7), timeFieldDefaults) ];
+}
+
+function roundDateToInterval(computeInterval, calendar, slots, roundingMode) {
+  return roundEpochNanoToInterval(computeInterval, calendar, slots, internal_isoDateToEpochNano(slots), roundingMode);
+}
+
+function computeCalendarDateTimeFromParts(calendar, year, month = 1) {
+  return combineDateAndTime(computeCalendarIsoFieldsFromParts(calendar, year, month, 1), timeFieldDefaults);
+}
+
+function roundDateTimeToInterval(computeInterval, calendar, slots, roundingMode) {
+  return roundEpochNanoToInterval(computeInterval, calendar, slots, internal_isoDateTimeToEpochNano(slots), roundingMode);
+}
+
+function roundEpochNanoToInterval(computeInterval, calendar, slots, epochNano, roundingMode) {
+  const [isoDateTime0, isoDateTime1] = computeInterval(calendar, slots);
+  return roundWithMode(computeEpochNanoFrac(epochNano, internal_isoDateTimeToEpochNano(isoDateTime0), internal_isoDateTimeToEpochNano(isoDateTime1)), roundingMode) ? isoDateTime1 : isoDateTime0;
+}
 
 
-// EXTERNAL MODULE: external "os"
-var external_os_ = __nccwpck_require__(857);
+
+;// CONCATENATED MODULE: ./node_modules/temporal-polyfill/chunks/apiHelpers.js
+
+
+
+
+
+
+
+
+const PlainYearMonthBranding = "PlainYearMonth";
+
+const PlainMonthDayBranding = "PlainMonthDay";
+
+const PlainDateBranding = "PlainDate";
+
+const PlainDateTimeBranding = "PlainDateTime";
+
+const PlainTimeBranding = "PlainTime";
+
+const ZonedDateTimeBranding = "ZonedDateTime";
+
+const InstantBranding = "Instant";
+
+const DurationBranding = "Duration";
+
+const CalendarBranding = "Calendar";
+
+function defineTemporalClass(branding, cls, getSlots, ...getterMaps) {
+  return Object.defineProperties(cls, createNameDescriptors(branding)), Object.defineProperties(cls.prototype, createStringTagDescriptors("Temporal." + branding)), 
+  Object.defineProperties(cls.prototype, mapProps(getter => ({
+    get() {
+      return getter(getSlots(this));
+    },
+    configurable: 1
+  }), Object.assign({}, ...getterMaps))), cls;
+}
+
+const attachDebugString = "noop" === noop.name ? instance => {
+  Object.defineProperty(instance, "_str_", {
+    value: instance.toJSON()
+  });
+} : noop;
+
+function invalidRecordType() {
+  throwTypeError(invalidCallingContext);
+}
+
+function apiHelpers_forbiddenValueOf() {
+  throwTypeError(forbiddenValueOf);
+}
+
+const yearMonthFieldGetters$1 = {
+  era(slots) {
+    return computeCalendarEraFields(slots.calendar, slots).era;
+  },
+  eraYear(slots) {
+    return computeCalendarEraFields(slots.calendar, slots).eraYear;
+  },
+  year(slots) {
+    return computeCalendarDateFields(slots.calendar, slots).year;
+  },
+  month(slots) {
+    return computeCalendarDateFields(slots.calendar, slots).month;
+  },
+  monthCode(slots) {
+    return computeCalendarMonthCode(slots.calendar, slots);
+  }
+};
+
+const dateFieldGetters$1 = {
+  era(slots) {
+    return computeCalendarEraFields(slots.calendar, slots).era;
+  },
+  eraYear(slots) {
+    return computeCalendarEraFields(slots.calendar, slots).eraYear;
+  },
+  year(slots) {
+    return computeCalendarDateFields(slots.calendar, slots).year;
+  },
+  month(slots) {
+    return computeCalendarDateFields(slots.calendar, slots).month;
+  },
+  monthCode(slots) {
+    return computeCalendarMonthCode(slots.calendar, slots);
+  },
+  day(slots) {
+    return computeCalendarDateFields(slots.calendar, slots).day;
+  }
+};
+
+const monthDayFieldGetters$1 = {
+  monthCode(slots) {
+    return computeCalendarMonthCode(slots.calendar, slots);
+  },
+  day(slots) {
+    return computeCalendarDateFields(slots.calendar, slots).day;
+  }
+};
+
+const yearMonthDerivedGetters = {
+  daysInMonth(slots) {
+    return computeCalendarDaysInMonth(slots.calendar, slots);
+  },
+  daysInYear(slots) {
+    return computeCalendarDaysInYear(slots.calendar, slots);
+  },
+  monthsInYear(slots) {
+    return computeCalendarMonthsInYear(slots.calendar, slots);
+  },
+  inLeapYear(slots) {
+    return computeCalendarInLeapYear(slots.calendar, slots);
+  }
+};
+
+const dateDerivedGetters = {
+  dayOfWeek(slots) {
+    return computeIsoDayOfWeek(slots);
+  },
+  dayOfYear(slots) {
+    return computeCalendarDayOfYear(slots.calendar, slots);
+  },
+  weekOfYear(slots) {
+    return computeCalendarWeekOfYear(slots.calendar, slots);
+  },
+  yearOfWeek(slots) {
+    return computeCalendarYearOfWeek(slots.calendar, slots);
+  },
+  daysInWeek() {
+    return 7;
+  },
+  daysInMonth(slots) {
+    return computeCalendarDaysInMonth(slots.calendar, slots);
+  },
+  daysInYear(slots) {
+    return computeCalendarDaysInYear(slots.calendar, slots);
+  },
+  monthsInYear(slots) {
+    return computeCalendarMonthsInYear(slots.calendar, slots);
+  },
+  inLeapYear(slots) {
+    return computeCalendarInLeapYear(slots.calendar, slots);
+  }
+};
+
+function diffInstants(invert, instantSlots0, instantSlots1, options) {
+  const [largestUnit, smallestUnit, roundingInc, roundingMode] = refineDiffOptions(invert, options, 3, 5);
+  return createDiffDurationSlots(invert, diffEpochNanosRounded(instantSlots0.epochNanoseconds, instantSlots1.epochNanoseconds, largestUnit, smallestUnit, roundingInc, roundingMode));
+}
+
+function diffZonedDateTimes(invert, slots0, slots1, options) {
+  const calendar = internal_getCommonCalendar(slots0.calendar, slots1.calendar);
+  const [largestUnit, smallestUnit, roundingInc, roundingMode] = refineDiffOptions(invert, options, 5);
+  return createDiffDurationSlots(invert, diffZonedDateTimesRounded(calendar, slots0, slots1, largestUnit, smallestUnit, roundingInc, roundingMode));
+}
+
+function diffDateTimes(invert, plainDateTimeSlots0, plainDateTimeSlots1, options) {
+  const calendar = internal_getCommonCalendar(plainDateTimeSlots0.calendar, plainDateTimeSlots1.calendar);
+  const [largestUnit, smallestUnit, roundingInc, roundingMode] = refineDiffOptions(invert, options, 6);
+  return createDiffDurationSlots(invert, diffDateTimesRounded(calendar, plainDateTimeSlots0, plainDateTimeSlots1, largestUnit, smallestUnit, roundingInc, roundingMode));
+}
+
+function diffDates(invert, plainDateSlots0, plainDateSlots1, options) {
+  const calendar = internal_getCommonCalendar(plainDateSlots0.calendar, plainDateSlots1.calendar);
+  const [largestUnit, smallestUnit, roundingInc, roundingMode] = refineDiffOptions(invert, options, 6, 9, 6);
+  return createDiffDurationSlots(invert, diffDatesRounded(calendar, plainDateSlots0, plainDateSlots1, largestUnit, smallestUnit, roundingInc, roundingMode));
+}
+
+function diffYearMonths(invert, plainYearMonthSlots0, plainYearMonthSlots1, options) {
+  const calendar = internal_getCommonCalendar(plainYearMonthSlots0.calendar, plainYearMonthSlots1.calendar);
+  const [largestUnit, smallestUnit, roundingInc, roundingMode] = refineDiffOptions(invert, options, 9, 9, 8);
+  return createDiffDurationSlots(invert, diffYearMonthsRounded(calendar, plainYearMonthSlots0, plainYearMonthSlots1, largestUnit, smallestUnit, roundingInc, roundingMode));
+}
+
+function diffTimes(invert, plainTimeSlots0, plainTimeSlots1, options) {
+  const [largestUnit, smallestUnit, roundingInc, roundingMode] = refineDiffOptions(invert, options, 5, 5);
+  return createDiffDurationSlots(invert, diffTimesRounded(plainTimeSlots0, plainTimeSlots1, largestUnit, smallestUnit, roundingInc, roundingMode));
+}
+
+function createDiffDurationSlots(invert, durationFields) {
+  return createDurationSlots(invert ? negateDurationFields(durationFields) : durationFields);
+}
+
+function withDateFields(slots, modFields, options) {
+  const {calendar: calendar} = slots;
+  const fields = mergeDateFields(calendar, slots, modFields);
+  const [year, monthCodeParts] = refineCalendarDateFields(fields, calendar);
+  const overflow = options_refineOverflowOptions(options);
+  return createDateFromRefinedFields(fields, calendar, year, monthCodeParts, overflow);
+}
+
+function withDateTimeFields(slots, modFields, options) {
+  const {calendar: calendar} = slots;
+  const [mergedFields, calendarFields] = mergeDateTimeFields(calendar, slots, modFields);
+  const [year, monthCodeParts] = refineCalendarDateFields(calendarFields, calendar);
+  const overflow = options_refineOverflowOptions(options);
+  return createDateTimeFromMergedFields(mergedFields, calendarFields, calendar, year, monthCodeParts, overflow);
+}
+
+function withYearMonthFields(slots, modFields, options) {
+  const {calendar: calendar} = slots;
+  const fields = mergeYearMonthFields(calendar, slots, modFields);
+  const [year, monthCodeParts] = refineCalendarDateFields(fields, calendar, 1);
+  const overflow = options_refineOverflowOptions(options);
+  return createYearMonthFromRefinedFields(fields, calendar, year, monthCodeParts, overflow);
+}
+
+function withMonthDayFields(slots, modFields, options) {
+  const {calendar: calendar} = slots;
+  const fields = mergeMonthDayFields(calendar, slots, modFields);
+  const [year, monthCodeParts] = refineMonthDayFields(fields, calendar);
+  const overflow = options_refineOverflowOptions(options);
+  return createMonthDayFromRefinedFields(fields, calendar, year, monthCodeParts, overflow);
+}
+
+function withTimeFields(slots, modFields, options) {
+  const refinedFields = mergeTimeFields(slots, modFields);
+  const overflow = options_refineOverflowOptions(options);
+  return resolveTimeFields(refinedFields, overflow);
+}
+
+function withZonedDateTimeFields(slots, modFields, options) {
+  const {calendar: calendar} = slots;
+  const [mergedFields, calendarFields] = mergeZonedDateTimeFields(calendar, slots, modFields);
+  const [year, monthCodeParts] = refineCalendarDateFields(calendarFields, calendar);
+  const [overflow, offsetDisambig, epochDisambig] = refineZonedFieldOptions(options, 2);
+  return createZonedDateTimeFromMergedFields(slots, mergedFields, calendarFields, year, monthCodeParts, overflow, offsetDisambig, epochDisambig);
+}
+
+function createNativeGetters(shimGetters) {
+  return createPropGetters(Object.keys(shimGetters));
+}
+
+const apiHelpers_durationGetters = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeGetters(durationGetters$1)));
+
+const apiHelpers_timeGetters = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeGetters(timeGetters$1)));
+
+const yearMonthFieldGetters = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeGetters(yearMonthFieldGetters$1)));
+
+const dateFieldGetters = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeGetters(dateFieldGetters$1)));
+
+const monthDayFieldGetters = /*@__PURE__*/ (/* unused pure expression or super */ null && (createNativeGetters(monthDayFieldGetters$1)));
+
+const diffZonedYears = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffZonedCalendarUnit, 9)));
+
+const diffZonedMonths = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffZonedCalendarUnit, 8)));
+
+const diffZonedWeeks = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffZonedDayWeekUnit, 7)));
+
+const diffZonedDays = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffZonedDayWeekUnit, 6)));
+
+const diffInstantEpochNanoTimeUnit = (/* unused pure expression or super */ null && (diffInstantTimeUnit));
+
+const diffDateYears = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffDateCalendarUnit, 9)));
+
+const diffDateMonths = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffDateCalendarUnit, 8)));
+
+const diffDateTimeYears = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffDateTimeCalendarUnit, 9)));
+
+const diffDateTimeMonths = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffDateTimeCalendarUnit, 8)));
+
+const diffYearMonthYears = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffYearMonthUnit, 9)));
+
+const diffYearMonthMonths = /*@__PURE__*/ (/* unused pure expression or super */ null && (bindArgs(diffYearMonthUnit, 8)));
+
+function diffZonedEpochNanoTimeUnit(unit, slots0, slots1, options) {
+  return getCommonCalendar(slots0.calendar, slots1.calendar), diffInstantTimeUnit(unit, slots0, slots1, options);
+}
+
+function diffDateTimeEpochNanoTimeUnit(unit, slots0, slots1, options) {
+  return getCommonCalendar(slots0.calendar, slots1.calendar), countDateTimeUnit(slots0, slots1, unit, refineUnitDiffOptions(unit, options));
+}
+
+function diffTimeNanoOfDayTimeUnit(unit, slots0, slots1, options) {
+  return countTimeUnit(slots0, slots1, unit, refineUnitDiffOptions(unit, options));
+}
+
+function adaptRecordTimeUnitDiff(diffSlots, getSlots) {
+  return (unit, record0, record1, options) => diffSlots(unit, getSlots(record0), getSlots(record1), options);
+}
+
+function diffInstantTimeUnit(unit, slots0, slots1, options) {
+  return countEpochNanoUnit(slots0.epochNanoseconds, slots1.epochNanoseconds, unit, refineUnitDiffOptions(unit, options));
+}
+
+function diffZonedCalendarUnit(unit, slots0, slots1, options) {
+  const calendar = getCommonCalendar(slots0.calendar, slots1.calendar);
+  const rounding = refineUnitDiffOptions(unit, options);
+  if (slots0.epochNanoseconds === slots1.epochNanoseconds) {
+    return 0;
+  }
+  const timeZone = getCommonTimeZone(slots0.timeZone, slots1.timeZone);
+  return countRelativeUnit(unit, {
+    he: () => diffZonedEpochsExact(timeZone, calendar, slots0, slots1, unit),
+    me: createZonedRelativeOps(calendar, timeZone, slots0),
+    ie: slots1.epochNanoseconds
+  }, rounding, 1);
+}
+
+function diffZonedDayWeekUnit(unit, slots0, slots1, options) {
+  getCommonCalendar(slots0.calendar, slots1.calendar);
+  const rounding = refineUnitDiffOptions(unit, options);
+  return slots0.epochNanoseconds === slots1.epochNanoseconds ? 0 : countZonedDayWeekUnit(unit, getCommonTimeZone(slots0.timeZone, slots1.timeZone), slots0, slots1, rounding);
+}
+
+function diffDateTimeCalendarUnit(unit, slots0, slots1, options) {
+  const calendar = getCommonCalendar(slots0.calendar, slots1.calendar);
+  return diffPlainRelativeUnit(unit, options, () => diffDateTimesExact(calendar, slots0, slots1, unit), createDateRelativeOps(calendar, slots0), computeEndEpochNanoFromMidnight(slots0, slots1));
+}
+
+function diffDateTimeWeeks(slots0, slots1, options) {
+  return getCommonCalendar(slots0.calendar, slots1.calendar), countDateWeeks(slots0, computeEndEpochNanoFromMidnight(slots0, slots1), refineUnitDiffOptions(7, options));
+}
+
+function diffDateTimeDays(slots0, slots1, options) {
+  return getCommonCalendar(slots0.calendar, slots1.calendar), countEpochNanoDays(isoDateTimeToEpochNano(slots0), isoDateTimeToEpochNano(slots1), timeFieldsToNano(slots0), refineUnitDiffOptions(6, options));
+}
+
+function computeEndEpochNanoFromMidnight(isoDateTime0, isoDateTime1) {
+  return isoDateTimeToEpochNano(isoDateTime1) - BigInt(timeFieldsToNano(isoDateTime0));
+}
+
+function diffDateCalendarUnit(unit, slots0, slots1, options) {
+  const calendar = getCommonCalendar(slots0.calendar, slots1.calendar);
+  return diffPlainRelativeUnit(unit, options, () => diffCalendarDates(calendar, slots0, slots1, unit), createDateRelativeOps(calendar, slots0), isoDateToEpochNano(slots1));
+}
+
+function diffDateWeeks(slots0, slots1, options) {
+  return getCommonCalendar(slots0.calendar, slots1.calendar), countDateWeeks(slots0, isoDateToEpochNano(slots1), refineUnitDiffOptions(7, options));
+}
+
+function diffDateDays(slots0, slots1, options) {
+  return getCommonCalendar(slots0.calendar, slots1.calendar), countEpochNanoDays(isoDateToEpochNano(slots0), isoDateToEpochNano(slots1), 0, refineUnitDiffOptions(6, options));
+}
+
+function diffYearMonthUnit(unit, slots0, slots1, options) {
+  const calendar = getCommonCalendar(slots0.calendar, slots1.calendar);
+  return countYearMonthUnit(calendar, slots0, slots1, unit, refineUnitDiffOptions(unit, options));
+}
+
+function diffPlainRelativeUnit(unit, options, diffExact, relativeOps, endEpochNano) {
+  return countRelativeUnit(unit, {
+    he: diffExact,
+    me: relativeOps,
+    ie: endEpochNano
+  }, refineUnitDiffOptions(unit, options));
+}
+
+function reversedMove(f) {
+  return (slots, units, options) => f(slots, -units, options);
+}
+
+function moveDateByYears(calendar, isoDate, years, options) {
+  const overflow = refineOverflowOptions(options);
+  return years ? moveDateByCalendarUnits(calendar, isoDate, toStrictInteger(years), 0, overflow) : isoDate;
+}
+
+function moveDateByMonths(calendar, isoDate, months, options) {
+  const overflow = refineOverflowOptions(options);
+  return months ? moveDateByCalendarUnits(calendar, isoDate, 0, toStrictInteger(months), overflow) : isoDate;
+}
+
+function moveToDayOfYear(calendar, isoDate, dayOfYear, options) {
+  const overflow = refineOverflowOptions(options);
+  return moveToRefinedDayOfYear(calendar, isoDate, toIntegerWithTrunc(dayOfYear), overflow);
+}
+
+function moveToDayOfMonth(calendar, isoDate, day, options) {
+  const overflow = refineOverflowOptions(options);
+  return moveToRefinedDayOfMonth(calendar, isoDate, toIntegerWithTrunc(day), overflow);
+}
+
+function moveToDayOfWeek(_calendar, isoDate, dayOfWeek, options) {
+  const overflow = refineOverflowOptions(options);
+  return moveToRefinedDayOfWeek(isoDate, toIntegerWithTrunc(dayOfWeek), overflow);
+}
+
+function moveToWeekOfYear(calendar, isoDate, weekOfYear, options) {
+  const overflow = refineOverflowOptions(options);
+  return moveToRefinedWeekOfYear(calendar, isoDate, toIntegerWithTrunc(weekOfYear), overflow);
+}
+
+
+
+;// CONCATENATED MODULE: ./node_modules/temporal-polyfill/chunks/classApi-basic.js
+
+
+
+
+
+
+
+
+
+
+
+
+function resolveBasicCalendarId(rawCalendarId) {
+  const lowerRawCalendarId = requireString(rawCalendarId).toLowerCase();
+  return lowerRawCalendarId === isoCalendarId ? isoCalendarImpl : lowerRawCalendarId === gregoryCalendarId ? gregoryCalendarImpl : void throwRangeError(exoticCalendarRequired(rawCalendarId, "temporal-polyfill/full"));
+}
+
+function resolveBasicCalendarArg(rawCalendarId = isoCalendarId) {
+  return resolveBasicCalendarId(rawCalendarId);
+}
+
+const zonedDateTimeSlotsMap = /*@__PURE__*/ new WeakMap;
+
+const ZonedDateTime = /*@__PURE__*/ defineTemporalClass(ZonedDateTimeBranding, class {
+  constructor(epochNanoseconds, timeZoneId, calendar = void 0) {
+    const epochNano = checkEpochNanoInBounds(toBigInt(epochNanoseconds));
+    const timeZone = queryTimeZone(refineTimeZoneId(timeZoneId));
+    const calendarImpl = resolveBasicCalendarArg(calendar);
+    initZonedDateTime(this, createZonedEpochNanoSlots(epochNano, timeZone, calendarImpl));
+  }
+  static from(arg, options = void 0) {
+    return createZonedDateTime(toZonedDateTimeSlots(arg, options));
+  }
+  static compare(arg0, arg1) {
+    return compareZonedEpochSlots(toZonedDateTimeSlots(arg0), toZonedDateTimeSlots(arg1));
+  }
+  get calendarId() {
+    return getCalendarSlotId(getZonedDateTimeSlots(this).calendar);
+  }
+  get timeZoneId() {
+    return getZonedDateTimeSlots(this).timeZone.id;
+  }
+  get epochMilliseconds() {
+    return epochNanoToMilli(getZonedDateTimeSlots(this).epochNanoseconds);
+  }
+  get epochNanoseconds() {
+    return getZonedDateTimeSlots(this).epochNanoseconds;
+  }
+  get offset() {
+    return formatOffsetNano(zonedEpochSlotsToIso(getZonedDateTimeSlots(this)).offsetNanoseconds);
+  }
+  get offsetNanoseconds() {
+    return zonedEpochSlotsToIso(getZonedDateTimeSlots(this)).offsetNanoseconds;
+  }
+  get hoursInDay() {
+    return computeZonedHoursInDay(getZonedDateTimeSlots(this));
+  }
+  with(mod, options = void 0) {
+    return createZonedDateTime(withZonedDateTimeFields(getZonedDateTimeSlots(this), validateBag(mod), options));
+  }
+  withCalendar(calendarArg) {
+    return createZonedDateTime({
+      ...getZonedDateTimeSlots(this),
+      calendar: refineCalendarArg(calendarArg)
+    });
+  }
+  withTimeZone(timeZoneArg) {
+    return createZonedDateTime({
+      ...getZonedDateTimeSlots(this),
+      timeZone: queryTimeZone(refineTimeZoneArg(timeZoneArg))
+    });
+  }
+  withPlainTime(plainTimeArg = void 0) {
+    return createZonedDateTime(zonedDateTimeWithPlainTime(getZonedDateTimeSlots(this), optionalToPlainTimeFields(plainTimeArg)));
+  }
+  add(durationArg, options = void 0) {
+    const slots = getZonedDateTimeSlots(this);
+    return createZonedDateTime(moveZonedEpochSlots(slots, toDurationSlots(durationArg), options_refineOverflowOptions(options)));
+  }
+  subtract(durationArg, options = void 0) {
+    const slots = getZonedDateTimeSlots(this);
+    return createZonedDateTime(moveZonedEpochSlots(slots, negateDurationFields(toDurationSlots(durationArg)), options_refineOverflowOptions(options)));
+  }
+  until(otherArg, options = void 0) {
+    const slots = getZonedDateTimeSlots(this);
+    const other = toZonedDateTimeSlots(otherArg);
+    return createDuration(diffZonedDateTimes(0, slots, other, options));
+  }
+  since(otherArg, options = void 0) {
+    const slots = getZonedDateTimeSlots(this);
+    const other = toZonedDateTimeSlots(otherArg);
+    return createDuration(diffZonedDateTimes(1, slots, other, options));
+  }
+  round(options) {
+    const slots = getZonedDateTimeSlots(this);
+    const [smallestUnit, roundingInc, roundingMode] = refineRoundingOptions(options);
+    return createZonedDateTime(roundZonedEpochSlotsToUnit(slots, smallestUnit, roundingInc, roundingMode));
+  }
+  startOfDay() {
+    return createZonedDateTime(computeZonedStartOfDay(getZonedDateTimeSlots(this)));
+  }
+  equals(otherArg) {
+    return zonedDateTimesEqual(getZonedDateTimeSlots(this), toZonedDateTimeSlots(otherArg));
+  }
+  toInstant() {
+    return createInstant(zonedDateTimeToInstant(getZonedDateTimeSlots(this)));
+  }
+  toPlainDateTime() {
+    return createPlainDateTime(zonedDateTimeToDateTime(getZonedDateTimeSlots(this)));
+  }
+  toPlainDate() {
+    return createPlainDate(zonedDateTimeToDate(getZonedDateTimeSlots(this)));
+  }
+  toPlainTime() {
+    return createPlainTime(zonedDateTimeToTime(getZonedDateTimeSlots(this)));
+  }
+  toLocaleString(locales = void 0, options = {}) {
+    const slots = getZonedDateTimeSlots(this);
+    const format = new RawDateTimeFormat(locales, applyZonedFormatTimeZone(transformZonedOptions(options), getZonedTimeZoneId(slots)));
+    return checkResolvedCalendarCompatible(format, slots), format.format(epochNanoToMilli(slots.epochNanoseconds));
+  }
+  toString(options = void 0) {
+    return formatZonedDateTimeIso(getZonedDateTimeSlots(this), options);
+  }
+  toJSON() {
+    return formatZonedDateTimeIso(getZonedDateTimeSlots(this));
+  }
+  getTimeZoneTransition(options) {
+    const slots = getZonedDateTimeSlots(this);
+    const newEpochNano = slots.timeZone.C(slots.epochNanoseconds, refineDirectionOptions(options));
+    return void 0 !== newEpochNano ? createZonedDateTime({
+      ...slots,
+      epochNanoseconds: newEpochNano
+    }) : null;
+  }
+  valueOf() {
+    return apiHelpers_forbiddenValueOf();
+  }
+}, getZonedDateTimeIsoSlots, dateFieldGetters$1, dateDerivedGetters, timeGetters);
+
+function createZonedDateTime(slots) {
+  return initZonedDateTime(Object.create(ZonedDateTime.prototype), slots);
+}
+
+function getZonedDateTimeSlots(obj) {
+  return getZonedDateTimeSlotsIfPresent(obj) || invalidRecordType();
+}
+
+function getZonedDateTimeIsoSlots(obj) {
+  const slots = getZonedDateTimeSlots(obj);
+  return {
+    ...zonedEpochSlotsToIso(slots),
+    calendar: slots.calendar
+  };
+}
+
+function getZonedDateTimeSlotsIfPresent(obj) {
+  return zonedDateTimeSlotsMap.get(obj);
+}
+
+function toZonedDateTimeSlots(arg, options) {
+  if (internal_isObjectLike(arg)) {
+    const ownSlots = getZonedDateTimeSlotsIfPresent(arg);
+    if (ownSlots) {
+      return refineZonedFieldOptions(options), ownSlots;
+    }
+    const calendar = getCalendarFromBag(arg);
+    return refineZonedDateTimeObjectLike(refineTimeZoneArg, calendar, arg, options);
+  }
+  return parseZonedDateTime(arg, resolveBasicCalendarId, options);
+}
+
+function initZonedDateTime(instance, slots) {
+  return zonedDateTimeSlotsMap.set(instance, slots), attachDebugString(instance), 
+  instance;
+}
+
+function refineTimeZoneArg(arg) {
+  if (internal_isObjectLike(arg)) {
+    const slots = getZonedDateTimeSlotsIfPresent(arg);
+    return slots || throwTypeError(invalidTimeZone(arg)), slots.timeZone.id;
+  }
+  return (arg => resolveTimeZoneId(parseTimeZoneId(requireString(arg))))(arg);
+}
+
+const instantSlotsMap = /*@__PURE__*/ new WeakMap;
+
+const Instant = /*@__PURE__*/ defineTemporalClass(InstantBranding, class {
+  constructor(epochNanoseconds) {
+    const epochNano = checkEpochNanoInBounds(toBigInt(epochNanoseconds));
+    initInstant(this, createEpochNanoSlots(epochNano));
+  }
+  static from(arg) {
+    return createInstant(toInstantSlots(arg));
+  }
+  static fromEpochMilliseconds(epochMilli) {
+    return createInstant(epochMilliToInstant(epochMilli));
+  }
+  static fromEpochNanoseconds(epochNano) {
+    return createInstant(epochNanoToInstant(epochNano));
+  }
+  static compare(a, b) {
+    return compareZonedEpochSlots(toInstantSlots(a), toInstantSlots(b));
+  }
+  get epochMilliseconds() {
+    return epochNanoToMilli(getInstantSlots(this).epochNanoseconds);
+  }
+  get epochNanoseconds() {
+    return getInstantSlots(this).epochNanoseconds;
+  }
+  add(durationArg) {
+    const slots = getInstantSlots(this);
+    return createInstant(createEpochNanoSlots(moveEpochNano(slots.epochNanoseconds, toDurationSlots(durationArg))));
+  }
+  subtract(durationArg) {
+    const slots = getInstantSlots(this);
+    return createInstant(createEpochNanoSlots(moveEpochNano(slots.epochNanoseconds, negateDurationFields(toDurationSlots(durationArg)))));
+  }
+  until(otherArg, options = void 0) {
+    return createDuration(diffInstants(0, getInstantSlots(this), toInstantSlots(otherArg), options));
+  }
+  since(otherArg, options = void 0) {
+    return createDuration(diffInstants(1, getInstantSlots(this), toInstantSlots(otherArg), options));
+  }
+  round(options) {
+    const slots = getInstantSlots(this);
+    const [smallestUnit, roundingInc, roundingMode] = refineRoundingOptions(options, 5, 1);
+    return createInstant(createEpochNanoSlots(roundBigNanoToDayOriginInc(slots.epochNanoseconds, computeBigNanoInc(smallestUnit, roundingInc), roundingMode)));
+  }
+  equals(otherArg) {
+    return instantsEqual(getInstantSlots(this), toInstantSlots(otherArg));
+  }
+  toZonedDateTimeISO(timeZoneArg) {
+    return createZonedDateTime(instantToZonedDateTime(getInstantSlots(this), queryTimeZone(refineTimeZoneArg(timeZoneArg))));
+  }
+  toLocaleString(locales = void 0, options = {}) {
+    const slots = getInstantSlots(this);
+    return new RawDateTimeFormat(locales, transformInstantOptions(options)).format(epochNanoToMilli(slots.epochNanoseconds));
+  }
+  toString(options = void 0) {
+    return formatInstantIso(refineTimeZoneArg, getInstantSlots(this), options);
+  }
+  toJSON() {
+    return formatInstantIso(refineTimeZoneArg, getInstantSlots(this));
+  }
+  valueOf() {
+    return apiHelpers_forbiddenValueOf();
+  }
+});
+
+function createInstant(slots) {
+  return initInstant(Object.create(Instant.prototype), slots);
+}
+
+function getInstantSlots(obj) {
+  return getInstantSlotsIfPresent(obj) || invalidRecordType();
+}
+
+function getInstantSlotsIfPresent(obj) {
+  return instantSlotsMap.get(obj);
+}
+
+function toInstantSlots(arg) {
+  if (internal_isObjectLike(arg)) {
+    const ownSlots = getInstantSlotsIfPresent(arg);
+    if (ownSlots) {
+      return ownSlots;
+    }
+    const zonedDateTimeSlots = getZonedDateTimeSlotsIfPresent(arg);
+    if (zonedDateTimeSlots) {
+      return createEpochNanoSlots(zonedDateTimeSlots.epochNanoseconds);
+    }
+  }
+  return parseInstant(arg);
+}
+
+const {toTemporalInstant: toTemporalInstant} = {
+  toTemporalInstant() {
+    const epochMilli = Date.prototype.valueOf.call(this);
+    return createInstant(createEpochNanoSlots(BigInt(requireNumberIsInteger(epochMilli)) * bigNanoInMilli));
+  }
+};
+
+function initInstant(instance, slots) {
+  return instantSlotsMap.set(instance, slots), attachDebugString(instance), instance;
+}
+
+const plainMonthDaySlotsMap = /*@__PURE__*/ new WeakMap;
+
+const PlainMonthDay = /*@__PURE__*/ defineTemporalClass(PlainMonthDayBranding, class {
+  constructor(isoMonth, isoDay, calendar = void 0, referenceIsoYear) {
+    const isoMonthInt = utils_toIntegerWithTrunc(isoMonth);
+    const isoDayInt = utils_toIntegerWithTrunc(isoDay);
+    const calendarImpl = resolveBasicCalendarArg(calendar);
+    const isoYearInt = utils_toIntegerWithTrunc(referenceIsoYear ?? isoEpochFirstLeapYear);
+    const fields = checkIsoDateInBounds(validateIsoDateFields({
+      year: isoYearInt,
+      month: isoMonthInt,
+      day: isoDayInt
+    }));
+    initPlainMonthDay(this, createDateSlots(fields, calendarImpl));
+  }
+  static from(arg, options = void 0) {
+    return createPlainMonthDay(toPlainMonthDaySlots(arg, options));
+  }
+  get calendarId() {
+    return getCalendarSlotId(getPlainMonthDaySlots(this).calendar);
+  }
+  with(mod, options = void 0) {
+    return createPlainMonthDay(withMonthDayFields(getPlainMonthDaySlots(this), validateBag(mod), options));
+  }
+  equals(otherArg) {
+    return plainMonthDaysEqual(getPlainMonthDaySlots(this), toPlainMonthDaySlots(otherArg));
+  }
+  toPlainDate(bag) {
+    const slots = getPlainMonthDaySlots(this);
+    return createPlainDate(monthDayToDate(slots.calendar, this, bag));
+  }
+  toLocaleString(locales = void 0, options = {}) {
+    const slots = getPlainMonthDaySlots(this);
+    const format = new RawDateTimeFormat(locales, applyPlainFormatTimeZone(transformMonthDayOptions(options)));
+    return checkResolvedCalendarCompatible(format, slots, 1), format.format(isoDateToEpochMilli(slots));
+  }
+  toString(options = void 0) {
+    return formatPlainMonthDayIso(getPlainMonthDaySlots(this), options);
+  }
+  toJSON() {
+    return formatPlainMonthDayIso(getPlainMonthDaySlots(this));
+  }
+  valueOf() {
+    return apiHelpers_forbiddenValueOf();
+  }
+}, getPlainMonthDaySlots, monthDayFieldGetters$1);
+
+function createPlainMonthDay(slots) {
+  return initPlainMonthDay(Object.create(PlainMonthDay.prototype), slots);
+}
+
+function getPlainMonthDaySlots(obj) {
+  return getPlainMonthDaySlotsIfPresent(obj) || invalidRecordType();
+}
+
+function getPlainMonthDaySlotsIfPresent(obj) {
+  return plainMonthDaySlotsMap.get(obj);
+}
+
+function toPlainMonthDaySlots(arg, options) {
+  if (internal_isObjectLike(arg)) {
+    const ownSlots = getPlainMonthDaySlotsIfPresent(arg);
+    if (ownSlots) {
+      return options_refineOverflowOptions(options), ownSlots;
+    }
+    const calendarMaybe = extractCalendarFromBag(arg);
+    return refinePlainMonthDayObjectLike(void 0 === calendarMaybe ? isoCalendarImpl : calendarMaybe, void 0 === calendarMaybe, arg, options);
+  }
+  const res = parsePlainMonthDay(arg, resolveBasicCalendarId);
+  return options_refineOverflowOptions(options), res;
+}
+
+function initPlainMonthDay(instance, slots) {
+  return plainMonthDaySlotsMap.set(instance, slots), attachDebugString(instance), 
+  instance;
+}
+
+const plainYearMonthSlotsMap = /*@__PURE__*/ new WeakMap;
+
+const PlainYearMonth = /*@__PURE__*/ defineTemporalClass(PlainYearMonthBranding, class {
+  constructor(isoYear, isoMonth, calendar = void 0, referenceIsoDay) {
+    const isoYearInt = utils_toIntegerWithTrunc(isoYear);
+    const isoMonthInt = utils_toIntegerWithTrunc(isoMonth);
+    const calendarImpl = resolveBasicCalendarArg(calendar);
+    const isoDayInt = utils_toIntegerWithTrunc(referenceIsoDay ?? 1);
+    const fields = checkIsoYearMonthInBounds(validateIsoDateFields({
+      year: isoYearInt,
+      month: isoMonthInt,
+      day: isoDayInt
+    }));
+    initPlainYearMonth(this, createDateSlots(fields, calendarImpl));
+  }
+  static from(arg, options = void 0) {
+    return createPlainYearMonth(toPlainYearMonthSlots(arg, options));
+  }
+  static compare(arg0, arg1) {
+    return compareIsoDateFields(toPlainYearMonthSlots(arg0), toPlainYearMonthSlots(arg1));
+  }
+  get calendarId() {
+    return getCalendarSlotId(getPlainYearMonthSlots(this).calendar);
+  }
+  with(mod, options = void 0) {
+    return createPlainYearMonth(withYearMonthFields(getPlainYearMonthSlots(this), validateBag(mod), options));
+  }
+  add(durationArg, options = void 0) {
+    const slots = getPlainYearMonthSlots(this);
+    return createPlainYearMonth(createDateSlots(moveYearMonth(slots.calendar, slots, toDurationSlots(durationArg), options_refineOverflowOptions(options)), slots.calendar));
+  }
+  subtract(durationArg, options = void 0) {
+    const slots = getPlainYearMonthSlots(this);
+    return createPlainYearMonth(createDateSlots(moveYearMonth(slots.calendar, slots, negateDurationFields(toDurationSlots(durationArg)), options_refineOverflowOptions(options)), slots.calendar));
+  }
+  until(otherArg, options = void 0) {
+    const slots = getPlainYearMonthSlots(this);
+    const other = toPlainYearMonthSlots(otherArg);
+    return createDuration(diffYearMonths(0, slots, other, options));
+  }
+  since(otherArg, options = void 0) {
+    const slots = getPlainYearMonthSlots(this);
+    const other = toPlainYearMonthSlots(otherArg);
+    return createDuration(diffYearMonths(1, slots, other, options));
+  }
+  equals(otherArg) {
+    return plainYearMonthsEqual(getPlainYearMonthSlots(this), toPlainYearMonthSlots(otherArg));
+  }
+  toPlainDate(bag) {
+    const slots = getPlainYearMonthSlots(this);
+    return createPlainDate(yearMonthToDate(slots.calendar, this, bag));
+  }
+  toLocaleString(locales = void 0, options = {}) {
+    const slots = getPlainYearMonthSlots(this);
+    const format = new RawDateTimeFormat(locales, applyPlainFormatTimeZone(transformYearMonthOptions(options)));
+    return checkResolvedCalendarCompatible(format, slots, 1), format.format(isoDateToEpochMilli(slots));
+  }
+  toString(options = void 0) {
+    return formatPlainYearMonthIso(getPlainYearMonthSlots(this), options);
+  }
+  toJSON() {
+    return formatPlainYearMonthIso(getPlainYearMonthSlots(this));
+  }
+  valueOf() {
+    return apiHelpers_forbiddenValueOf();
+  }
+}, getPlainYearMonthSlots, yearMonthFieldGetters$1, yearMonthDerivedGetters);
+
+function createPlainYearMonth(slots) {
+  return initPlainYearMonth(Object.create(PlainYearMonth.prototype), slots);
+}
+
+function getPlainYearMonthSlots(obj) {
+  return getPlainYearMonthSlotsIfPresent(obj) || invalidRecordType();
+}
+
+function getPlainYearMonthSlotsIfPresent(obj) {
+  return plainYearMonthSlotsMap.get(obj);
+}
+
+function toPlainYearMonthSlots(arg, options) {
+  if (internal_isObjectLike(arg)) {
+    const ownSlots = getPlainYearMonthSlotsIfPresent(arg);
+    if (ownSlots) {
+      return options_refineOverflowOptions(options), ownSlots;
+    }
+    const calendar = getCalendarFromBag(arg);
+    return refinePlainYearMonthObjectLike(calendar, arg, options);
+  }
+  const res = parsePlainYearMonth(arg, resolveBasicCalendarId);
+  return options_refineOverflowOptions(options), res;
+}
+
+function initPlainYearMonth(instance, slots) {
+  return plainYearMonthSlotsMap.set(instance, slots), attachDebugString(instance), 
+  instance;
+}
+
+function getTemporalBrandingAndSlots(obj) {
+  if (!internal_isObjectLike(obj)) {
+    return;
+  }
+  let slots = getInstantSlotsIfPresent(obj);
+  return slots ? [ InstantBranding, slots ] : (slots = getZonedDateTimeSlotsIfPresent(obj), 
+  slots ? [ ZonedDateTimeBranding, slots ] : (slots = getPlainDateTimeSlotsIfPresent(obj), 
+  slots ? [ PlainDateTimeBranding, slots ] : (slots = getPlainDateSlotsIfPresent(obj), 
+  slots ? [ PlainDateBranding, slots ] : (slots = getPlainTimeSlotsIfPresent(obj), 
+  slots ? [ PlainTimeBranding, slots ] : (slots = getPlainYearMonthSlotsIfPresent(obj), 
+  slots ? [ PlainYearMonthBranding, slots ] : (slots = getPlainMonthDaySlotsIfPresent(obj), 
+  slots ? [ PlainMonthDayBranding, slots ] : (slots = getDurationSlotsIfPresent(obj), 
+  slots ? [ DurationBranding, slots ] : void 0)))))));
+}
+
+function validateBag(bag) {
+  return (getTemporalBrandingAndSlots(bag) || void 0 !== bag.calendar || void 0 !== bag.timeZone) && throwTypeError(invalidBag), 
+  bag;
+}
+
+const plainTimeSlotsMap = /*@__PURE__*/ new WeakMap;
+
+const PlainTime = /*@__PURE__*/ defineTemporalClass(PlainTimeBranding, class {
+  constructor(hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0) {
+    const fields = validateTimeFields(mapProps(utils_toIntegerWithTrunc, {
+      hour: hour,
+      minute: minute,
+      second: second,
+      millisecond: millisecond,
+      microsecond: microsecond,
+      nanosecond: nanosecond
+    }));
+    initPlainTime(this, createTimeSlots(fields));
+  }
+  static from(arg, options = void 0) {
+    return createPlainTime(toPlainTimeSlots(arg, options));
+  }
+  static compare(arg0, arg1) {
+    return compareTimeFields(toPlainTimeSlots(arg0), toPlainTimeSlots(arg1));
+  }
+  with(mod, options = void 0) {
+    return createPlainTime(withTimeFields(getPlainTimeSlots(this), validateBag(mod), options));
+  }
+  add(durationArg) {
+    const slots = getPlainTimeSlots(this);
+    return createPlainTime(moveTime(slots, toDurationSlots(durationArg))[0]);
+  }
+  subtract(durationArg) {
+    const slots = getPlainTimeSlots(this);
+    return createPlainTime(moveTime(slots, negateDurationFields(toDurationSlots(durationArg)))[0]);
+  }
+  until(otherArg, options = void 0) {
+    return createDuration(diffTimes(0, getPlainTimeSlots(this), toPlainTimeSlots(otherArg), options));
+  }
+  since(otherArg, options = void 0) {
+    return createDuration(diffTimes(1, getPlainTimeSlots(this), toPlainTimeSlots(otherArg), options));
+  }
+  round(options) {
+    const slots = getPlainTimeSlots(this);
+    const [smallestUnit, roundingInc, roundingMode] = refineRoundingOptions(options, 5);
+    return createPlainTime(roundTimeToInc(slots, computeNanoInc(smallestUnit, roundingInc), roundingMode)[0]);
+  }
+  equals(other) {
+    return plainTimesEqual(getPlainTimeSlots(this), toPlainTimeSlots(other));
+  }
+  toLocaleString(locales = void 0, options = {}) {
+    const slots = getPlainTimeSlots(this);
+    return new RawDateTimeFormat(locales, applyPlainFormatTimeZone(transformTimeOptions(options))).format(timeFieldsToMilli(slots));
+  }
+  toString(options = void 0) {
+    return formatPlainTimeIso(getPlainTimeSlots(this), options);
+  }
+  toJSON() {
+    return formatPlainTimeIso(getPlainTimeSlots(this));
+  }
+  valueOf() {
+    return apiHelpers_forbiddenValueOf();
+  }
+}, getPlainTimeSlots, timeGetters);
+
+function createPlainTime(slots) {
+  return initPlainTime(Object.create(PlainTime.prototype), slots);
+}
+
+function getPlainTimeSlots(obj) {
+  return getPlainTimeSlotsIfPresent(obj) || invalidRecordType();
+}
+
+function getPlainTimeSlotsIfPresent(obj) {
+  return plainTimeSlotsMap.get(obj);
+}
+
+function toPlainTimeSlots(arg, options) {
+  if (internal_isObjectLike(arg)) {
+    const ownSlots = getPlainTimeSlotsIfPresent(arg);
+    if (ownSlots) {
+      return options_refineOverflowOptions(options), ownSlots;
+    }
+    const dateTimeSlots = getPlainDateTimeSlotsIfPresent(arg);
+    if (dateTimeSlots) {
+      return options_refineOverflowOptions(options), createTimeSlots(dateTimeSlots);
+    }
+    const zonedDateTimeSlots = getZonedDateTimeSlotsIfPresent(arg);
+    return zonedDateTimeSlots ? (options_refineOverflowOptions(options), zonedDateTimeToTime(zonedDateTimeSlots)) : refinePlainTimeObjectLike(arg, options);
+  }
+  const timeSlots = parsePlainTime(arg);
+  return options_refineOverflowOptions(options), timeSlots;
+}
+
+function optionalToPlainTimeFields(timeArg) {
+  return void 0 === timeArg ? void 0 : toPlainTimeSlots(timeArg);
+}
+
+function initPlainTime(instance, slots) {
+  return plainTimeSlotsMap.set(instance, slots), attachDebugString(instance), instance;
+}
+
+const plainDateTimeSlotsMap = /*@__PURE__*/ new WeakMap;
+
+const PlainDateTime = /*@__PURE__*/ defineTemporalClass(PlainDateTimeBranding, class {
+  constructor(isoYear, isoMonth, isoDay, hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0, calendar = void 0) {
+    const fields = checkIsoDateTimeInBounds(validateIsoDateTimeFields(mapProps(utils_toIntegerWithTrunc, {
+      year: isoYear,
+      month: isoMonth,
+      day: isoDay,
+      hour: hour,
+      minute: minute,
+      second: second,
+      millisecond: millisecond,
+      microsecond: microsecond,
+      nanosecond: nanosecond
+    })));
+    const calendarImpl = resolveBasicCalendarArg(calendar);
+    initPlainDateTime(this, createDateTimeSlots(fields, calendarImpl));
+  }
+  static from(arg, options = void 0) {
+    return createPlainDateTime(toPlainDateTimeSlots(arg, options));
+  }
+  static compare(arg0, arg1) {
+    const slots0 = toPlainDateTimeSlots(arg0);
+    const slots1 = toPlainDateTimeSlots(arg1);
+    return compareIsoDateTimeFields(slots0, slots1);
+  }
+  get calendarId() {
+    return getCalendarSlotId(getPlainDateTimeSlots(this).calendar);
+  }
+  with(mod, options = void 0) {
+    return createPlainDateTime(withDateTimeFields(getPlainDateTimeSlots(this), validateBag(mod), options));
+  }
+  withCalendar(calendarArg) {
+    const slots = getPlainDateTimeSlots(this);
+    return createPlainDateTime(createDateTimeSlots(slots, refineCalendarArg(calendarArg)));
+  }
+  withPlainTime(plainTimeArg = void 0) {
+    const slots = getPlainDateTimeSlots(this);
+    return createPlainDateTime(createDateTimeFromRefinedFields(slots, optionalToPlainTimeFields(plainTimeArg), slots.calendar));
+  }
+  add(durationArg, options = void 0) {
+    const slots = getPlainDateTimeSlots(this);
+    return createPlainDateTime(createDateTimeSlots(moveDateTime(slots.calendar, slots, toDurationSlots(durationArg), options_refineOverflowOptions(options)), slots.calendar));
+  }
+  subtract(durationArg, options = void 0) {
+    const slots = getPlainDateTimeSlots(this);
+    return createPlainDateTime(createDateTimeSlots(moveDateTime(slots.calendar, slots, negateDurationFields(toDurationSlots(durationArg)), options_refineOverflowOptions(options)), slots.calendar));
+  }
+  until(otherArg, options = void 0) {
+    const slots = getPlainDateTimeSlots(this);
+    const other = toPlainDateTimeSlots(otherArg);
+    return createDuration(diffDateTimes(0, slots, other, options));
+  }
+  since(otherArg, options = void 0) {
+    const slots = getPlainDateTimeSlots(this);
+    const other = toPlainDateTimeSlots(otherArg);
+    return createDuration(diffDateTimes(1, slots, other, options));
+  }
+  round(options) {
+    const slots = getPlainDateTimeSlots(this);
+    const [smallestUnit, roundingInc, roundingMode] = refineRoundingOptions(options);
+    return createPlainDateTime(createDateTimeSlots(roundDateTimeToInc(slots, computeNanoInc(smallestUnit, roundingInc), roundingMode), slots.calendar));
+  }
+  equals(otherArg) {
+    return plainDateTimesEqual(getPlainDateTimeSlots(this), toPlainDateTimeSlots(otherArg));
+  }
+  toZonedDateTime(timeZoneArg, options = void 0) {
+    return createZonedDateTime(dateTimeToZonedDateTime(getPlainDateTimeSlots(this), queryTimeZone(refineTimeZoneArg(timeZoneArg)), refineEpochDisambigOptions(options)));
+  }
+  toPlainDate() {
+    const slots = getPlainDateTimeSlots(this);
+    return createPlainDate(createDateSlots(slots, slots.calendar));
+  }
+  toPlainTime() {
+    return createPlainTime(createTimeSlots(getPlainDateTimeSlots(this)));
+  }
+  toLocaleString(locales = void 0, options = {}) {
+    const slots = getPlainDateTimeSlots(this);
+    const format = new RawDateTimeFormat(locales, applyPlainFormatTimeZone(transformDateTimeOptions(options)));
+    return checkResolvedCalendarCompatible(format, slots), format.format(isoDateTimeToEpochMilli(slots));
+  }
+  toString(options = void 0) {
+    return formatPlainDateTimeIso(getPlainDateTimeSlots(this), options);
+  }
+  toJSON() {
+    return formatPlainDateTimeIso(getPlainDateTimeSlots(this));
+  }
+  valueOf() {
+    return apiHelpers_forbiddenValueOf();
+  }
+}, getPlainDateTimeSlots, dateFieldGetters$1, dateDerivedGetters, timeGetters);
+
+function createPlainDateTime(slots) {
+  return initPlainDateTime(Object.create(PlainDateTime.prototype), slots);
+}
+
+function getPlainDateTimeSlots(obj) {
+  return getPlainDateTimeSlotsIfPresent(obj) || invalidRecordType();
+}
+
+function getPlainDateTimeSlotsIfPresent(obj) {
+  return plainDateTimeSlotsMap.get(obj);
+}
+
+function toPlainDateTimeSlots(arg, options) {
+  if (internal_isObjectLike(arg)) {
+    const ownSlots = getPlainDateTimeSlotsIfPresent(arg);
+    if (ownSlots) {
+      return options_refineOverflowOptions(options), ownSlots;
+    }
+    const dateSlots = getPlainDateSlotsIfPresent(arg);
+    if (dateSlots) {
+      return options_refineOverflowOptions(options), createDateTimeSlots(combineDateAndTime(dateSlots, timeFieldDefaults), dateSlots.calendar);
+    }
+    const zonedDateTimeSlots = getZonedDateTimeSlotsIfPresent(arg);
+    if (zonedDateTimeSlots) {
+      return options_refineOverflowOptions(options), zonedDateTimeToDateTime(zonedDateTimeSlots);
+    }
+    const calendar = getCalendarFromBag(arg);
+    return refinePlainDateTimeObjectLike(calendar, arg, options);
+  }
+  const res = parsePlainDateTime(arg, resolveBasicCalendarId);
+  return options_refineOverflowOptions(options), res;
+}
+
+function initPlainDateTime(instance, slots) {
+  return plainDateTimeSlotsMap.set(instance, slots), attachDebugString(instance), 
+  instance;
+}
+
+const plainDateSlotsMap = /*@__PURE__*/ new WeakMap;
+
+const PlainDate = /*@__PURE__*/ defineTemporalClass(PlainDateBranding, class {
+  constructor(isoYear, isoMonth, isoDay, calendar = void 0) {
+    const fields = checkIsoDateInBounds(validateIsoDateFields(mapProps(utils_toIntegerWithTrunc, {
+      year: isoYear,
+      month: isoMonth,
+      day: isoDay
+    })));
+    const calendarImpl = resolveBasicCalendarArg(calendar);
+    initPlainDate(this, createDateSlots(fields, calendarImpl));
+  }
+  static from(arg, options = void 0) {
+    return createPlainDate(toPlainDateSlots(arg, options));
+  }
+  static compare(arg0, arg1) {
+    return compareIsoDateFields(toPlainDateSlots(arg0), toPlainDateSlots(arg1));
+  }
+  get calendarId() {
+    return getCalendarSlotId(getPlainDateSlots(this).calendar);
+  }
+  with(mod, options = void 0) {
+    return createPlainDate(withDateFields(getPlainDateSlots(this), validateBag(mod), options));
+  }
+  withCalendar(calendarArg) {
+    const slots = getPlainDateSlots(this);
+    return createPlainDate(createDateSlots(slots, refineCalendarArg(calendarArg)));
+  }
+  add(durationArg, options = void 0) {
+    const slots = getPlainDateSlots(this);
+    return createPlainDate(createDateSlots(moveDate(slots.calendar, slots, toDurationSlots(durationArg), options_refineOverflowOptions(options)), slots.calendar));
+  }
+  subtract(durationArg, options = void 0) {
+    const slots = getPlainDateSlots(this);
+    return createPlainDate(createDateSlots(moveDate(slots.calendar, slots, negateDurationFields(toDurationSlots(durationArg)), options_refineOverflowOptions(options)), slots.calendar));
+  }
+  until(otherArg, options = void 0) {
+    const slots = getPlainDateSlots(this);
+    const other = toPlainDateSlots(otherArg);
+    return createDuration(diffDates(0, slots, other, options));
+  }
+  since(otherArg, options = void 0) {
+    const slots = getPlainDateSlots(this);
+    const other = toPlainDateSlots(otherArg);
+    return createDuration(diffDates(1, slots, other, options));
+  }
+  equals(otherArg) {
+    return plainDatesEqual(getPlainDateSlots(this), toPlainDateSlots(otherArg));
+  }
+  toZonedDateTime(options) {
+    const optionsObj = internal_isObjectLike(options) ? {
+      timeZone: options.timeZone,
+      plainTime: options.plainTime
+    } : {
+      timeZone: options
+    };
+    const slots = getPlainDateSlots(this);
+    const timeZoneId = refineTimeZoneArg(optionsObj.timeZone);
+    const plainTimeArg = optionsObj.plainTime;
+    const timeFields = void 0 !== plainTimeArg ? toPlainTimeSlots(plainTimeArg) : void 0;
+    return createZonedDateTime(dateToZonedDateTime(slots, queryTimeZone(timeZoneId), timeFields));
+  }
+  toPlainDateTime(plainTimeArg = void 0) {
+    const slots = getPlainDateSlots(this);
+    return createPlainDateTime(createDateTimeFromRefinedFields(slots, optionalToPlainTimeFields(plainTimeArg), slots.calendar));
+  }
+  toPlainYearMonth() {
+    const slots = getPlainDateSlots(this);
+    return createPlainYearMonth(fieldsToYearMonth(slots.calendar, this));
+  }
+  toPlainMonthDay() {
+    const slots = getPlainDateSlots(this);
+    return createPlainMonthDay(fieldsToMonthDay(slots.calendar, this));
+  }
+  toLocaleString(locales = void 0, options = {}) {
+    const slots = getPlainDateSlots(this);
+    const format = new RawDateTimeFormat(locales, applyPlainFormatTimeZone(transformDateOptions(options)));
+    return checkResolvedCalendarCompatible(format, slots), format.format(isoDateToEpochMilli(slots));
+  }
+  toString(options = void 0) {
+    return formatPlainDateIso(getPlainDateSlots(this), options);
+  }
+  toJSON() {
+    return formatPlainDateIso(getPlainDateSlots(this));
+  }
+  valueOf() {
+    return apiHelpers_forbiddenValueOf();
+  }
+}, getPlainDateSlots, dateFieldGetters$1, dateDerivedGetters);
+
+function createPlainDate(slots) {
+  return initPlainDate(Object.create(PlainDate.prototype), slots);
+}
+
+function getPlainDateSlots(obj) {
+  return getPlainDateSlotsIfPresent(obj) || invalidRecordType();
+}
+
+function getPlainDateSlotsIfPresent(obj) {
+  return plainDateSlotsMap.get(obj);
+}
+
+function toPlainDateSlots(arg, options) {
+  if (internal_isObjectLike(arg)) {
+    const ownSlots = getPlainDateSlotsIfPresent(arg);
+    if (ownSlots) {
+      return options_refineOverflowOptions(options), ownSlots;
+    }
+    const dateTimeSlots = getPlainDateTimeSlotsIfPresent(arg);
+    if (dateTimeSlots) {
+      return options_refineOverflowOptions(options), createDateSlots(dateTimeSlots, dateTimeSlots.calendar);
+    }
+    const zonedDateTimeSlots = getZonedDateTimeSlotsIfPresent(arg);
+    if (zonedDateTimeSlots) {
+      return options_refineOverflowOptions(options), zonedDateTimeToDate(zonedDateTimeSlots);
+    }
+    const calendar = getCalendarFromBag(arg);
+    return refinePlainDateObjectLike(calendar, arg, options);
+  }
+  const res = parsePlainDate(arg, resolveBasicCalendarId);
+  return options_refineOverflowOptions(options), res;
+}
+
+function initPlainDate(instance, slots) {
+  return plainDateSlotsMap.set(instance, slots), attachDebugString(instance), instance;
+}
+
+function getCalendarFromBag(bag) {
+  const calendar = extractCalendarFromBag(bag);
+  return void 0 === calendar ? isoCalendarImpl : calendar;
+}
+
+function extractCalendarFromBag(bag) {
+  const {calendar: calendarArg} = bag;
+  if (void 0 !== calendarArg) {
+    return refineCalendarArg(calendarArg);
+  }
+}
+
+function refineCalendarArg(arg) {
+  if (internal_isObjectLike(arg)) {
+    const slots = getPlainDateSlotsIfPresent(arg) || getPlainDateTimeSlotsIfPresent(arg) || getZonedDateTimeSlotsIfPresent(arg) || getPlainMonthDaySlotsIfPresent(arg) || getPlainYearMonthSlotsIfPresent(arg);
+    return slots || throwTypeError(invalidCalendar(arg)), slots.calendar;
+  }
+  return (arg => resolveBasicCalendarId(parseCalendarId(requireString(arg))))(arg);
+}
+
+const durationSlotsMap = /*@__PURE__*/ new WeakMap;
+
+const Duration = /*@__PURE__*/ defineTemporalClass(DurationBranding, class {
+  constructor(years = 0, months = 0, weeks = 0, days = 0, hours = 0, minutes = 0, seconds = 0, milliseconds = 0, microseconds = 0, nanoseconds = 0) {
+    const fields = validateDurationFields(mapProps(internal_toStrictInteger, {
+      years: years,
+      months: months,
+      weeks: weeks,
+      days: days,
+      hours: hours,
+      minutes: minutes,
+      seconds: seconds,
+      milliseconds: milliseconds,
+      microseconds: microseconds,
+      nanoseconds: nanoseconds
+    }));
+    initDuration(this, createDurationSlots(fields));
+  }
+  static from(arg) {
+    return createDuration(toDurationSlots(arg));
+  }
+  static compare(durationArg0, durationArg1, options = void 0) {
+    return compareDurations(refinePublicRelativeTo, toDurationSlots(durationArg0), toDurationSlots(durationArg1), options);
+  }
+  get sign() {
+    return getDurationSlots(this).sign;
+  }
+  get blank() {
+    return !getDurationSlots(this).sign;
+  }
+  with(mod) {
+    return createDuration(mergeDurationFields(getDurationSlots(this), mod));
+  }
+  negated() {
+    return createDuration(negateDuration(getDurationSlots(this)));
+  }
+  abs() {
+    return createDuration(absDuration(getDurationSlots(this)));
+  }
+  add(otherArg) {
+    return createDuration(addDurationsWithoutRelativeTo(0, getDurationSlots(this), toDurationSlots(otherArg)));
+  }
+  subtract(otherArg) {
+    return createDuration(addDurationsWithoutRelativeTo(1, getDurationSlots(this), toDurationSlots(otherArg)));
+  }
+  round(roundTo) {
+    return createDuration(roundDuration(refinePublicRelativeTo, getDurationSlots(this), roundTo));
+  }
+  total(totalOf) {
+    return totalDuration(refinePublicRelativeTo, getDurationSlots(this), totalOf);
+  }
+  toLocaleString(locales = void 0, options) {
+    const slots = getDurationSlots(this);
+    return Intl.DurationFormat ? new Intl.DurationFormat(locales, options).format(slots) : formatDurationIso(slots, options);
+  }
+  toString(options = void 0) {
+    return formatDurationIso(getDurationSlots(this), options);
+  }
+  toJSON() {
+    return formatDurationIso(getDurationSlots(this));
+  }
+  valueOf() {
+    return apiHelpers_forbiddenValueOf();
+  }
+}, getDurationSlots, durationGetters);
+
+function createDuration(slots) {
+  return initDuration(Object.create(Duration.prototype), slots);
+}
+
+function getDurationSlots(obj) {
+  return getDurationSlotsIfPresent(obj) || invalidRecordType();
+}
+
+function getDurationSlotsIfPresent(obj) {
+  return durationSlotsMap.get(obj);
+}
+
+function toDurationSlots(arg) {
+  if (internal_isObjectLike(arg)) {
+    return getDurationSlotsIfPresent(arg) || refineDurationObjectLike(arg);
+  }
+  return parseDuration(arg);
+}
+
+function refinePublicRelativeTo(relativeTo) {
+  if (void 0 !== relativeTo) {
+    if (internal_isObjectLike(relativeTo)) {
+      const zonedDateTimeSlots = getZonedDateTimeSlotsIfPresent(relativeTo);
+      if (zonedDateTimeSlots) {
+        return zonedDateTimeSlots;
+      }
+      const dateSlots = getPlainDateSlotsIfPresent(relativeTo);
+      if (dateSlots) {
+        return dateSlots;
+      }
+      const dateTimeSlots = getPlainDateTimeSlotsIfPresent(relativeTo);
+      if (dateTimeSlots) {
+        return createDateSlots(dateTimeSlots, dateTimeSlots.calendar);
+      }
+      const calendar = getCalendarFromBag(relativeTo);
+      return refineMaybeZonedDateTimeObjectLike(refineTimeZoneArg, calendar, relativeTo);
+    }
+    return parseRelativeToSlots(relativeTo, resolveBasicCalendarId);
+  }
+}
+
+function initDuration(instance, slots) {
+  return durationSlotsMap.set(instance, slots), attachDebugString(instance), instance;
+}
+
+const Now = /*@__PURE__*/ Object.defineProperties({}, {
+  ...createStringTagDescriptors("Temporal.Now"),
+  ...createPropDescriptors({
+    timeZoneId() {
+      return getCurrentTimeZoneId();
+    },
+    instant() {
+      return createInstant(createEpochNanoSlots(getCurrentEpochNano()));
+    },
+    zonedDateTimeISO(timeZoneArg = getCurrentTimeZoneId()) {
+      const timeZone = queryTimeZone(refineTimeZoneArg(timeZoneArg));
+      return createZonedDateTime(createZonedEpochNanoSlots(getCurrentEpochNano(), timeZone));
+    },
+    plainDateTimeISO(timeZoneArg = getCurrentTimeZoneId()) {
+      const isoDateTime = getCurrentIsoDateTime(queryTimeZone(refineTimeZoneArg(timeZoneArg)));
+      return createPlainDateTime(createDateTimeSlots(isoDateTime));
+    },
+    plainDateISO(timeZoneArg = getCurrentTimeZoneId()) {
+      const isoDateTime = getCurrentIsoDateTime(queryTimeZone(refineTimeZoneArg(timeZoneArg)));
+      return createPlainDate(createDateSlots(isoDateTime));
+    },
+    plainTimeISO(timeZoneArg = getCurrentTimeZoneId()) {
+      const isoDateTime = getCurrentIsoDateTime(queryTimeZone(refineTimeZoneArg(timeZoneArg)));
+      return createPlainTime(createTimeSlots(isoDateTime));
+    }
+  })
+});
+
+const Temporal = /*@__PURE__*/ Object.defineProperties({}, {
+  ...createStringTagDescriptors("Temporal"),
+  ...createPropDescriptors({
+    PlainYearMonth: PlainYearMonth,
+    PlainMonthDay: PlainMonthDay,
+    PlainDate: PlainDate,
+    PlainTime: PlainTime,
+    PlainDateTime: PlainDateTime,
+    ZonedDateTime: ZonedDateTime,
+    Instant: Instant,
+    Duration: Duration,
+    Now: Now
+  })
+});
+
+const DateTimeFormat = /*@__PURE__*/ (/* unused pure expression or super */ null && (createDateTimeFormatClass(getTemporalBrandingAndSlots)));
+
+const classApi_basic_IntlExtended = /*@__PURE__*/ (/* unused pure expression or super */ null && (createIntlExtended(DateTimeFormat)));
+
+
+
+;// CONCATENATED MODULE: ./node_modules/temporal-polyfill/index.js
+
+
+
+
+const temporal_polyfill_Temporal = root_NativeTemporal || Temporal;
+
+const IntlExport = (/* unused pure expression or super */ null && (NativeTemporal ? Intl : IntlExtended));
+
+const temporal_polyfill_toTemporalInstant = root_NativeTemporal ? Date.prototype.toTemporalInstant : toTemporalInstant;
+
+
+
+;// CONCATENATED MODULE: external "os"
+const external_os_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("os");
 ;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/utils.js
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -57204,7 +57972,7 @@ function utils_toCommandProperties(annotationProperties) {
  */
 function command_issueCommand(command, properties, message) {
     const cmd = new Command(command, properties, message);
-    process.stdout.write(cmd.toString() + external_os_.EOL);
+    process.stdout.write(cmd.toString() + external_os_namespaceObject.EOL);
 }
 function command_issue(name, message = '') {
     command_issueCommand(name, {}, message);
@@ -57278,7 +58046,7 @@ function file_command_issueFileCommand(command, message) {
     if (!external_fs_.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
     }
-    external_fs_.appendFileSync(filePath, `${utils_toCommandValue(message)}${external_os_.EOL}`, {
+    external_fs_.appendFileSync(filePath, `${utils_toCommandValue(message)}${external_os_namespaceObject.EOL}`, {
         encoding: 'utf8'
     });
 }
@@ -57294,7 +58062,7 @@ function file_command_prepareKeyValueMessage(key, value) {
     if (convertedValue.includes(delimiter)) {
         throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
     }
-    return `${key}<<${delimiter}${external_os_.EOL}${convertedValue}${external_os_.EOL}${delimiter}`;
+    return `${key}<<${delimiter}${external_os_namespaceObject.EOL}${convertedValue}${external_os_namespaceObject.EOL}${delimiter}`;
 }
 //# sourceMappingURL=file-command.js.map
 // EXTERNAL MODULE: external "path"
@@ -58378,7 +59146,7 @@ class Summary {
      * @returns {Summary} summary instance
      */
     addEOL() {
-        return this.addRaw(external_os_.EOL);
+        return this.addRaw(external_os_namespaceObject.EOL);
     }
     /**
      * Adds an HTML codeblock to the summary buffer
@@ -58582,7 +59350,7 @@ var io_util_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _
 };
 
 
-const { chmod, copyFile, lstat, mkdir, open: io_util_open, readdir, rename, rm: io_util_rm, rmdir, stat, symlink, unlink } = external_fs_.promises;
+const { chmod, copyFile, lstat, mkdir, open: io_util_open, readdir, rename, rm, rmdir, stat, symlink, unlink } = external_fs_.promises;
 // export const {open} = 'fs'
 const IS_WINDOWS = process.platform === 'win32';
 /**
@@ -58771,7 +59539,7 @@ var io_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argum
  * @param     dest      destination path
  * @param     options   optional. See CopyOptions.
  */
-function io_cp(source_1, dest_1) {
+function cp(source_1, dest_1) {
     return io_awaiter(this, arguments, void 0, function* (source, dest, options = {}) {
         const { force, recursive, copySourceDirectory } = readCopyOptions(options);
         const destStat = (yield ioUtil.exists(dest)) ? yield ioUtil.stat(dest) : null;
@@ -59102,13 +59870,13 @@ class ToolRunner extends external_events_.EventEmitter {
     _processLineBuffer(data, strBuffer, onLine) {
         try {
             let s = strBuffer + data.toString();
-            let n = s.indexOf(external_os_.EOL);
+            let n = s.indexOf(external_os_namespaceObject.EOL);
             while (n > -1) {
                 const line = s.substring(0, n);
                 onLine(line);
                 // the rest of the string ...
-                s = s.substring(n + external_os_.EOL.length);
-                n = s.indexOf(external_os_.EOL);
+                s = s.substring(n + external_os_namespaceObject.EOL.length);
+                n = s.indexOf(external_os_namespaceObject.EOL);
             }
             return s;
         }
@@ -59399,7 +60167,7 @@ class ToolRunner extends external_events_.EventEmitter {
                 }
                 const optionsNonNull = this._cloneExecOptions(this.options);
                 if (!optionsNonNull.silent && optionsNonNull.outStream) {
-                    optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + external_os_.EOL);
+                    optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + external_os_namespaceObject.EOL);
                 }
                 const state = new ExecState(optionsNonNull, this.toolPath);
                 state.on('debug', (message) => {
@@ -59738,8 +60506,8 @@ const getLinuxInfo = () => platform_awaiter(void 0, void 0, void 0, function* ()
         version
     };
 });
-const platform = external_os_.platform();
-const arch = external_os_.arch();
+const platform = external_os_namespaceObject.platform();
+const arch = external_os_namespaceObject.arch();
 const isWindows = platform === 'win32';
 const isMacOS = platform === 'darwin';
 const isLinux = platform === 'linux';
@@ -59920,7 +60688,7 @@ function setOutput(name, value) {
     if (filePath) {
         return file_command_issueFileCommand('OUTPUT', file_command_prepareKeyValueMessage(name, value));
     }
-    process.stdout.write(external_os_.EOL);
+    process.stdout.write(external_os_namespaceObject.EOL);
     command_issueCommand('set-output', { name }, utils_toCommandValue(value));
 }
 /**
@@ -59988,7 +60756,7 @@ function notice(message, properties = {}) {
  * @param message info message
  */
 function info(message) {
-    process.stdout.write(message + external_os_.EOL);
+    process.stdout.write(message + external_os_namespaceObject.EOL);
 }
 /**
  * Begin an output group.
@@ -60592,7 +61360,7 @@ class Pattern {
         }
         // Replace leading `~` segment
         else if (pattern === '~' || pattern.startsWith(`~${external_path_.sep}`)) {
-            homedir = homedir || external_os_.homedir();
+            homedir = homedir || external_os_namespaceObject.homedir();
             external_assert_(homedir, 'Unable to determine HOME directory');
             external_assert_(hasAbsoluteRoot(homedir), `Expected HOME directory to be a rooted path. Actual '${homedir}'`);
             pattern = Pattern.globEscape(homedir) + pattern.substr(1);
@@ -73485,7 +74253,7 @@ const consider = {
     unicode: false,
 };
 
-function strnum_toNumber(str, options = {}) {
+function toNumber(str, options = {}) {
     options = Object.assign({}, consider, options);
     if (!str || typeof str !== "string") return str;
 
@@ -77568,7 +78336,7 @@ function parseValue(val, shouldParse, options) {
     const newval = val.trim();
     if (newval === 'true') return true;
     else if (newval === 'false') return false;
-    else return strnum_toNumber(val, options);
+    else return toNumber(val, options);
   } else {
     if (isExist(val)) {
       return val;
@@ -113123,7 +113891,7 @@ async function calculateCacheKey(version, packages, texlive_version, revision) {
         .join('');
     const osid = `${external_node_os_namespaceObject.platform()}-${external_node_os_namespaceObject.machine()}`;
     const cachePrefix = `texlive-${osid}-${version}-${packageHash}-${texlive_version || 'NONE'}-`;
-    const cacheKey = cachePrefix + (revision ?? Un.Now.plainDateISO('UTC').toString());
+    const cacheKey = cachePrefix + (revision ?? temporal_polyfill_Temporal.Now.plainDateISO('UTC').toString());
     return {
         prefix: cachePrefix,
         full: cacheKey
