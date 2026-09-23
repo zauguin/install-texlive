@@ -52,6 +52,7 @@ export default [
       'i18n-text/no-en': 'off',
       'import/no-namespace': 'off',
       'no-console': 'off',
+      "no-shadow": ["error", { "allow": ["_"] }],
       'no-unused-vars': 'off',
       'prettier/prettier': 'error',
       '@stylistic/semi': 'off',
