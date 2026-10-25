@@ -23,6 +23,7 @@
   "engines": {
     "node": ">=24"
   },
+  "packageManager": "pnpm@12.0.0",
   "scripts": {
     "bundle": "pnpm run format:write && pnpm run package",
     "ci-test": "vitest --run",
@@ -47,6 +48,7 @@
     "temporal-polyfill": "^1.0.6"
   },
   "devDependencies": {
+    "@actions/http-client": "^4.0.1",
     "@eslint/eslintrc": "^3.3.7",
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^5.10.0",

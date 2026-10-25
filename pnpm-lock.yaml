@@ -27,6 +27,9 @@ importers:
         specifier: ^1.0.6
         version: 1.0.6
     devDependencies:
+      '@actions/http-client':
+        specifier: ^4.0.1
+        version: 4.0.1
       '@eslint/eslintrc':
         specifier: ^3.3.7
         version: 3.3.7
