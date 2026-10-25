@@ -21,6 +21,7 @@
     ".": "./dist/index.js"
   },
   "engines": {
+    "pnpm": ">=12",
     "node": ">=24"
   },
   "scripts": {
@@ -47,6 +48,7 @@
     "temporal-polyfill": "^1.0.6"
   },
   "devDependencies": {
+    "@actions/http-client": "^4.0.1",
     "@eslint/eslintrc": "^3.3.7",
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^5.10.0",
