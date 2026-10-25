@@ -24,7 +24,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "bundle": "npm run format:write && npm run package",
+    "bundle": "pnpm run format:write && pnpm run package",
     "ci-test": "vitest --run",
     "check": "tsc --noEmit -p tsconfig.json",
     "coverage": "make-coverage-badge --output-path ./badges/coverage.svg",
@@ -32,10 +32,10 @@
     "format:check": "prettier --check **/*.ts",
     "lint": "npx eslint . -c eslint.config.mjs",
     "package": "ncc build src/index.ts --license licenses.txt && linefix dist",
-    "package:watch": "npm run package -- --watch",
+    "package:watch": "pnpm run package -- --watch",
     "test": "vitest --run",
     "test:watch": "vitest",
-    "all": "npm run format:write && npm run lint && npm run check && npm run test && npm run coverage && npm run package"
+    "all": "pnpm run format:write && pnpm run lint && pnpm run check && pnpm run test && pnpm run coverage && pnpm run package"
   },
   "license": "MIT",
   "dependencies": {
