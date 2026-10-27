@@ -22,7 +22,12 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
-    name: '1st: ${{ matrix.os }}'
+        nightly:
+          - ''
+        include:
+          - os: ubuntu-latest
+            nightly: '*'
+    name: "1st: ${{ matrix.os }}${{ matrix.nightly && ' nightly' || '' }}"
     runs-on: '${{ matrix.os }}'
     steps:
       - name: Checkout code
@@ -33,6 +38,7 @@ jobs:
           packages: latex-bin
           cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
           texlive_version: '2024'
+          nightly: ${{ matrix.nightly }}
       - run: pdflatex test.tex
 
   run-with-cache:
