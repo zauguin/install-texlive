@@ -115698,13 +115698,37 @@ function parsePackages(packagesString) {
         .map(m => m[0])
         .sort();
 }
-async function calculateCacheKey(version, packages, texlive_version, revision) {
-    const packageHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(packages.join()))))
+async function getNightlyRevision() {
+    const http = new lib_HttpClient();
+    try {
+        const versionResponse = await http.get('https://nightly.typesetting.eu/tlpkg/texlive.tlpdb.version');
+        if (versionResponse.message.statusCode === 200) {
+            return Number.parseInt(await versionResponse.readBody());
+        }
+        else {
+            return undefined;
+        }
+    }
+    catch (_) {
+        return undefined;
+    }
+}
+async function calculateCacheKey(version, packages, texlive_version, revision, nightly) {
+    let packageHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(packages.join()))))
         .map(byte => byte.toString(16).padStart(2, '0'))
         .join('');
+    let revision_suffix = revision ?? temporal_polyfill_Temporal.Now.plainDateISO('UTC').toString();
+    if (nightly !== '') {
+        packageHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(packageHash + nightly))))
+            .map(byte => byte.toString(16).padStart(2, '0'))
+            .join('');
+        const nightly_revision = await getNightlyRevision();
+        revision_suffix +=
+            '-' + (nightly_revision ?? temporal_polyfill_Temporal.Now.plainDateISO('UTC').toString());
+    }
     const osid = `${external_node_os_namespaceObject.platform()}-${external_node_os_namespaceObject.machine()}`;
     const cachePrefix = `texlive-${osid}-${version}-${packageHash}-${texlive_version || 'NONE'}-`;
-    const cacheKey = cachePrefix + (revision ?? temporal_polyfill_Temporal.Now.plainDateISO('UTC').toString());
+    const cacheKey = cachePrefix + revision_suffix;
     return {
         prefix: cachePrefix,
         full: cacheKey
@@ -115789,7 +115813,7 @@ function handleExecResult(description, status) {
         return;
     throw new Error(`${description} failed with status code ${status}`);
 }
-async function installTexLive(initialInstall, repository, tlPlatform, packages) {
+async function installTexLive(initialInstall, repository, tlPlatform, packages, nightly) {
     const tlmgr = tlPlatform === 'windows' ? 'tlmgr.bat' : 'tlmgr';
     if (initialInstall) {
         const http = new lib_HttpClient('install-texlive GitHub Action', [], {
@@ -115818,6 +115842,15 @@ async function installTexLive(initialInstall, repository, tlPlatform, packages) 
         }));
         handleExecResult('Setting tlmgr options', await exec_exec(tlmgr, ['option', '--', 'autobackup', '0']));
         handleExecResult('Setting repository', await exec_exec(tlmgr, ['option', 'repository', repository ?? 'ctan']));
+        if (nightly !== '') {
+            handleExecResult('Registering nightly repository', await exec_exec(tlmgr, [
+                'repository',
+                'add',
+                'https://nightly.typesetting.eu',
+                'nightly'
+            ]));
+            handleExecResult('Configuring pinning', await exec_exec(tlmgr, ['pinning', 'add', 'nightly', ...nightly.split(',')]));
+        }
         handleExecResult('Installing packages', await exec_exec(tlmgr, ['install', ...packages]));
     }
     else {
@@ -115841,6 +115874,7 @@ async function run() {
         const cacheVersion = getMandatoryInput('cache_version');
         const acceptStale = getBooleanInput('accept-stale');
         const enableCache = getBooleanInput('cache');
+        const nightly = getOptionalInput('nightly') ?? '';
         const packages = await (async () => {
             const packageString = await inlineOrFilecontent(packagesInline, packageFile);
             if (packageString === undefined) {
@@ -115849,7 +115883,7 @@ async function run() {
             return parsePackages(packageString);
         })();
         const cacheKey = enableCache &&
-            (await calculateCacheKey(cacheVersion, packages, texlive_version, revision));
+            (await calculateCacheKey(cacheVersion, packages, texlive_version, revision, nightly));
         const home = external_node_os_namespaceObject.homedir();
         const tlPlatform = detectTlPlatform();
         addPath(`${home}/texlive/bin/${tlPlatform}`);
@@ -115867,7 +115901,7 @@ async function run() {
         }
         // Installing TeX Live gets another try block to handle acceptStale
         try {
-            await installTexLive(restoredCache === undefined, repository, tlPlatform, packages);
+            await installTexLive(restoredCache === undefined, repository, tlPlatform, packages, nightly);
         }
         catch (error) {
             if (!acceptStale) {

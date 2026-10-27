@@ -33,6 +33,12 @@ inputs:
       Cache TeX Live installations in GitHub Actions Cache.
     required: false
     default: true
+  nightly:
+    description: >
+      Comma separated glob patterns describing which packages to install from the
+      LaTeX nightly repository
+    required: false
+    default: ''
 
 outputs:
   cache_key:

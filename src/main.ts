@@ -65,16 +65,33 @@ export function parsePackages(packagesString: string): string[] {
     .sort()
 }
 
+async function getNightlyRevision(): Promise<number | undefined> {
+  const http = new HttpClient()
+  try {
+    const versionResponse = await http.get(
+      'https://nightly.typesetting.eu/tlpkg/texlive.tlpdb.version'
+    )
+    if (versionResponse.message.statusCode === 200) {
+      return Number.parseInt(await versionResponse.readBody())
+    } else {
+      return undefined
+    }
+  } catch (_) {
+    return undefined
+  }
+}
+
 async function calculateCacheKey(
   version: string,
   packages: string[],
   texlive_version: number | undefined,
-  revision: number | undefined
+  revision: number | undefined,
+  nightly: string
 ): Promise<{
   prefix: string
   full: string
 }> {
-  const packageHash = Array.from(
+  let packageHash = Array.from(
     new Uint8Array(
       await crypto.subtle.digest(
         'SHA-256',
@@ -84,10 +101,25 @@ async function calculateCacheKey(
   )
     .map(byte => byte.toString(16).padStart(2, '0'))
     .join('')
+  let revision_suffix = revision ?? Temporal.Now.plainDateISO('UTC').toString()
+  if (nightly !== '') {
+    packageHash = Array.from(
+      new Uint8Array(
+        await crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(packageHash + nightly)
+        )
+      )
+    )
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('')
+    const nightly_revision = await getNightlyRevision()
+    revision_suffix +=
+      '-' + (nightly_revision ?? Temporal.Now.plainDateISO('UTC').toString())
+  }
   const osid = `${os.platform()}-${os.machine()}`
   const cachePrefix = `texlive-${osid}-${version}-${packageHash}-${texlive_version || 'NONE'}-`
-  const cacheKey =
-    cachePrefix + (revision ?? Temporal.Now.plainDateISO('UTC').toString())
+  const cacheKey = cachePrefix + revision_suffix
   return {
     prefix: cachePrefix,
     full: cacheKey
@@ -210,7 +242,8 @@ async function installTexLive(
   initialInstall: boolean,
   repository: string | undefined,
   tlPlatform: TlPlatform,
-  packages: string[]
+  packages: string[],
+  nightly: string
 ): Promise<void> {
   const tlmgr = tlPlatform === 'windows' ? 'tlmgr.bat' : 'tlmgr'
   if (initialInstall) {
@@ -259,6 +292,21 @@ async function installTexLive(
       'Setting repository',
       await exec(tlmgr, ['option', 'repository', repository ?? 'ctan'])
     )
+    if (nightly !== '') {
+      handleExecResult(
+        'Registering nightly repository',
+        await exec(tlmgr, [
+          'repository',
+          'add',
+          'https://nightly.typesetting.eu',
+          'nightly'
+        ])
+      )
+      handleExecResult(
+        'Configuring pinning',
+        await exec(tlmgr, ['pinning', 'add', 'nightly', ...nightly.split(',')])
+      )
+    }
     handleExecResult(
       'Installing packages',
       await exec(tlmgr, ['install', ...packages])
@@ -300,6 +348,7 @@ export async function run(): Promise<void> {
     const cacheVersion = getMandatoryInput('cache_version')
     const acceptStale = core.getBooleanInput('accept-stale')
     const enableCache = core.getBooleanInput('cache')
+    const nightly = getOptionalInput('nightly') ?? ''
 
     const packages = await (async () => {
       const packageString = await inlineOrFilecontent(
@@ -318,7 +367,8 @@ export async function run(): Promise<void> {
         cacheVersion,
         packages,
         texlive_version,
-        revision
+        revision,
+        nightly
       ))
 
     const home = os.homedir()
@@ -344,7 +394,8 @@ export async function run(): Promise<void> {
         restoredCache === undefined,
         repository,
         tlPlatform,
-        packages
+        packages,
+        nightly
       )
     } catch (error) {
       if (!acceptStale) {
