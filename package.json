@@ -54,8 +54,8 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/decompress": "^4.2.7",
     "@types/node": "^25.9.9",
-    "@typescript-eslint/eslint-plugin": "^8.72.0",
-    "@typescript-eslint/parser": "^8.72.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.1",
+    "@typescript-eslint/parser": "^8.72.1",
     "@vercel/ncc": "^0.45.0",
     "@vitest/coverage-v8": "^5.0.5",
     "eslint": "^10.13.0",
@@ -68,7 +68,7 @@
     "make-coverage-badge": "^1.2.0",
     "prettier": "^3.9.10",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.0",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^5.0.5"
   }
 }
