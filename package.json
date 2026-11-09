@@ -45,7 +45,7 @@
     "@actions/exec": "^3.0.0",
     "@actions/github": "^9.1.1",
     "decompress": "^4.2.1",
-    "temporal-polyfill": "^1.0.6"
+    "temporal-polyfill": "^1.0.8"
   },
   "devDependencies": {
     "@actions/http-client": "^4.0.1",
