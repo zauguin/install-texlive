@@ -35,11 +35,11 @@ jobs:
       - name: Run the action
         uses: ./
         with:
-          packages: latex-bin
+          packages: latex-bin${{ matrix.nightly && ' latex-bin-nightly lua-uni-algos' || '' }}
           cache_version: ${{ github.run_id }}_${{ github.run_attempt }}
           texlive_version: '2024'
           nightly: ${{ matrix.nightly }}
-      - run: pdflatex test.tex
+      - run: pdflatex${{ matrix.nightly && ' --fmt=pdflatex-nightly' || '' }} test.tex
 
   run-with-cache:
     needs: first-run
