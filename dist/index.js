@@ -115717,6 +115717,13 @@ function handleExecResult(description, status) {
         return;
     throw new Error(`${description} failed with status code ${status}`);
 }
+const nightly_tlconf = '\n' +
+    'TEXINPUTS.latex-nightly = $TEXMFDOTDIR;$TEXMF/tex/{latex-nightly,latex-dev,latex,generic,}//\n' +
+    'TEXINPUTS.pdflatex-nightly = $TEXMFDOTDIR;$TEXMF/tex/{latex-nightly,latex-dev,latex,generic,}//\n' +
+    'TEXINPUTS.lualatex-nightly = $TEXMFDOTDIR;$TEXMF/tex/{latex-nightly,latex-dev,lualatex,latex,luatex,generic,}//\n' +
+    'TEXINPUTS.dvilualatex-nightly = $TEXMFDOTDIR;$TEXMF/tex/{latex-nightly,latex-dev,lualatex,latex,luatex,generic,}//\n' +
+    'LUAINPUTS.lualatex-nightly = $TEXMFDOTDIR;$TEXMF/scripts/{$progname,$engine,}/{lua,}//;$TEXMF/tex/{latex-nightly,latex-dev,lualatex,latex,luatex,generic,}//\n' +
+    'LUAINPUTS.dvilualatex-nightly = $TEXMFDOTDIR;$TEXMF/scripts/{$progname,$engine,}/{lua,}//;$TEXMF/tex/{latex-nightly,latex-dev,lualatex,latex,luatex,generic,}//\n';
 async function installTexLive(initialInstall, repository, tlPlatform, packages, nightly) {
     const tlmgr = tlPlatform === 'windows' ? 'tlmgr.bat' : 'tlmgr';
     if (initialInstall) {
@@ -115754,6 +115761,8 @@ async function installTexLive(initialInstall, repository, tlPlatform, packages, 
                 'nightly'
             ]));
             handleExecResult('Configuring pinning', await exec_exec(tlmgr, ['pinning', 'add', 'nightly', ...nightly.split(',')]));
+            const home = external_node_os_namespaceObject.homedir();
+            await promises_namespaceObject.appendFile(`${home}/texlive/texmf.cnf`, nightly_tlconf);
         }
         handleExecResult('Installing packages', await exec_exec(tlmgr, ['install', ...packages]));
     }

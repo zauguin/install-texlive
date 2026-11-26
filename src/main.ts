@@ -238,6 +238,15 @@ function handleExecResult(description: string, status: number): void {
   throw new Error(`${description} failed with status code ${status}`)
 }
 
+const nightly_tlconf =
+  '\n' +
+  'TEXINPUTS.latex-nightly = $TEXMFDOTDIR;$TEXMF/tex/{latex-nightly,latex-dev,latex,generic,}//\n' +
+  'TEXINPUTS.pdflatex-nightly = $TEXMFDOTDIR;$TEXMF/tex/{latex-nightly,latex-dev,latex,generic,}//\n' +
+  'TEXINPUTS.lualatex-nightly = $TEXMFDOTDIR;$TEXMF/tex/{latex-nightly,latex-dev,lualatex,latex,luatex,generic,}//\n' +
+  'TEXINPUTS.dvilualatex-nightly = $TEXMFDOTDIR;$TEXMF/tex/{latex-nightly,latex-dev,lualatex,latex,luatex,generic,}//\n' +
+  'LUAINPUTS.lualatex-nightly = $TEXMFDOTDIR;$TEXMF/scripts/{$progname,$engine,}/{lua,}//;$TEXMF/tex/{latex-nightly,latex-dev,lualatex,latex,luatex,generic,}//\n' +
+  'LUAINPUTS.dvilualatex-nightly = $TEXMFDOTDIR;$TEXMF/scripts/{$progname,$engine,}/{lua,}//;$TEXMF/tex/{latex-nightly,latex-dev,lualatex,latex,luatex,generic,}//\n'
+
 async function installTexLive(
   initialInstall: boolean,
   repository: string | undefined,
@@ -306,6 +315,8 @@ async function installTexLive(
         'Configuring pinning',
         await exec(tlmgr, ['pinning', 'add', 'nightly', ...nightly.split(',')])
       )
+      const home = os.homedir()
+      await fs.appendFile(`${home}/texlive/texmf.cnf`, nightly_tlconf)
     }
     handleExecResult(
       'Installing packages',
